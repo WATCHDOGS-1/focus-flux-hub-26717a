@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 const PomodoroTimer = () => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(false);
+  const [isActive, setIsActive] = useState(true); // Auto-start
   const [isBreak, setIsBreak] = useState(false);
 
   const workTime = 25 * 60;
@@ -93,7 +93,7 @@ const PomodoroTimer = () => {
           size="icon"
           variant={isActive ? "default" : "outline"}
           onClick={toggleTimer}
-          className="w-12 h-12"
+          className="w-12 h-12 dopamine-click shadow-glow"
         >
           {isActive ? <Pause /> : <Play />}
         </Button>
@@ -101,7 +101,7 @@ const PomodoroTimer = () => {
           size="icon"
           variant="outline"
           onClick={resetTimer}
-          className="w-12 h-12"
+          className="w-12 h-12 dopamine-click shadow-glow"
         >
           <RotateCcw />
         </Button>

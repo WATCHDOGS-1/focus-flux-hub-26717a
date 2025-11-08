@@ -173,7 +173,7 @@ const FocusRoom = () => {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Video Grid */}
         <div className="flex-1 p-4">
-          <VideoGrid userId={userId} />
+          <VideoGrid userId={userId} roomId={sessionId || 'default-room'} />
         </div>
 
         {/* Side Panel */}
