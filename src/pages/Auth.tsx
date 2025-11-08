@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const Auth = () => {
   const [username, setUsername] = useState("");
@@ -18,43 +21,26 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      // 1. Get a secure anonymous session from Supabase
-      const { data: { user }, error: authError } = await supabase.auth.signInAnonymously();
-      if (authError) throw authError;
-      if (!user) throw new Error("Authentication failed.");
-
-      // 2. Check if this user already has a profile
-      const { data: profile, error: profileError } = await supabase
+      // Check if profile exists
+      const { data: existingProfile, error: selectError } = await supabase
         .from("profiles")
-        .select("id, username")
-        .eq("id", user.id)
-        .single();
+        .select("*")
+        .eq("username", username.trim())
+        .maybeSingle();
 
-      if (profile && !profileError) {
-        // Profile exists, welcome them back
-        localStorage.setItem("userId", profile.id);
-        localStorage.setItem("username", profile.username);
-        toast.success(`Welcome back, ${profile.username}!`);
+      if (selectError) throw selectError;
+
+      if (existingProfile) {
+        // Login - just store in session
+        localStorage.setItem("userId", existingProfile.id);
+        localStorage.setItem("username", existingProfile.username);
+        toast.success(`Welcome back, ${username}!`);
         navigate("/focus-room");
       } else {
-        // No profile exists, so create one
-        // First, check if the desired username is already taken
-        const { data: existingUser, error: checkError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("username", username.trim())
-          .maybeSingle();
-
-        if (checkError) throw checkError;
-        if (existingUser) {
-          toast.error("Username is already taken. Please choose another.");
-          return;
-        }
-
-        // Username is available, create the new profile
+        // Signup - create new profile
         const { data: newProfile, error: insertError } = await supabase
           .from("profiles")
-          .insert({ id: user.id, username: username.trim() })
+          .insert({ username: username.trim() })
           .select()
           .single();
 
@@ -62,12 +48,11 @@ const Auth = () => {
 
         localStorage.setItem("userId", newProfile.id);
         localStorage.setItem("username", newProfile.username);
-        toast.success(`Account created! Welcome, ${newProfile.username}!`);
+        toast.success(`Account created! Welcome, ${username}!`);
         navigate("/focus-room");
       }
     } catch (error: any) {
       toast.error(error.message || "Authentication failed");
-      console.error("Auth error:", error);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import VideoGrid from "@/components/VideoGrid";
 import ChatPanel from "@/components/ChatPanel";
@@ -8,11 +8,14 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut, Loader2 } from "lucide-react";
+import { MessageSquare, Trophy, Timer, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+
+type FocusSession = Database["public"]["Tables"]["focus_sessions"]["Row"];
+type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"];
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -20,7 +23,7 @@ const FocusRoom = () => {
   const [userId, setUserId] = useState<string>("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -30,114 +33,124 @@ const FocusRoom = () => {
       setUserId(storedUserId);
       startSession(storedUserId);
     }
+
+    return () => {
+      if (sessionIntervalRef.current) {
+        clearInterval(sessionIntervalRef.current);
+      }
+    };
   }, [navigate]);
 
   const startSession = async (uid: string) => {
-    setIsLoading(true);
     const { data, error } = await supabase
       .from("focus_sessions")
       .insert({ user_id: uid, start_time: new Date().toISOString() })
       .select()
       .single();
 
-    if (error) {
-      console.error("Error starting session:", error);
-      toast.error("Failed to start focus session. Please log in again.");
-      navigate("/auth");
-      return;
-    }
-
-    if (data) {
+    if (!error && data) {
       setSessionId(data.id);
       setSessionStartTime(Date.now());
     }
-    setIsLoading(false);
   };
 
   const leaveRoom = async () => {
-    try {
-      if (!sessionId || !sessionStartTime) {
-        toast.error("Session data is missing. Cannot save progress.");
+    if (!sessionId) return;
+
+    const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const minutes = Math.floor(sessionDuration / 60);
+
+    // Update session
+    const { error: sessionError } = await supabase
+      .from("focus_sessions")
+      .update({
+        end_time: new Date().toISOString(),
+        duration_minutes: minutes,
+      })
+      .eq("id", sessionId);
+
+    if (sessionError) {
+      console.error("Error updating session:", sessionError);
+      toast.error("Failed to save session");
+      return;
+    }
+
+    // Update weekly stats
+    const today = new Date();
+    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+    weekStart.setHours(0, 0, 0, 0);
+
+    const { data: existingStats, error: statsError } = await supabase
+      .from("weekly_stats")
+      .select("*")
+      .eq("user_id", userId)
+      .gte("week_start", weekStart.toISOString())
+      .maybeSingle();
+
+    if (statsError) {
+      console.error("Error fetching weekly stats:", statsError);
+      toast.error("Failed to update stats");
+      return;
+    }
+
+    if (existingStats) {
+      const { error: updateError } = await supabase
+        .from("weekly_stats")
+        .update({ total_minutes: existingStats.total_minutes + minutes })
+        .eq("id", existingStats.id);
+
+      if (updateError) {
+        console.error("Error updating weekly stats:", updateError);
+        toast.error("Failed to update stats");
         return;
       }
+    } else {
+      const { error: insertError } = await supabase
+        .from("weekly_stats")
+        .insert({
+          user_id: userId,
+          week_start: weekStart.toISOString(),
+          total_minutes: minutes,
+        });
 
-      const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
-      const minutes = Math.floor(sessionDuration / 60);
-
-      if (minutes > 0) {
-        // Update session
-        await supabase
-          .from("focus_sessions")
-          .update({
-            end_time: new Date().toISOString(),
-            duration_minutes: minutes,
-          })
-          .eq("id", sessionId);
-
-        // Update weekly stats
-        const today = new Date();
-        const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-        weekStart.setHours(0, 0, 0, 0);
-
-        const { data: existingStats } = await supabase
-          .from("weekly_stats")
-          .select("*")
-          .eq("user_id", userId)
-          .gte("week_start", weekStart.toISOString())
-          .maybeSingle();
-
-        if (existingStats) {
-          await supabase
-            .from("weekly_stats")
-            .update({ total_minutes: existingStats.total_minutes + minutes })
-            .eq("id", existingStats.id);
-        } else {
-          await supabase.from("weekly_stats").insert({
-            user_id: userId,
-            week_start: weekStart.toISOString(),
-            total_minutes: minutes,
-          });
-        }
-        toast.success(`Session saved! You focused for ${minutes} minutes! 🎉`);
-      } else {
-        toast.info("Session was too short to save.");
+      if (insertError) {
+        console.error("Error inserting weekly stats:", insertError);
+        toast.error("Failed to update stats");
+        return;
       }
-    } catch (e) {
-      console.error("An unexpected error occurred when leaving room:", e);
-      toast.error("An error occurred while saving your session.");
-    } finally {
-      navigate("/");
     }
+
+    toast.success(`Session saved! You focused for ${minutes} minutes! 🎉`);
+    navigate("/");
   };
 
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg text-muted-foreground">Starting your focus session...</p>
-      </div>
-    );
-  }
-
   if (!userId) return null;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Main Content */}
       <EncouragementToasts />
+      
       <div className="relative z-10 glass-card border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">OnlyFocus</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            OnlyFocus
+          </h1>
+          
           <TimeTracker userId={userId} sessionStartTime={sessionStartTime} />
+
           <div className="flex gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("chat")}
-              className={`dopamine-click transition-all ${activePanel === "chat" ? "bg-primary/20 shadow-glow" : ""}`}
+              className={`dopamine-click transition-all ${
+                activePanel === "chat" ? "bg-primary/20 shadow-glow" : ""
+              }`}
             >
               <MessageSquare className="h-5 w-5" />
             </Button>
@@ -145,7 +158,9 @@ const FocusRoom = () => {
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("leaderboard")}
-              className={`dopamine-click transition-all ${activePanel === "leaderboard" ? "bg-primary/20 shadow-glow" : ""}`}
+              className={`dopamine-click transition-all ${
+                activePanel === "leaderboard" ? "bg-primary/20 shadow-glow" : ""
+              }`}
             >
               <Trophy className="h-5 w-5" />
             </Button>
@@ -153,7 +168,9 @@ const FocusRoom = () => {
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("pomodoro")}
-              className={`dopamine-click transition-all ${activePanel === "pomodoro" ? "bg-primary/20 shadow-glow" : ""}`}
+              className={`dopamine-click transition-all ${
+                activePanel === "pomodoro" ? "bg-primary/20 shadow-glow" : ""
+              }`}
             >
               <Timer className="h-5 w-5" />
             </Button>
@@ -161,21 +178,33 @@ const FocusRoom = () => {
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("profile")}
-              className={`dopamine-click transition-all ${activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""}`}
+              className={`dopamine-click transition-all ${
+                activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""
+              }`}
             >
               <User className="h-5 w-5" />
             </Button>
             <ThemeToggle />
-            <Button variant="destructive" size="icon" onClick={leaveRoom} className="dopamine-click shadow-glow">
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={leaveRoom}
+              className="dopamine-click shadow-glow"
+            >
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Main Content */}
       <div className="flex h-[calc(100vh-80px)]">
+        {/* Video Grid */}
         <div className="flex-1 p-4">
-          <VideoGrid userId={userId} roomId={sessionId || "default-room"} />
+          <VideoGrid userId={userId} roomId={sessionId || 'default-room'} />
         </div>
+
+        {/* Side Panel */}
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
             {activePanel === "chat" && <ChatPanel userId={userId} />}

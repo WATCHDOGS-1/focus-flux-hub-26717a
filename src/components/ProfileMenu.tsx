@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Upload, Loader2 } from "lucide-react";
+import { LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -21,7 +21,6 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [dailyGoal, setDailyGoal] = useState(60);
   const [weeklyGoal, setWeeklyGoal] = useState(420);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -117,18 +116,10 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     }
   };
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Logout failed.");
-      console.error("Logout error:", error);
-      setIsLoggingOut(false);
-    } else {
-      localStorage.removeItem("userId");
-      localStorage.removeItem("username");
-      navigate("/auth");
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+    navigate("/auth");
   };
 
   return (
@@ -195,14 +186,9 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
           variant="destructive"
           className="w-full"
           onClick={handleLogout}
-          disabled={isLoggingOut}
         >
-          {isLoggingOut ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <LogOut className="w-4 h-4 mr-2" />
-          )}
-          {isLoggingOut ? "Logging out..." : "Logout"}
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout
         </Button>
       </div>
     </div>
