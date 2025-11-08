@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import GoogleIcon from "@/components/icons/GoogleIcon";
 
 const signUpSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -83,6 +84,22 @@ const Auth = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/focus-room`
+        }
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(error.message || "Google sign in failed");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -145,6 +162,20 @@ const Auth = () => {
                   </Button>
                 </form>
               </Form>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              <Button variant="outline" className="w-full flex items-center gap-2" onClick={handleGoogleSignIn} disabled={loading}>
+                <GoogleIcon className="w-5 h-5" />
+                Sign in with Google
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -201,6 +232,20 @@ const Auth = () => {
                   </Button>
                 </form>
               </Form>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              <Button variant="outline" className="w-full flex items-center gap-2" onClick={handleGoogleSignIn} disabled={loading}>
+                <GoogleIcon className="w-5 h-5" />
+                Sign up with Google
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
