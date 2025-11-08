@@ -30,7 +30,8 @@ const FocusRoom = () => {
       .single();
 
     if (error) {
-      console.error("Error starting focus session:", error);
+      // Log the full error object for detailed debugging
+      console.error("Error starting focus session:", error.message, error.details, error.hint);
       toast.error("Failed to start focus session. Please try again.");
       return false; // Indicate failure
     }
