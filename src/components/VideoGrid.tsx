@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Video, VideoOff, Pin, PinOff } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { WebRTCManager } from "@/utils/webrtc";
@@ -16,7 +16,7 @@ interface VideoGridProps {
 
 const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [peerProfiles, setPeerProfiles] = useState<Map<string, Profile>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -27,24 +27,23 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       try {
         webrtcManager.current = new WebRTCManager(
           userId,
-          async (peerId, stream) => {
-            setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
-            toast.success("Peer connected!");
-
-            const { data: profile, error } = await supabase
+          (peerId, stream) => {
+            setRemoteStreams(prev => new Map(prev).set(peerId, stream));
+            
+            // Fetch peer profile
+            supabase
               .from('profiles')
               .select('*')
               .eq('id', peerId)
-              .single();
-            
-            if (error) {
-              console.error('Error fetching peer profile:', error);
-            } else if (profile) {
-              setPeerProfiles(prev => new Map(prev).set(peerId, profile));
-            }
+              .single()
+              .then(({ data: profile, error }) => {
+                if (!error && profile) {
+                  setPeerProfiles(prev => new Map(prev).set(peerId, profile));
+                }
+              });
           },
           (peerId) => {
-            setRemoteStreams((prev) => {
+            setRemoteStreams(prev => {
               const newMap = new Map(prev);
               newMap.delete(peerId);
               return newMap;
@@ -54,9 +53,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
               newMap.delete(peerId);
               return newMap;
             });
-          },
-          () => {
-            // Peer left callback
           }
         );
 
@@ -64,15 +60,12 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(console.error);
         }
         
-        setIsVideoEnabled(true);
-        toast.success("Camera enabled");
+        toast.success("Connected to focus room!");
       } catch (error) {
         console.error("Error setting up WebRTC:", error);
-        toast.error("Failed to access camera. Please check permissions.");
-        setIsVideoEnabled(false);
+        toast.error("Failed to access camera/microphone. Please check permissions.");
       }
     };
 
@@ -93,47 +86,57 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       webrtcManager.current.toggleVideo(newVideoState);
     }
     setIsVideoEnabled(newVideoState);
-    toast.info(newVideoState ? "Camera enabled" : "Camera disabled");
   };
 
-  const togglePin = (index: number) => {
-    setPinnedVideos(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
-        newSet.add(index);
-      }
-      return newSet;
-    });
+  const toggleAudio = () => {
+    const newAudioState = !isAudioEnabled;
+    if (webrtcManager.current) {
+      webrtcManager.current.toggleAudio(newAudioState);
+    }
+    setIsAudioEnabled(newAudioState);
   };
+
+  // Calculate total participants
+  const totalParticipants = remoteStreams.size + 1;
 
   return (
     <div className="h-full flex flex-col gap-4">
       {/* Controls */}
-      <div className="glass-card p-4 rounded-xl space-y-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant={isVideoEnabled ? "default" : "outline"}
-            size="icon"
-            onClick={toggleVideo}
-            className="dopamine-click shadow-glow"
-          >
-            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-          </Button>
-
-          <div className="flex-1 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground font-semibold">
-              Connected: {remoteStreams.size + 1}
+      <div className="glass-card p-4 rounded-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <span className="text-sm font-semibold">
+              {totalParticipants} {totalParticipants === 1 ? 'Person' : 'People'} in Room
             </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant={isAudioEnabled ? "default" : "outline"}
+              size="icon"
+              onClick={toggleAudio}
+              className="dopamine-click"
+            >
+              {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+            </Button>
+            
+            <Button
+              variant={isVideoEnabled ? "default" : "outline"}
+              size="icon"
+              onClick={toggleVideo}
+              className="dopamine-click"
+            >
+              {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Video Grid */}
-      <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-2">
+      <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-1 md:grid-cols-2">
         {/* Local Video */}
-        <div className={`relative glass-card rounded-2xl overflow-hidden group ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
+        <div className="relative glass-card rounded-2xl overflow-hidden">
           <video
             ref={localVideoRef}
             autoPlay
@@ -144,24 +147,14 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
           <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold">
             You
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity dopamine-click"
-            onClick={() => togglePin(0)}
-          >
-            {pinnedVideos.has(0) ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
-          </Button>
         </div>
 
         {/* Remote Videos */}
-        {Array.from(remoteStreams.entries()).map(([peerId, stream], index) => (
+        {Array.from(remoteStreams.entries()).map(([peerId, stream]) => (
           <RemoteVideo
             key={peerId}
             peerId={peerId}
             stream={stream}
-            isPinned={pinnedVideos.has(index + 1)}
-            onTogglePin={() => togglePin(index + 1)}
             username={peerProfiles.get(peerId)?.username}
           />
         ))}
