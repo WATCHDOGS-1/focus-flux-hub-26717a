@@ -7,10 +7,9 @@ interface RemoteVideoProps {
   stream: MediaStream;
   isPinned: boolean;
   onTogglePin: () => void;
-  username?: string;
 }
 
-const RemoteVideo = ({ peerId, stream, isPinned, onTogglePin, username }: RemoteVideoProps) => {
+const RemoteVideo = ({ peerId, stream, isPinned, onTogglePin }: RemoteVideoProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -29,7 +28,7 @@ const RemoteVideo = ({ peerId, stream, isPinned, onTogglePin, username }: Remote
         className="w-full h-full object-cover"
       />
       <div className="absolute top-2 left-2 px-3 py-1 bg-secondary/80 backdrop-blur rounded-full text-xs font-bold">
-        {username || `Peer ${peerId.slice(0, 6)}`}
+        Peer {peerId.slice(0, 6)}
       </div>
       <Button
         variant="ghost"

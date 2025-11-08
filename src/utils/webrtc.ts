@@ -1,91 +1,89 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-];
+export interface PeerConnection {
+  peerId: string;
+  connection: RTCPeerConnection;
+  stream?: MediaStream;
+}
 
 export class WebRTCManager {
   private localStream: MediaStream | null = null;
-  private peers: Map<string, RTCPeerConnection> = new Map();
-  private remoteStreams: Map<string, MediaStream> = new Map();
+  private peers: Map<string, PeerConnection> = new Map();
   private roomChannel: any = null;
   private userId: string;
   private onStreamAdded: (peerId: string, stream: MediaStream) => void;
   private onStreamRemoved: (peerId: string) => void;
+  private onPeerLeft: () => void;
 
   constructor(
     userId: string,
     onStreamAdded: (peerId: string, stream: MediaStream) => void,
-    onStreamRemoved: (peerId: string) => void
+    onStreamRemoved: (peerId: string) => void,
+    onPeerLeft: () => void
   ) {
     this.userId = userId;
     this.onStreamAdded = onStreamAdded;
     this.onStreamRemoved = onStreamRemoved;
+    this.onPeerLeft = onPeerLeft;
   }
 
   async initialize(roomId: string) {
+    // 1. Get local stream FIRST. This is the critical fix.
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
+        audio: false,
       });
     } catch (error) {
       console.error('Error accessing media devices:', error);
       throw error;
     }
 
-    // Create a unique channel for this room
-    this.roomChannel = supabase.channel(`room_${roomId}`);
+    // 2. Now that the stream is ready, initialize signaling.
+    this.roomChannel = supabase.channel(`room:${roomId}`);
 
-    // Handle WebRTC signaling messages
-    this.roomChannel.on('broadcast', { event: 'signal' }, async (payload: any) => {
-      const { from, signal } = payload.payload;
-      if (from === this.userId) return;
-      
-      if (signal.type === 'offer') {
-        await this.handleOffer(from, signal);
-      } else if (signal.type === 'answer') {
-        await this.handleAnswer(from, signal);
-      } else if (signal.type === 'candidate') {
-        await this.handleIceCandidate(from, signal.candidate);
-      }
-    });
-
-    // Handle presence changes
-    this.roomChannel.on('presence', { event: 'join' }, (payload: any) => {
-      payload.newPresences.forEach((presence: any) => {
-        if (presence.user_id !== this.userId) {
-          // When a new user joins, create a connection to them and initiate an offer
-          this.createPeerConnection(presence.user_id, true);
-        }
-      });
-    });
-
-    this.roomChannel.on('presence', { event: 'leave' }, (payload: any) => {
-      payload.leftPresences.forEach((presence: any) => {
-        this.removePeer(presence.user_id);
-      });
-    });
-
-    // Subscribe to the channel
-    await this.roomChannel.subscribe(async (status: string) => {
-      if (status === 'SUBSCRIBED') {
-        // Announce our presence in the room
-        await this.roomChannel.track({ user_id: this.userId });
-        
-        // Connect to existing users
-        const presenceState = this.roomChannel.presenceState();
-        for (const key in presenceState) {
-          const presence = presenceState[key][0];
-          if (presence.user_id !== this.userId) {
-            // Current user is initiating connection to existing users
-            this.createPeerConnection(presence.user_id, true);
+    this.roomChannel
+      .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
+        console.log('New peer joined:', key, newPresences);
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
+        console.log('Peer left:', key);
+        leftPresences.forEach((presence: any) => {
+          this.removePeer(presence.userId);
+          this.onPeerLeft();
+        });
+      })
+      .on('presence', { event: 'sync' }, () => {
+        const presences = this.roomChannel.presenceState();
+        for (const id in presences) {
+          const presence = presences[id][0];
+          if (presence.userId !== this.userId) {
+            this.createPeerConnection(presence.userId, true);
           }
         }
-      }
-    });
-
+      })
+      .on('broadcast', { event: 'offer' }, async ({ payload }: any) => {
+        if (payload.to === this.userId) {
+          await this.handleOffer(payload.from, payload.offer);
+        }
+      })
+      .on('broadcast', { event: 'answer' }, async ({ payload }: any) => {
+        if (payload.to === this.userId) {
+          await this.handleAnswer(payload.from, payload.answer);
+        }
+      })
+      .on('broadcast', { event: 'ice-candidate' }, async ({ payload }: any) => {
+        if (payload.to === this.userId) {
+          await this.handleIceCandidate(payload.from, payload.candidate);
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await this.roomChannel.track({ userId: this.userId });
+        }
+      });
+      
+    // 3. Return the stream for the UI to use.
     return this.localStream;
   }
 
@@ -97,146 +95,127 @@ export class WebRTCManager {
     }
   }
 
-  public toggleAudio(enable: boolean) {
-    if (this.localStream) {
-      this.localStream.getAudioTracks().forEach(track => {
-        track.enabled = enable;
-      });
-    }
-  }
-
-  private async createPeerConnection(peerId: string, isInitiator: boolean = false) {
-    // Prevent duplicate connections
+  private async createPeerConnection(peerId: string, createOffer: boolean) {
     if (this.peers.has(peerId)) {
-      return this.peers.get(peerId);
+      console.log("Connection with peer already exists:", peerId);
+      return;
     }
 
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const configuration: RTCConfiguration = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
+    };
 
-    // Add local stream tracks to the connection
+    const pc = new RTCPeerConnection(configuration);
+
     if (this.localStream) {
-      this.localStream.getTracks().forEach(track => {
+      this.localStream.getTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });
     }
 
-    // Handle incoming media streams
     pc.ontrack = (event) => {
+      console.log('Received remote track from', peerId);
       if (event.streams && event.streams[0]) {
-        this.remoteStreams.set(peerId, event.streams[0]);
         this.onStreamAdded(peerId, event.streams[0]);
+        const peerConn = this.peers.get(peerId);
+        if (peerConn) {
+          peerConn.stream = event.streams[0];
+        }
       }
     };
 
-    // Handle ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        this.sendSignal(peerId, { type: 'candidate', candidate: event.candidate });
+        this.roomChannel.send({
+          type: 'broadcast',
+          event: 'ice-candidate',
+          payload: {
+            from: this.userId,
+            to: peerId,
+            candidate: event.candidate,
+          },
+        });
       }
     };
 
-    // Handle connection state changes
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-        this.removePeer(peerId);
-      }
-    };
+    this.peers.set(peerId, { peerId, connection: pc });
 
-    // Store the peer connection
-    this.peers.set(peerId, pc);
-
-    if (isInitiator) {
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        this.sendSignal(peerId, { type: 'offer', sdp: offer.sdp });
-      } catch (error) {
-        console.error('Error creating or sending offer:', error);
-        this.removePeer(peerId);
-      }
-    }
-
-    return pc;
-  }
-
-  private async handleOffer(peerId: string, offer: any) {
-    const pc = await this.createPeerConnection(peerId, false); // Not an initiator here, just responding
-    if (!pc) return;
-
-    try {
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      this.sendSignal(peerId, { type: 'answer', sdp: answer.sdp });
-    } catch (error) {
-      console.error('Error handling offer:', error);
-      this.removePeer(peerId);
-    }
-  }
-
-  private async handleAnswer(peerId: string, answer: any) {
-    const pc = this.peers.get(peerId);
-    if (!pc) return;
-
-    try {
-      await pc.setRemoteDescription(new RTCSessionDescription(answer));
-    } catch (error) {
-      console.error('Error handling answer:', error);
-      this.removePeer(peerId);
-    }
-  }
-
-  private async handleIceCandidate(peerId: string, candidate: RTCIceCandidate) {
-    const pc = this.peers.get(peerId);
-    if (!pc) return;
-
-    try {
-      await pc.addIceCandidate(new RTCIceCandidate(candidate));
-    } catch (error) {
-      console.error('Error adding ICE candidate:', error);
-    }
-  }
-
-  private async sendSignal(to: string, signal: any) {
-    if (this.roomChannel) {
+    if (createOffer) {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
       this.roomChannel.send({
         type: 'broadcast',
-        event: 'signal',
-        payload: { from: this.userId, to, signal }
+        event: 'offer',
+        payload: {
+          from: this.userId,
+          to: peerId,
+          offer: offer,
+        },
       });
     }
   }
 
-  private removePeer(peerId: string) {
-    const pc = this.peers.get(peerId);
-    if (pc) {
-      pc.close();
-      this.peers.delete(peerId);
-    }
+  private async handleOffer(peerId: string, offer: RTCSessionDescriptionInit) {
+    let peerConn = this.peers.get(peerId);
     
-    const stream = this.remoteStreams.get(peerId);
-    if (stream) {
-      this.remoteStreams.delete(peerId);
+    if (!peerConn) {
+      await this.createPeerConnection(peerId, false);
+      peerConn = this.peers.get(peerId);
+    }
+
+    if (!peerConn) return;
+
+    await peerConn.connection.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peerConn.connection.createAnswer();
+    await peerConn.connection.setLocalDescription(answer);
+
+    this.roomChannel.send({
+      type: 'broadcast',
+      event: 'answer',
+      payload: {
+        from: this.userId,
+        to: peerId,
+        answer: answer,
+      },
+    });
+  }
+
+  private async handleAnswer(peerId: string, answer: RTCSessionDescriptionInit) {
+    const peerConn = this.peers.get(peerId);
+    if (!peerConn) return;
+
+    await peerConn.connection.setRemoteDescription(new RTCSessionDescription(answer));
+  }
+
+  private async handleIceCandidate(peerId: string, candidate: RTCIceCandidateInit) {
+    const peerConn = this.peers.get(peerId);
+    if (!peerConn) return;
+
+    await peerConn.connection.addIceCandidate(new RTCIceCandidate(candidate));
+  }
+
+  private removePeer(peerId: string) {
+    const peerConn = this.peers.get(peerId);
+    if (peerConn) {
+      peerConn.connection.close();
       this.onStreamRemoved(peerId);
+      this.peers.delete(peerId);
     }
   }
 
   cleanup() {
-    // Stop all tracks in the local stream
     if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
+      this.localStream.getTracks().forEach((track) => track.stop());
       this.localStream = null;
     }
-
-    // Close all peer connections
-    this.peers.forEach((pc, peerId) => {
-      pc.close();
-      this.onStreamRemoved(peerId);
+    this.peers.forEach((peer) => {
+      peer.connection.close();
     });
     this.peers.clear();
-    this.remoteStreams.clear();
-
-    // Unsubscribe from the channel
     if (this.roomChannel) {
       this.roomChannel.unsubscribe();
     }
