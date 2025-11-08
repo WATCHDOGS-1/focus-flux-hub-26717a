@@ -79,7 +79,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     };
   }, [userId, roomId]);
 
-  const toggleVideo = async () => { // Make it async
+  const toggleVideo = async () => {
     const newVideoState = !isVideoEnabled;
     if (webrtcManager.current) {
       if (newVideoState) { // Turning video ON
@@ -147,7 +147,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${!isVideoEnabled ? 'hidden' : ''}`}
           />
           <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold">
             You
