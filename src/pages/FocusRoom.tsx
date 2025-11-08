@@ -14,9 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
-type FocusSession = Database["public"]["Tables"]["focus_sessions"]["Row"];
-type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"];
-
 const FocusRoom = () => {
   const navigate = useNavigate();
   const [activePanel, setActivePanel] = useState<string | null>(null);
@@ -28,6 +25,7 @@ const FocusRoom = () => {
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     if (!storedUserId) {
+      toast.error("You must be logged in to enter a focus room.");
       navigate("/auth");
     } else {
       setUserId(storedUserId);
@@ -48,14 +46,26 @@ const FocusRoom = () => {
       .select()
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error("Error starting session:", error);
+      toast.error("Failed to start focus session. Please try again.");
+      navigate("/auth");
+      return;
+    }
+
+    if (data) {
       setSessionId(data.id);
       setSessionStartTime(Date.now());
+      toast.success("Focus session started!");
     }
   };
 
   const leaveRoom = async () => {
-    if (!sessionId) return;
+    if (!sessionId || !userId) {
+      toast.error("Session data is missing. Cannot save progress.");
+      navigate("/");
+      return;
+    }
 
     const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
     const minutes = Math.floor(sessionDuration / 60);
@@ -71,13 +81,22 @@ const FocusRoom = () => {
 
     if (sessionError) {
       console.error("Error updating session:", sessionError);
-      toast.error("Failed to save session");
+      toast.error("Failed to save session progress.");
+      navigate("/");
+      return;
+    }
+
+    // If duration is less than a minute, don't update weekly stats
+    if (minutes < 1) {
+      toast.info("Session was too short to record stats.");
+      navigate("/");
       return;
     }
 
     // Update weekly stats
     const today = new Date();
-    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
     const { data: existingStats, error: statsError } = await supabase
@@ -89,7 +108,8 @@ const FocusRoom = () => {
 
     if (statsError) {
       console.error("Error fetching weekly stats:", statsError);
-      toast.error("Failed to update stats");
+      toast.error("Failed to update weekly stats.");
+      navigate("/");
       return;
     }
 
@@ -101,8 +121,7 @@ const FocusRoom = () => {
 
       if (updateError) {
         console.error("Error updating weekly stats:", updateError);
-        toast.error("Failed to update stats");
-        return;
+        toast.error("Failed to update weekly stats.");
       }
     } else {
       const { error: insertError } = await supabase
@@ -115,8 +134,7 @@ const FocusRoom = () => {
 
       if (insertError) {
         console.error("Error inserting weekly stats:", insertError);
-        toast.error("Failed to update stats");
-        return;
+        toast.error("Failed to create weekly stats.");
       }
     }
 
@@ -132,7 +150,6 @@ const FocusRoom = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Main Content */}
       <EncouragementToasts />
       
       <div className="relative z-10 glass-card border-b border-border">
@@ -197,14 +214,11 @@ const FocusRoom = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex h-[calc(100vh-80px)]">
-        {/* Video Grid */}
         <div className="flex-1 p-4">
           <VideoGrid userId={userId} roomId={sessionId || 'default-room'} />
         </div>
 
-        {/* Side Panel */}
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
             {activePanel === "chat" && <ChatPanel userId={userId} />}
