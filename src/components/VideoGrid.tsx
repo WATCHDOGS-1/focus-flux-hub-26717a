@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { WebRTCManager } from "@/utils/webrtc";
 import RemoteVideo from "@/components/RemoteVideo";
+import { supabase } from "@/integrations/supabase/client"; // Import supabase client
 
 interface VideoGridProps {
   userId: string;
@@ -13,7 +14,7 @@ interface VideoGridProps {
 const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
-  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, { stream: MediaStream; username: string }>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const webrtcManager = useRef<WebRTCManager | null>(null);
 
@@ -22,19 +23,32 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       try {
         webrtcManager.current = new WebRTCManager(
           userId,
-          (peerId, stream) => {
-            setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
-            toast.success("Peer connected!");
+          async (peerId, stream) => {
+            // Fetch username for the connected peer
+            const { data, error } = await supabase
+              .from("profiles")
+              .select("username")
+              .eq("id", peerId)
+              .single();
+
+            const username = data?.username || `Peer ${peerId.slice(0, 6)}`;
+
+            setRemoteStreams((prev) => new Map(prev).set(peerId, { stream, username }));
+            toast.success(`${username} connected!`);
           },
           (peerId) => {
             setRemoteStreams((prev) => {
               const newMap = new Map(prev);
+              const peerInfo = newMap.get(peerId);
+              if (peerInfo) {
+                toast.info(`${peerInfo.username} left.`);
+              }
               newMap.delete(peerId);
               return newMap;
             });
           },
           () => {
-            // Peer left callback
+            // Peer left callback (already handled in onStreamRemoved for toast)
           }
         );
 
@@ -133,11 +147,12 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         </div>
 
         {/* Remote Videos */}
-        {Array.from(remoteStreams.entries()).map(([peerId, stream], index) => (
+        {Array.from(remoteStreams.entries()).map(([peerId, { stream, username }], index) => (
           <RemoteVideo
             key={peerId}
             peerId={peerId}
             stream={stream}
+            username={username} // Pass the fetched username
             isPinned={pinnedVideos.has(index + 1)}
             onTogglePin={() => togglePin(index + 1)}
           />

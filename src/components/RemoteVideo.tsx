@@ -5,11 +5,12 @@ import { Pin, PinOff } from "lucide-react";
 interface RemoteVideoProps {
   peerId: string;
   stream: MediaStream;
+  username: string; // Added username prop
   isPinned: boolean;
   onTogglePin: () => void;
 }
 
-const RemoteVideo = ({ peerId, stream, isPinned, onTogglePin }: RemoteVideoProps) => {
+const RemoteVideo = ({ peerId, stream, username, isPinned, onTogglePin }: RemoteVideoProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ const RemoteVideo = ({ peerId, stream, isPinned, onTogglePin }: RemoteVideoProps
         className="w-full h-full object-cover"
       />
       <div className="absolute top-2 left-2 px-3 py-1 bg-secondary/80 backdrop-blur rounded-full text-xs font-bold">
-        Peer {peerId.slice(0, 6)}
+        {username} {/* Display username here */}
       </div>
       <Button
         variant="ghost"
