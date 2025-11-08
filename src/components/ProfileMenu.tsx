@@ -116,10 +116,13 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("userId");
-    localStorage.removeItem("username");
-    navigate("/auth");
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Logout failed. Please try again.");
+    } else {
+      navigate("/auth");
+    }
   };
 
   return (

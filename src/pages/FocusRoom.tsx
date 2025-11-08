@@ -12,10 +12,6 @@ import { MessageSquare, Trophy, Timer, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
-
-type FocusSession = Database["public"]["Tables"]["focus_sessions"]["Row"];
-type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"];
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -23,16 +19,24 @@ const FocusRoom = () => {
   const [userId, setUserId] = useState<string>("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId");
-    if (!storedUserId) {
-      navigate("/auth");
-    } else {
-      setUserId(storedUserId);
-      startSession(storedUserId);
-    }
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUserId(session.user.id);
+        await startSession(session.user.id);
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
 
     return () => {
       if (sessionIntervalRef.current) {
@@ -55,92 +59,91 @@ const FocusRoom = () => {
   };
 
   const leaveRoom = async () => {
-    if (!sessionId) return;
+    if (!sessionId || !userId) return;
 
-    const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
-    const minutes = Math.floor(sessionDuration / 60);
+    const leavePromise = new Promise(async (resolve, reject) => {
+      try {
+        const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
+        const minutes = Math.floor(sessionDuration / 60);
 
-    // Update session
-    const { error: sessionError } = await supabase
-      .from("focus_sessions")
-      .update({
-        end_time: new Date().toISOString(),
-        duration_minutes: minutes,
-      })
-      .eq("id", sessionId);
+        // Update session
+        const { error: sessionError } = await supabase
+          .from("focus_sessions")
+          .update({
+            end_time: new Date().toISOString(),
+            duration_minutes: minutes,
+          })
+          .eq("id", sessionId);
+        if (sessionError) throw sessionError;
 
-    if (sessionError) {
-      console.error("Error updating session:", sessionError);
-      toast.error("Failed to save session");
-      return;
-    }
+        // Update weekly stats
+        const today = new Date();
+        const weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        weekStart.setHours(0, 0, 0, 0);
 
-    // Update weekly stats
-    const today = new Date();
-    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-    weekStart.setHours(0, 0, 0, 0);
+        const { data: existingStats, error: statsError } = await supabase
+          .from("weekly_stats")
+          .select("*")
+          .eq("user_id", userId)
+          .gte("week_start", weekStart.toISOString())
+          .maybeSingle();
+        if (statsError) throw statsError;
 
-    const { data: existingStats, error: statsError } = await supabase
-      .from("weekly_stats")
-      .select("*")
-      .eq("user_id", userId)
-      .gte("week_start", weekStart.toISOString())
-      .maybeSingle();
+        if (existingStats) {
+          const { error: updateError } = await supabase
+            .from("weekly_stats")
+            .update({ total_minutes: existingStats.total_minutes + minutes })
+            .eq("id", existingStats.id);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("weekly_stats")
+            .insert({
+              user_id: userId,
+              week_start: weekStart.toISOString(),
+              total_minutes: minutes,
+            });
+          if (insertError) throw insertError;
+        }
 
-    if (statsError) {
-      console.error("Error fetching weekly stats:", statsError);
-      toast.error("Failed to update stats");
-      return;
-    }
-
-    if (existingStats) {
-      const { error: updateError } = await supabase
-        .from("weekly_stats")
-        .update({ total_minutes: existingStats.total_minutes + minutes })
-        .eq("id", existingStats.id);
-
-      if (updateError) {
-        console.error("Error updating weekly stats:", updateError);
-        toast.error("Failed to update stats");
-        return;
+        resolve(`Session saved! You focused for ${minutes} minutes! 🎉`);
+      } catch (error) {
+        console.error("Error leaving room:", error);
+        reject("Failed to save your session. Please try again.");
       }
-    } else {
-      const { error: insertError } = await supabase
-        .from("weekly_stats")
-        .insert({
-          user_id: userId,
-          week_start: weekStart.toISOString(),
-          total_minutes: minutes,
-        });
+    });
 
-      if (insertError) {
-        console.error("Error inserting weekly stats:", insertError);
-        toast.error("Failed to update stats");
-        return;
-      }
-    }
-
-    toast.success(`Session saved! You focused for ${minutes} minutes! 🎉`);
-    navigate("/");
+    toast.promise(leavePromise, {
+      loading: "Saving your session...",
+      success: (message) => {
+        navigate("/");
+        return message;
+      },
+      error: (message) => message,
+    });
   };
 
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
   };
 
-  if (!userId) return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl text-muted-foreground">Loading your focus room...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Main Content */}
       <EncouragementToasts />
-      
+
       <div className="relative z-10 glass-card border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">
-            OnlyFocus
-          </h1>
-          
+          <h1 className="text-2xl font-bold text-foreground">OnlyFocus</h1>
+
           <TimeTracker userId={userId} sessionStartTime={sessionStartTime} />
 
           <div className="flex gap-2">
@@ -197,14 +200,11 @@ const FocusRoom = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex h-[calc(100vh-80px)]">
-        {/* Video Grid */}
         <div className="flex-1 p-4">
-          <VideoGrid userId={userId} roomId={sessionId || 'default-room'} />
+          <VideoGrid userId={userId} roomId={sessionId || "default-room"} />
         </div>
 
-        {/* Side Panel */}
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
             {activePanel === "chat" && <ChatPanel userId={userId} />}
