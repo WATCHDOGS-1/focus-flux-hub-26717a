@@ -160,11 +160,11 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         <div className="flex items-center gap-4">
           <Button
             variant={isVideoEnabled ? "default" : "outline"}
-            size="icon"
             onClick={toggleVideo}
             className="dopamine-click shadow-glow"
           >
-            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+            {isVideoEnabled ? <Video className="h-5 w-5 mr-2" /> : <VideoOff className="h-5 w-5 mr-2" />}
+            Video
           </Button>
 
           <div className="flex-1 flex items-center gap-4">
