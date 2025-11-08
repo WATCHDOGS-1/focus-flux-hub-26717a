@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
-
-type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"];
 
 interface TimeTrackerProps {
   userId: string;
@@ -14,36 +11,49 @@ const TimeTracker = ({ userId, sessionStartTime }: TimeTrackerProps) => {
   const [sessionTime, setSessionTime] = useState(0);
   const [weeklyTime, setWeeklyTime] = useState(0);
 
+  // Effect for the session timer
   useEffect(() => {
-    loadWeeklyTime();
+    if (sessionStartTime === 0) {
+      setSessionTime(0);
+      return;
+    }
 
     const interval = setInterval(() => {
-      if (sessionStartTime > 0) {
-        setSessionTime(Math.floor((Date.now() - sessionStartTime) / 1000));
-      }
+      const elapsedSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+      setSessionTime(elapsedSeconds);
     }, 1000);
 
-    return () => {
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [sessionStartTime]);
 
-  const loadWeeklyTime = async () => {
-    const today = new Date();
-    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-    weekStart.setHours(0, 0, 0, 0);
+  // Effect for loading the total weekly time
+  useEffect(() => {
+    const loadWeeklyTime = async () => {
+      if (!userId) return;
 
-    const { data, error } = await supabase
-      .from("weekly_stats")
-      .select("total_minutes")
-      .eq("user_id", userId)
-      .gte("week_start", weekStart.toISOString())
-      .maybeSingle();
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      weekStart.setHours(0, 0, 0, 0);
 
-    if (!error && data) {
-      setWeeklyTime(data.total_minutes);
-    }
-  };
+      const { data, error } = await supabase
+        .from("weekly_stats")
+        .select("total_minutes")
+        .eq("user_id", userId)
+        .gte("week_start", weekStart.toISOString())
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading weekly time:", error);
+      } else if (data) {
+        setWeeklyTime(data.total_minutes);
+      } else {
+        setWeeklyTime(0);
+      }
+    };
+
+    loadWeeklyTime();
+  }, [userId]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
