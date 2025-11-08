@@ -1,9 +1,41 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Brain, Users, Target, Timer, Trophy, Sparkles } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "OnlyFocus",
+      "operatingSystem": "Web",
+      "applicationCategory": "http://schema.org/ProductivityApplication",
+      "description": "OnlyFocus is the ultimate online focus app designed for students, professionals, and anyone looking to enhance their productivity. Join live study rooms, use Pomodoro timers, track goals, and boost your productivity with a supportive community.",
+      "url": "https://yourdomain.com/", // IMPORTANT: Replace with your actual deployed domain
+      "image": "https://jgidrekaaqztxdiidbnn.supabase.co/storage/v1/object/public/public-assets/Image.jpg",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Comrade"
+      }
+    };
+
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.innerHTML = JSON.stringify(jsonLd);
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
