@@ -48,10 +48,10 @@ const Auth = () => {
       if (error) throw error;
       if (!data.user) throw new Error("Sign up failed, please try again.");
 
-      // Create a profile for the new user
+      // Upsert the profile to avoid race conditions with triggers
       const { error: profileError } = await supabase
         .from("profiles")
-        .insert({ id: data.user.id, username: values.username });
+        .upsert({ id: data.user.id, username: values.username });
 
       if (profileError) throw profileError;
 
