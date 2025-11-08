@@ -11,16 +11,15 @@ interface VideoGridProps {
 }
 
 const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
   const webrtcManager = useRef<WebRTCManager | null>(null);
 
-  const startLocalStream = async () => {
-    try {
-      if (!webrtcManager.current) {
+  useEffect(() => {
+    const setup = async () => {
+      try {
         webrtcManager.current = new WebRTCManager(
           userId,
           (peerId, stream) => {
@@ -35,52 +34,45 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             });
           },
           () => {
-            // Peer left callback - handled in FocusRoom
+            // Peer left callback
           }
         );
-        await webrtcManager.current.initialize(roomId);
-      }
 
-      const stream = await webrtcManager.current.startLocalStream();
-      localStreamRef.current = stream;
-      
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-        setTimeout(() => {
-          localVideoRef.current?.play().catch(console.error);
-        }, 100);
+        const stream = await webrtcManager.current.initialize(roomId);
+        
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.play().catch(console.error);
+        }
+        
+        setIsVideoEnabled(true);
+        toast.success("Camera enabled");
+      } catch (error) {
+        console.error("Error setting up WebRTC:", error);
+        toast.error("Failed to access camera. Please check permissions.");
+        setIsVideoEnabled(false);
       }
-      
-      setIsVideoEnabled(true);
-      toast.success("Camera enabled");
-    } catch (error) {
-      console.error("Error accessing camera:", error);
-      toast.error("Failed to access camera");
-    }
-  };
+    };
 
-  const stopLocalStream = () => {
-    if (webrtcManager.current) {
-      webrtcManager.current.stopLocalStream();
+    if (userId && roomId) {
+      setup();
     }
-    if (localStreamRef.current) {
-      localStreamRef.current = null;
-    }
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = null;
-    }
-    setIsVideoEnabled(false);
-    toast.info("Camera disabled");
-  };
+    
+    return () => {
+      if (webrtcManager.current) {
+        webrtcManager.current.cleanup();
+      }
+    };
+  }, [userId, roomId]);
 
   const toggleVideo = () => {
-    if (isVideoEnabled) {
-      stopLocalStream();
-    } else {
-      startLocalStream();
+    const newVideoState = !isVideoEnabled;
+    if (webrtcManager.current) {
+      webrtcManager.current.toggleVideo(newVideoState);
     }
+    setIsVideoEnabled(newVideoState);
+    toast.info(newVideoState ? "Camera enabled" : "Camera disabled");
   };
-
 
   const togglePin = (index: number) => {
     setPinnedVideos(prev => {
@@ -93,16 +85,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       return newSet;
     });
   };
-
-  useEffect(() => {
-    startLocalStream();
-    
-    return () => {
-      if (webrtcManager.current) {
-        webrtcManager.current.cleanup();
-      }
-    };
-  }, []);
 
   return (
     <div className="h-full flex flex-col gap-4">
@@ -135,10 +117,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             autoPlay
             playsInline
             muted
-            onLoadedMetadata={(e) => {
-              const video = e.target as HTMLVideoElement;
-              video.play().catch(console.error);
-            }}
             className="w-full h-full object-cover"
           />
           <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold">

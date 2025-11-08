@@ -28,13 +28,22 @@ export class WebRTCManager {
   }
 
   async initialize(roomId: string) {
-    // Join the room channel
+    // 1. Get local stream FIRST. This is the critical fix.
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+      throw error;
+    }
+
+    // 2. Now that the stream is ready, initialize signaling.
     this.roomChannel = supabase.channel(`room:${roomId}`);
 
-    // Listen for events
     this.roomChannel
       .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
-        // A new peer joined. We will wait for their offer.
         console.log('New peer joined:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
@@ -45,11 +54,9 @@ export class WebRTCManager {
         });
       })
       .on('presence', { event: 'sync' }, () => {
-        // This event fires when we first join, giving us the current state.
-        // We will initiate connections to all existing peers.
         const presences = this.roomChannel.presenceState();
         for (const id in presences) {
-          const presence = presences[id][0]; // Supabase presence is an array
+          const presence = presences[id][0];
           if (presence.userId !== this.userId) {
             this.createPeerConnection(presence.userId, true);
           }
@@ -75,18 +82,16 @@ export class WebRTCManager {
           await this.roomChannel.track({ userId: this.userId });
         }
       });
+      
+    // 3. Return the stream for the UI to use.
+    return this.localStream;
   }
 
-  async startLocalStream() {
-    try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
+  public toggleVideo(enable: boolean) {
+    if (this.localStream) {
+      this.localStream.getVideoTracks().forEach(track => {
+        track.enabled = enable;
       });
-      return this.localStream;
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
-      throw error;
     }
   }
 
@@ -105,14 +110,12 @@ export class WebRTCManager {
 
     const pc = new RTCPeerConnection(configuration);
 
-    // Add local stream to peer connection
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });
     }
 
-    // Handle incoming streams
     pc.ontrack = (event) => {
       console.log('Received remote track from', peerId);
       if (event.streams && event.streams[0]) {
@@ -124,7 +127,6 @@ export class WebRTCManager {
       }
     };
 
-    // Handle ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         this.roomChannel.send({
@@ -141,7 +143,6 @@ export class WebRTCManager {
 
     this.peers.set(peerId, { peerId, connection: pc });
 
-    // Create offer if we're the initiator
     if (createOffer) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -206,15 +207,11 @@ export class WebRTCManager {
     }
   }
 
-  stopLocalStream() {
+  cleanup() {
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => track.stop());
       this.localStream = null;
     }
-  }
-
-  cleanup() {
-    this.stopLocalStream();
     this.peers.forEach((peer) => {
       peer.connection.close();
     });
