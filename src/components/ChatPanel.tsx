@@ -84,6 +84,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
 
     if (error) {
       toast.error("Failed to send message");
+      console.error("Send message error:", error);
     } else {
       setNewMessage("");
     }
@@ -100,7 +101,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
             className={`p-3 rounded-lg max-w-[90%] break-words ${
               msg.user_id === userId
                 ? "bg-primary/20 ml-auto"
-                : "bg-secondary/20 mr-auto"
+                ? "bg-secondary/20 mr-auto"
             }`}
           >
             <div className="text-xs text-muted-foreground mb-1 font-semibold">
