@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Upload, User } from "lucide-react";
+import { LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -124,15 +124,17 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
 
   return (
     <div className="h-full flex flex-col">
-      <h3 className="text-lg font-semibold mb-4">Profile</h3>
+      <h3 className="text-xl font-semibold mb-4">Profile</h3>
 
-      <div className="space-y-5">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-2 ring-primary/20">
+      <div className="space-y-6">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <User className="text-primary" size={32} />
+              <span className="text-3xl font-semibold">
+                {username[0]?.toUpperCase()}
+              </span>
             )}
           </div>
 
@@ -143,46 +145,46 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
               onChange={handleAvatarUpload}
               className="hidden"
             />
-            <Button variant="outline" size="sm" className="rounded-lg">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Photo
+            <Button variant="outline" size="sm" asChild>
+              <span>
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Photo
+              </span>
             </Button>
           </label>
 
           <div className="text-center">
-            <div className="font-semibold">{username}</div>
+            <div className="font-semibold text-lg">{username}</div>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Daily Goal (minutes)</label>
+            <label className="text-sm text-muted-foreground">Daily Goal (minutes)</label>
             <Input
               type="number"
               value={dailyGoal}
               onChange={(e) => setDailyGoal(Number(e.target.value))}
-              className="rounded-lg"
             />
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Weekly Goal (minutes)</label>
+            <label className="text-sm text-muted-foreground">Weekly Goal (minutes)</label>
             <Input
               type="number"
               value={weeklyGoal}
               onChange={(e) => setWeeklyGoal(Number(e.target.value))}
-              className="rounded-lg"
             />
           </div>
 
-          <Button onClick={saveGoals} className="w-full rounded-lg">
+          <Button onClick={saveGoals} className="w-full">
             Save Goals
           </Button>
         </div>
 
         <Button
-          variant="outline"
-          className="w-full rounded-lg border-destructive/50 text-destructive hover:bg-destructive/5"
+          variant="destructive"
+          className="w-full"
           onClick={handleLogout}
         >
           <LogOut className="w-4 h-4 mr-2" />

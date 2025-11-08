@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Medal } from "lucide-react";
+import { Trophy } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"] & {
@@ -59,8 +59,8 @@ const Leaderboard = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
-        <Trophy className="text-primary" size={20} />
+      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+        <Trophy className="text-accent animate-pulse" />
         Weekly Leaderboard
       </h3>
 
@@ -68,42 +68,34 @@ const Leaderboard = () => {
         {entries.map((entry, index) => (
           <div
             key={entry.user_id}
-            className={`p-3 rounded-xl flex items-center gap-3 dopamine-click transition-all hover:scale-[1.02] ${
+            className={`p-4 rounded-2xl flex items-center gap-3 dopamine-click transition-all hover:scale-105 ${
               index === 0
-                ? "bg-gradient-to-r from-primary/15 to-accent/10 border border-primary/20 shadow-glow"
+                ? "bg-gradient-to-r from-accent/30 to-primary/30 ring-4 ring-accent shadow-intense-glow"
                 : index === 1
-                ? "bg-gradient-to-r from-secondary/15 to-primary/5 border border-secondary/20"
+                ? "bg-gradient-to-r from-secondary/30 to-accent/30 ring-2 ring-secondary shadow-glow"
                 : index === 2
-                ? "bg-gradient-to-r from-accent/15 to-secondary/5 border border-accent/20"
+                ? "bg-gradient-to-r from-primary/30 to-secondary/30 ring-2 ring-primary shadow-glow"
                 : "glass-card hover:shadow-neon"
             }`}
           >
-            <div className="text-lg font-bold w-8 flex items-center justify-center">
-              {index === 0 ? (
-                <Medal className="text-yellow-500" size={20} />
-              ) : index === 1 ? (
-                <Medal className="text-gray-400" size={20} />
-              ) : index === 2 ? (
-                <Medal className="text-amber-700" size={20} />
-              ) : (
-                `${index + 1}`
-              )}
+            <div className="text-3xl font-bold w-10 flex items-center justify-center">
+              {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}`}
             </div>
             
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden ring-1 ring-primary/20">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden ring-2 ring-primary/50 shadow-glow">
               {entry.profiles?.profile_photo_url ? (
                 <img src={entry.profiles.profile_photo_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-sm font-bold text-primary">
+                <span className="text-xl font-bold text-white">
                   {entry.profiles?.username?.[0].toUpperCase()}
                 </span>
               )}
             </div>
 
             <div className="flex-1">
-              <div className="font-medium">{entry.profiles?.username || "Unknown"}</div>
-              <div className="text-sm text-primary font-medium">
-                {entry.total_minutes} minutes
+              <div className="font-bold text-lg">{entry.profiles?.username || "Unknown"}</div>
+              <div className="text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-semibold">
+                {entry.total_minutes} minutes ⚡
               </div>
             </div>
           </div>

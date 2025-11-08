@@ -105,22 +105,21 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   }, []);
 
   return (
-    <div className="h-full flex flex-col gap-3">
+    <div className="h-full flex flex-col gap-4">
       {/* Controls */}
-      <div className="glass-card p-3 rounded-xl space-y-3">
-        <div className="flex items-center gap-3">
+      <div className="glass-card p-4 rounded-xl space-y-4">
+        <div className="flex items-center gap-4">
           <Button
             variant={isVideoEnabled ? "default" : "outline"}
-            size="sm"
+            size="icon"
             onClick={toggleVideo}
-            className="dopamine-click shadow-glow rounded-lg"
+            className="dopamine-click shadow-glow"
           >
-            {isVideoEnabled ? <Video className="h-4 w-4 mr-2" /> : <VideoOff className="h-4 w-4 mr-2" />}
-            {isVideoEnabled ? "Camera On" : "Camera Off"}
+            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
           </Button>
 
-          <div className="flex-1 flex items-center gap-3">
-            <span className="text-sm text-muted-foreground font-medium">
+          <div className="flex-1 flex items-center gap-4">
+            <span className="text-sm text-muted-foreground font-semibold">
               Connected: {remoteStreams.size + 1}
             </span>
           </div>
@@ -128,9 +127,9 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       </div>
 
       {/* Video Grid */}
-      <div className="flex-1 grid gap-3 auto-rows-fr grid-cols-2">
+      <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-2">
         {/* Local Video */}
-        <div className={`relative glass-card rounded-xl overflow-hidden group shadow-intense-glow ${pinnedVideos.has(0) ? 'ring-2 ring-accent' : ''}`}>
+        <div className={`relative glass-card rounded-2xl overflow-hidden group shadow-intense-glow ${pinnedVideos.has(0) ? 'ring-4 ring-accent animate-pulse' : ''}`}>
           <video
             ref={localVideoRef}
             autoPlay
@@ -142,16 +141,16 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             }}
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-2 left-2 px-2.5 py-1 bg-primary/80 backdrop-blur rounded-lg text-xs font-semibold shadow-glow">
+          <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold shadow-glow">
             You
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity dopamine-click rounded-full bg-black/30 hover:bg-black/50"
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity dopamine-click"
             onClick={() => togglePin(0)}
           >
-            {pinnedVideos.has(0) ? <PinOff className="w-4 h-4 text-white" /> : <Pin className="w-4 h-4 text-white" />}
+            {pinnedVideos.has(0) ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
           </Button>
         </div>
 
