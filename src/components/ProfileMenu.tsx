@@ -96,8 +96,13 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     }
   };
 
-  const saveGoals = async () => {
-    const { error: dailyError } = await supabase
+  const saveProfileAndGoals = async () => {
+    const profilePromise = supabase
+      .from("profiles")
+      .update({ username })
+      .eq("id", userId);
+
+    const dailyGoalPromise = supabase
       .from("daily_goals")
       .upsert({ user_id: userId, target_minutes: dailyGoal, date: new Date().toISOString().split("T")[0] });
 
@@ -105,14 +110,16 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
     weekStart.setHours(0, 0, 0, 0);
 
-    const { error: weeklyError } = await supabase
+    const weeklyGoalPromise = supabase
       .from("weekly_goals")
       .upsert({ user_id: userId, target_minutes: weeklyGoal, week_start: weekStart.toISOString() });
 
-    if (dailyError || weeklyError) {
-      toast.error("Failed to save goals");
+    const [profileResult, dailyResult, weeklyResult] = await Promise.all([profilePromise, dailyGoalPromise, weeklyGoalPromise]);
+
+    if (profileResult.error || dailyResult.error || weeklyResult.error) {
+      toast.error("Failed to save settings");
     } else {
-      toast.success("Goals updated!");
+      toast.success("Settings updated!");
     }
   };
 
@@ -157,7 +164,13 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
           </label>
 
           <div className="text-center">
-            <div className="font-semibold text-lg">{username}</div>
+            <Input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              className="text-center font-semibold text-lg"
+            />
           </div>
         </div>
 
@@ -180,8 +193,8 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
             />
           </div>
 
-          <Button onClick={saveGoals} className="w-full">
-            Save Goals
+          <Button onClick={saveProfileAndGoals} className="w-full">
+            Save Changes
           </Button>
         </div>
 

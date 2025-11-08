@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { WebRTCManager } from "@/utils/webrtc";
 import RemoteVideo from "@/components/RemoteVideo";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 interface VideoGridProps {
   userId: string;
@@ -14,6 +18,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [peerProfiles, setPeerProfiles] = useState<Map<string, Profile>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const webrtcManager = useRef<WebRTCManager | null>(null);
 
@@ -22,12 +27,29 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       try {
         webrtcManager.current = new WebRTCManager(
           userId,
-          (peerId, stream) => {
+          async (peerId, stream) => {
             setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
             toast.success("Peer connected!");
+
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', peerId)
+              .single();
+            
+            if (error) {
+              console.error('Error fetching peer profile:', error);
+            } else if (profile) {
+              setPeerProfiles(prev => new Map(prev).set(peerId, profile));
+            }
           },
           (peerId) => {
             setRemoteStreams((prev) => {
+              const newMap = new Map(prev);
+              newMap.delete(peerId);
+              return newMap;
+            });
+            setPeerProfiles(prev => {
               const newMap = new Map(prev);
               newMap.delete(peerId);
               return newMap;
@@ -140,6 +162,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             stream={stream}
             isPinned={pinnedVideos.has(index + 1)}
             onTogglePin={() => togglePin(index + 1)}
+            username={peerProfiles.get(peerId)?.username}
           />
         ))}
       </div>
