@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
+type WeeklyGoal = Database["public"]["Tables"]["weekly_goals"]["Row"];
 
 interface ProfileMenuProps {
   userId: string;
@@ -23,33 +28,33 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   }, []);
 
   const loadProfile = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("username, profile_photo_url")
       .eq("id", userId)
       .single();
 
-    if (data) {
+    if (!error && data) {
       setUsername(data.username);
       setAvatarUrl(data.profile_photo_url);
     }
   };
 
   const loadGoals = async () => {
-    const { data: daily } = await supabase
+    const { data: daily, error: dailyError } = await supabase
       .from("daily_goals")
       .select("target_minutes")
       .eq("user_id", userId)
       .maybeSingle();
 
-    const { data: weekly } = await supabase
+    const { data: weekly, error: weeklyError } = await supabase
       .from("weekly_goals")
       .select("target_minutes")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (daily) setDailyGoal(daily.target_minutes);
-    if (weekly) setWeeklyGoal(weekly.target_minutes);
+    if (!dailyError && daily) setDailyGoal(daily.target_minutes);
+    if (!weeklyError && weekly) setWeeklyGoal(weekly.target_minutes);
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,7 +97,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   };
 
   const saveGoals = async () => {
-    await supabase
+    const { error: dailyError } = await supabase
       .from("daily_goals")
       .upsert({ user_id: userId, target_minutes: dailyGoal, date: new Date().toISOString().split("T")[0] });
 
@@ -100,11 +105,15 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
     weekStart.setHours(0, 0, 0, 0);
 
-    await supabase
+    const { error: weeklyError } = await supabase
       .from("weekly_goals")
       .upsert({ user_id: userId, target_minutes: weeklyGoal, week_start: weekStart.toISOString() });
 
-    toast.success("Goals updated!");
+    if (dailyError || weeklyError) {
+      toast.error("Failed to save goals");
+    } else {
+      toast.success("Goals updated!");
+    }
   };
 
   const handleLogout = () => {

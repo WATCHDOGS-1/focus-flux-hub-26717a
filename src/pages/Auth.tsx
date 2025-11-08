@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const Auth = () => {
   const [username, setUsername] = useState("");
@@ -19,11 +22,13 @@ const Auth = () => {
     setLoading(true);
     try {
       // Check if profile exists
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: selectError } = await supabase
         .from("profiles")
         .select("*")
         .eq("username", username.trim())
         .maybeSingle();
+
+      if (selectError) throw selectError;
 
       if (existingProfile) {
         // Login - just store in session
@@ -33,13 +38,13 @@ const Auth = () => {
         navigate("/focus-room");
       } else {
         // Signup - create new profile
-        const { data: newProfile, error } = await supabase
+        const { data: newProfile, error: insertError } = await supabase
           .from("profiles")
           .insert({ username: username.trim() })
           .select()
           .single();
 
-        if (error) throw error;
+        if (insertError) throw insertError;
 
         localStorage.setItem("userId", newProfile.id);
         localStorage.setItem("username", newProfile.username);

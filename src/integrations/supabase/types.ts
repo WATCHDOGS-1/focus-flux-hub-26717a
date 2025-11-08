@@ -14,7 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          id: string
+          user_id: string
+          message: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          message: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          message?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      daily_goals: {
+        Row: {
+          id: string
+          user_id: string
+          target_minutes: number
+          date: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          target_minutes: number
+          date: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          target_minutes?: number
+          date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+          {
+            foreignKeyName: "daily_goals_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      focus_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          start_time: string
+          end_time: string | null
+          duration_minutes: number | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          start_time: string
+          end_time?: string | null
+          duration_minutes?: number | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          start_time?: string
+          end_time?: string | null
+          duration_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "focus_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      profiles: {
+        Row: {
+          id: string
+          username: string
+          profile_photo_url: string | null
+        }
+        Insert: {
+          id?: string
+          username: string
+          profile_photo_url?: string | null
+        }
+        Update: {
+          id?: string
+          username?: string
+          profile_photo_url?: string | null
+        }
+        Relationships: []
+      }
+      weekly_goals: {
+        Row: {
+          id: string
+          user_id: string
+          target_minutes: number
+          week_start: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          target_minutes: number
+          week_start: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          target_minutes?: number
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+          {
+            foreignKeyName: "weekly_goals_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      weekly_stats: {
+        Row: {
+          id: string
+          user_id: string
+          week_start: string
+          total_minutes: number
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          week_start: string
+          total_minutes?: number
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          week_start?: string
+          total_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

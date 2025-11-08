@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 
-interface LeaderboardEntry {
-  user_id: string;
-  total_minutes: number;
+type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"] & {
   profiles: {
     username: string;
     profile_photo_url: string | null;
-  };
-}
+  } | null;
+};
 
 const Leaderboard = () => {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [entries, setEntries] = useState<WeeklyStat[]>([]);
 
   useEffect(() => {
     loadLeaderboard();
@@ -54,7 +53,7 @@ const Leaderboard = () => {
       .limit(10);
 
     if (!error && data) {
-      setEntries(data as LeaderboardEntry[]);
+      setEntries(data as WeeklyStat[]);
     }
   };
 
@@ -84,17 +83,17 @@ const Leaderboard = () => {
             </div>
             
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden ring-2 ring-primary/50 shadow-glow">
-              {entry.profiles.profile_photo_url ? (
+              {entry.profiles?.profile_photo_url ? (
                 <img src={entry.profiles.profile_photo_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xl font-bold text-white">
-                  {entry.profiles.username[0].toUpperCase()}
+                  {entry.profiles?.username?.[0].toUpperCase()}
                 </span>
               )}
             </div>
 
             <div className="flex-1">
-              <div className="font-bold text-lg">{entry.profiles.username}</div>
+              <div className="font-bold text-lg">{entry.profiles?.username || "Unknown"}</div>
               <div className="text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-semibold">
                 {entry.total_minutes} minutes ⚡
               </div>

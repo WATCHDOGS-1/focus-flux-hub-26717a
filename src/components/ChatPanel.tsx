@@ -4,23 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"] & {
+  profiles: {
+    username: string;
+  } | null;
+};
 
 interface ChatPanelProps {
   userId: string;
 }
 
-interface Message {
-  id: string;
-  user_id: string;
-  message: string;
-  created_at: string;
-  profiles: {
-    username: string;
-  };
-}
-
 const ChatPanel = ({ userId }: ChatPanelProps) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +57,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     if (error) {
       console.error("Error loading messages:", error);
     } else if (data) {
-      setMessages(data as Message[]);
+      setMessages(data as ChatMessage[]);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
   };

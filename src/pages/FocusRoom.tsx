@@ -12,6 +12,10 @@ import { MessageSquare, Trophy, Timer, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type FocusSession = Database["public"]["Tables"]["focus_sessions"]["Row"];
+type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"];
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -57,7 +61,7 @@ const FocusRoom = () => {
     const minutes = Math.floor(sessionDuration / 60);
 
     // Update session
-    await supabase
+    const { error: sessionError } = await supabase
       .from("focus_sessions")
       .update({
         end_time: new Date().toISOString(),
@@ -65,31 +69,55 @@ const FocusRoom = () => {
       })
       .eq("id", sessionId);
 
+    if (sessionError) {
+      console.error("Error updating session:", sessionError);
+      toast.error("Failed to save session");
+      return;
+    }
+
     // Update weekly stats
     const today = new Date();
     const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
     weekStart.setHours(0, 0, 0, 0);
 
-    const { data: existingStats } = await supabase
+    const { data: existingStats, error: statsError } = await supabase
       .from("weekly_stats")
       .select("*")
       .eq("user_id", userId)
       .gte("week_start", weekStart.toISOString())
       .maybeSingle();
 
+    if (statsError) {
+      console.error("Error fetching weekly stats:", statsError);
+      toast.error("Failed to update stats");
+      return;
+    }
+
     if (existingStats) {
-      await supabase
+      const { error: updateError } = await supabase
         .from("weekly_stats")
         .update({ total_minutes: existingStats.total_minutes + minutes })
         .eq("id", existingStats.id);
+
+      if (updateError) {
+        console.error("Error updating weekly stats:", updateError);
+        toast.error("Failed to update stats");
+        return;
+      }
     } else {
-      await supabase
+      const { error: insertError } = await supabase
         .from("weekly_stats")
         .insert({
           user_id: userId,
           week_start: weekStart.toISOString(),
           total_minutes: minutes,
         });
+
+      if (insertError) {
+        console.error("Error inserting weekly stats:", insertError);
+        toast.error("Failed to update stats");
+        return;
+      }
     }
 
     toast.success(`Session saved! You focused for ${minutes} minutes! 🎉`);
@@ -103,7 +131,8 @@ const FocusRoom = () => {
   if (!userId) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-background/80 relative overflow-hidden">{/* Main Content */}
+    <div className="min-h-screen bg-gradient-to-br from-background to-background/80 relative overflow-hidden">
+      {/* Main Content */}
       <EncouragementToasts />
       
       <div className="relative z-10 glass-card border-b border-border">

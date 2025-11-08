@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"];
 
 interface TimeTrackerProps {
   userId: string;
@@ -30,14 +33,14 @@ const TimeTracker = ({ userId, sessionStartTime }: TimeTrackerProps) => {
     const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
     weekStart.setHours(0, 0, 0, 0);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("weekly_stats")
       .select("total_minutes")
       .eq("user_id", userId)
       .gte("week_start", weekStart.toISOString())
       .maybeSingle();
 
-    if (data) {
+    if (!error && data) {
       setWeeklyTime(data.total_minutes);
     }
   };
