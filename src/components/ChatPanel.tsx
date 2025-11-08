@@ -25,25 +25,40 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     loadMessages();
 
     const channel = supabase
-      .channel("chat_messages")
+      .channel("chat_room") // Using a specific channel name for the chat room
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT", // Only listen for INSERT events for real-time message additions
           schema: "public",
           table: "chat_messages",
         },
-        (payload) => {
-          // Only reload if the change is not from the current user (optimistic update handles local)
-          // Or if it's an update/delete, always reload to ensure consistency
-          if (payload.eventType === 'INSERT' && payload.new.user_id === userId) {
-            // If it's our own insert, we've already optimistically added it.
-            // We can choose to do nothing or re-fetch to ensure full consistency.
-            // For now, let's re-fetch to ensure the `created_at` and `id` are correct from DB.
-            loadMessages();
+        async (payload) => {
+          const newMsg = payload.new as ChatMessage;
+          
+          // Fetch profile data for the new message
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("username")
+            .eq("id", newMsg.user_id)
+            .single();
+
+          if (!profileError && profileData) {
+            newMsg.profiles = profileData;
           } else {
-            loadMessages();
+            newMsg.profiles = { username: "Unknown" }; // Fallback if profile not found
           }
+
+          setMessages((prevMessages) => {
+            // Filter out any optimistic message that matches the new real message
+            // and ensure no duplicates of the real message are added.
+            const filteredMessages = prevMessages.filter(msg => 
+              msg.id !== newMsg.id && // Don't keep the old real message if it somehow exists
+              !(msg.id.startsWith('temp-') && msg.user_id === newMsg.user_id && msg.message === newMsg.message) // Remove optimistic
+            );
+            return [...filteredMessages, newMsg];
+          });
+          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
         }
       )
       .subscribe();
@@ -51,7 +66,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]); // Added userId to dependency array
+  }, [userId]);
 
   const loadMessages = async () => {
     const { data, error } = await supabase
@@ -67,7 +82,6 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
       console.error("Error loading messages:", error);
     } else if (data) {
       setMessages(data as ChatMessage[]);
-      // Scroll to bottom after messages are loaded
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
   };
@@ -89,7 +103,6 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     setMessages((prev) => [...prev, optimisticMessage]);
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
 
-
     const { error } = await supabase
       .from("chat_messages")
       .insert({ user_id: userId, message: messageContent });
@@ -97,17 +110,17 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     if (error) {
       toast.error("Failed to send message");
       console.error("Error sending message:", error);
-      // Optionally, remove the optimistic message if sending failed
+      // If sending failed, remove the optimistic message
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     }
-    // The real-time listener will eventually update the message with the correct ID and timestamp
+    // The real-time listener will now handle replacing the optimistic message with the real one
   };
 
   return (
     <div className="h-full flex flex-col">
       <h3 className="text-xl font-semibold mb-4">Chat</h3>
 
-      <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2"> {/* Added pr-2 for scrollbar spacing */}
+      <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2">
         {messages.map((msg) => (
           <div
             key={msg.id}
