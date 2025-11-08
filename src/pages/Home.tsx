@@ -29,7 +29,7 @@ const Home = () => {
           {/* Logo/Title */}
           <div className="inline-block">
             <h1 className="text-7xl md:text-9xl font-bold text-foreground">
-              My App
+              OnlyFocus
             </h1>
             <div className="h-1 w-full bg-primary animate-pulse" />
           </div>
@@ -103,15 +103,15 @@ const Home = () => {
       {/* SEO Section */}
       <div className="relative z-10 container mx-auto px-4 py-16 border-t border-border/20">
         <div className="max-w-4xl mx-auto space-y-8 text-center">
-          <h2 className="text-3xl font-bold">Why Choose My App?</h2>
+          <h2 className="text-3xl font-bold">Why Choose OnlyFocus?</h2>
           
           <div className="space-y-4 text-muted-foreground">
             <p>
-              <strong className="text-foreground">My App</strong> is the ultimate online focus app designed for students, professionals, and anyone looking to enhance their productivity. Our platform combines cutting-edge technology with proven study techniques to create the perfect environment for deep work and focused learning.
+              <strong className="text-foreground">OnlyFocus</strong> is the ultimate online focus app designed for students, professionals, and anyone looking to enhance their productivity. Our platform combines cutting-edge technology with proven study techniques to create the perfect environment for deep work and focused learning.
             </p>
             
             <p>
-              Join thousands of users who have transformed their study habits with our virtual study room. Whether you're preparing for exams, working on important projects, or learning new skills, My App provides the tools and community support you need to stay focused and motivated.
+              Join thousands of users who have transformed their study habits with our virtual study room. Whether you're preparing for exams, working on important projects, or learning new skills, OnlyFocus provides the tools and community support you need to stay focused and motivated.
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
