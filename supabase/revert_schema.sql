@@ -5,6 +5,9 @@
 DROP POLICY IF EXISTS "Users can manage their own weekly stats." ON public.weekly_stats;
 DROP TABLE IF EXISTS public.weekly_stats CASCADE;
 
+-- Explicitly drop user_stats if it exists, as it's not in types.ts
+DROP TABLE IF EXISTS public.user_stats CASCADE;
+
 DROP POLICY IF EXISTS "Users can manage their own weekly goals." ON public.weekly_goals;
 DROP TABLE IF EXISTS public.weekly_goals CASCADE;
 
