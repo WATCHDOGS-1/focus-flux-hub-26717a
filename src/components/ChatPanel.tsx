@@ -31,7 +31,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
 
       if (error) {
         console.error("Error loading messages:", error);
-        toast.error("Could not load chat history.");
+        toast.error("Could not load chat history.", { description: error.message });
       } else if (data) {
         setMessages(data as ChatMessage[]);
       }
@@ -57,7 +57,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
             .then(({ data, error }) => {
               if (error) {
                 console.error("Error fetching new message:", error);
-                toast.error("Failed to receive a new message.");
+                toast.error("Failed to receive a new message.", { description: error.message });
               } else if (data) {
                 setMessages((prevMessages) => [...prevMessages, data as ChatMessage]);
               }
@@ -83,7 +83,9 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
       .insert({ user_id: userId, message: newMessage.trim() });
 
     if (error) {
-      toast.error("Failed to send message");
+      toast.error("Message Not Sent", {
+        description: error.message,
+      });
       console.error("Send message error:", error);
     } else {
       setNewMessage("");

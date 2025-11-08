@@ -34,7 +34,9 @@ export function useUserProfile() {
         .single();
 
       if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = 'No rows found'
-        toast.error("Could not fetch your profile. Please refresh.");
+        toast.error("Profile Fetch Failed", {
+          description: profileError.message,
+        });
         console.error('Error fetching profile:', profileError);
         setLoading(false);
         return;
@@ -57,7 +59,9 @@ export function useUserProfile() {
           .single();
 
         if (createError) {
-          toast.error("Failed to create your user profile.");
+          toast.error("Profile Creation Failed", {
+            description: createError.message,
+          });
           console.error('Error creating profile:', createError);
         } else {
           setProfile(newProfile);

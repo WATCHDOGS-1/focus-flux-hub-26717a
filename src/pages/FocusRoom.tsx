@@ -31,7 +31,7 @@ const FocusRoom = () => {
   useEffect(() => {
     if (!profileLoading && user && profile) {
       startSession(user.id);
-      setIsTimerActive(true); // Auto-start timer after session is ready
+      setIsTimerActive(true);
     }
   }, [profileLoading, user, profile]);
 
@@ -70,13 +70,15 @@ const FocusRoom = () => {
         .insert({ user_id: uid, start_time: new Date().toISOString() })
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        toast.error("Session Start Failed", { description: error.message });
+        throw error;
+      }
       if (!data) throw new Error("No data returned after creating session.");
       setSessionId(data.id);
       setSessionStartTime(Date.now());
     } catch (error) {
       console.error("Failed to start session:", error);
-      toast.error("Could not start focus session. Please refresh.");
     } finally {
       setSessionLoading(false);
     }
@@ -95,21 +97,28 @@ const FocusRoom = () => {
           resolve("Session was too short to save.");
           return;
         }
-        await supabase.from("focus_sessions").update({
+        const { error: updateError } = await supabase.from("focus_sessions").update({
           end_time: new Date().toISOString(),
           duration_minutes: minutes,
         }).eq("id", sessionId);
+        if (updateError) throw updateError;
+
         const today = new Date();
         const weekStart = new Date(today.setDate(today.getDate() - today.getDay())).toISOString();
-        const { data: stats } = await supabase.from("weekly_stats").select("*").eq("user_id", user.id).gte("week_start", weekStart).maybeSingle();
+        const { data: stats, error: statsError } = await supabase.from("weekly_stats").select("*").eq("user_id", user.id).gte("week_start", weekStart).maybeSingle();
+        if (statsError) throw statsError;
+
         if (stats) {
-          await supabase.from("weekly_stats").update({ total_minutes: stats.total_minutes + minutes }).eq("id", stats.id);
+          const { error } = await supabase.from("weekly_stats").update({ total_minutes: stats.total_minutes + minutes }).eq("id", stats.id);
+          if (error) throw error;
         } else {
-          await supabase.from("weekly_stats").insert({ user_id: user.id, week_start: weekStart, total_minutes: minutes });
+          const { error } = await supabase.from("weekly_stats").insert({ user_id: user.id, week_start: weekStart, total_minutes: minutes });
+          if (error) throw error;
         }
         resolve(`Session saved! You focused for ${minutes} minutes! 🎉`);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error leaving room:", error);
+        toast.error("Failed to Save Session", { description: error.message });
         reject("Failed to save your session.");
       }
     });
