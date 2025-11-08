@@ -6,7 +6,7 @@ const Home = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
@@ -17,7 +17,7 @@ const Home = () => {
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${5 + Math.random() * 10}s`,
+              animationDuration: `${10 + Math.random() * 10}s`,
             }}
           />
         ))}
@@ -28,15 +28,15 @@ const Home = () => {
         <div className="text-center space-y-8 animate-fade-in">
           {/* Logo/Title */}
           <div className="inline-block">
-            <h1 className="text-7xl md:text-9xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-holographic">
+            <h1 className="text-7xl md:text-9xl font-bold text-foreground">
               OnlyFocus
             </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" />
+            <div className="h-1 w-full bg-primary animate-pulse" />
           </div>
 
           {/* Tagline */}
           <p className="text-2xl md:text-3xl text-muted-foreground animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            The Future of <span className="text-primary font-semibold">Focused Learning</span>
+            The Future of <span className="text-accent font-semibold">Focused Learning</span>
           </p>
 
           {/* Main CTA */}
@@ -44,7 +44,7 @@ const Home = () => {
             <Button
               onClick={() => navigate("/auth")}
               size="lg"
-              className="text-xl px-12 py-8 rounded-2xl bg-gradient-to-r from-primary to-accent hover:scale-110 transition-all duration-300 shadow-glow hover:shadow-intense-glow group"
+              className="text-xl px-12 py-8 rounded-2xl bg-primary hover:scale-110 transition-all duration-300 shadow-glow group"
             >
               <Sparkles className="mr-3 group-hover:rotate-180 transition-transform duration-500" />
               Join Study Room
@@ -88,7 +88,7 @@ const Home = () => {
             ].map((feature, i) => (
               <div
                 key={i}
-                className="glass-card p-6 rounded-2xl hover:scale-105 transition-all duration-300 hover:shadow-neon animate-fade-in group"
+                className="glass-card p-6 rounded-2xl hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 animate-fade-in group"
                 style={{ animationDelay: `${0.6 + i * 0.1}s` }}
               >
                 <feature.icon className="w-12 h-12 text-primary mb-4 mx-auto group-hover:rotate-12 transition-transform" />

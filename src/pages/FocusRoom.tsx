@@ -131,13 +131,13 @@ const FocusRoom = () => {
   if (!userId) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-background/80 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Main Content */}
       <EncouragementToasts />
       
       <div className="relative z-10 glass-card border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-foreground">
             OnlyFocus
           </h1>
           
@@ -159,7 +159,7 @@ const FocusRoom = () => {
               size="icon"
               onClick={() => togglePanel("leaderboard")}
               className={`dopamine-click transition-all ${
-                activePanel === "leaderboard" ? "bg-accent/20 shadow-glow" : ""
+                activePanel === "leaderboard" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
               <Trophy className="h-5 w-5" />
@@ -169,7 +169,7 @@ const FocusRoom = () => {
               size="icon"
               onClick={() => togglePanel("pomodoro")}
               className={`dopamine-click transition-all ${
-                activePanel === "pomodoro" ? "bg-secondary/20 shadow-glow" : ""
+                activePanel === "pomodoro" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
               <Timer className="h-5 w-5" />

@@ -129,7 +129,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       {/* Video Grid */}
       <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-2">
         {/* Local Video */}
-        <div className={`relative glass-card rounded-2xl overflow-hidden group shadow-intense-glow ${pinnedVideos.has(0) ? 'ring-4 ring-accent animate-pulse' : ''}`}>
+        <div className={`relative glass-card rounded-2xl overflow-hidden group ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
           <video
             ref={localVideoRef}
             autoPlay
@@ -141,7 +141,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             }}
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold shadow-glow">
+          <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold">
             You
           </div>
           <Button

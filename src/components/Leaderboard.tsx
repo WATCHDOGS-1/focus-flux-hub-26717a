@@ -59,8 +59,8 @@ const Leaderboard = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-        <Trophy className="text-accent animate-pulse" />
+      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+        <Trophy className="text-primary animate-pulse" />
         Weekly Leaderboard
       </h3>
 
@@ -70,19 +70,19 @@ const Leaderboard = () => {
             key={entry.user_id}
             className={`p-4 rounded-2xl flex items-center gap-3 dopamine-click transition-all hover:scale-105 ${
               index === 0
-                ? "bg-gradient-to-r from-accent/30 to-primary/30 ring-4 ring-accent shadow-intense-glow"
+                ? "bg-primary/20 border-2 border-primary animate-subtle-pulse"
                 : index === 1
-                ? "bg-gradient-to-r from-secondary/30 to-accent/30 ring-2 ring-secondary shadow-glow"
+                ? "bg-primary/10 border border-primary/50"
                 : index === 2
-                ? "bg-gradient-to-r from-primary/30 to-secondary/30 ring-2 ring-primary shadow-glow"
-                : "glass-card hover:shadow-neon"
+                ? "bg-primary/5 border border-primary/20"
+                : "glass-card hover:border-primary/50"
             }`}
           >
             <div className="text-3xl font-bold w-10 flex items-center justify-center">
               {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}`}
             </div>
             
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center overflow-hidden ring-2 ring-primary/50 shadow-glow">
+            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden ring-2 ring-primary/50">
               {entry.profiles?.profile_photo_url ? (
                 <img src={entry.profiles.profile_photo_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -94,7 +94,7 @@ const Leaderboard = () => {
 
             <div className="flex-1">
               <div className="font-bold text-lg">{entry.profiles?.username || "Unknown"}</div>
-              <div className="text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-semibold">
+              <div className="text-sm text-primary font-semibold">
                 {entry.total_minutes} minutes ⚡
               </div>
             </div>

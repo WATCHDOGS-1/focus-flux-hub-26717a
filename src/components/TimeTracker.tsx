@@ -53,18 +53,18 @@ const TimeTracker = ({ userId, sessionStartTime }: TimeTrackerProps) => {
   };
 
   return (
-    <div className="flex items-center gap-6 glass-card px-6 py-3 rounded-2xl shadow-glow">
+    <div className="flex items-center gap-6 glass-card px-6 py-3 rounded-2xl">
       <div className="text-center">
         <div className="text-xs text-muted-foreground mb-1">Session</div>
-        <div className="text-3xl font-bold font-mono flex items-center gap-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <div className="text-3xl font-bold font-mono flex items-center gap-2 text-foreground">
           <Clock className="w-6 h-6 text-primary animate-pulse" />
           {formatTime(sessionTime)}
         </div>
       </div>
-      <div className="h-12 w-1 bg-gradient-to-b from-primary via-secondary to-accent rounded-full" />
+      <div className="h-12 w-px bg-border" />
       <div className="text-center">
         <div className="text-xs text-muted-foreground mb-1">This Week</div>
-        <div className="text-2xl font-semibold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+        <div className="text-2xl font-semibold text-accent">
           {weeklyTime}m
         </div>
       </div>

@@ -20,14 +20,14 @@ const RemoteVideo = ({ peerId, stream, isPinned, onTogglePin }: RemoteVideoProps
   }, [stream]);
 
   return (
-    <div className={`relative glass-card rounded-2xl overflow-hidden group shadow-intense-glow ${isPinned ? 'ring-4 ring-accent animate-pulse' : ''}`}>
+    <div className={`relative glass-card rounded-2xl overflow-hidden group ${isPinned ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
       <video
         ref={videoRef}
         autoPlay
         playsInline
         className="w-full h-full object-cover"
       />
-      <div className="absolute top-2 left-2 px-3 py-1 bg-secondary/80 backdrop-blur rounded-full text-xs font-bold shadow-glow">
+      <div className="absolute top-2 left-2 px-3 py-1 bg-secondary/80 backdrop-blur rounded-full text-xs font-bold">
         Peer {peerId.slice(0, 6)}
       </div>
       <Button
