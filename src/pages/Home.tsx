@@ -145,6 +145,9 @@ const Home = () => {
             <p>
               Join thousands of users who have transformed their study habits with our virtual study room. Whether you're preparing for exams, working on important projects, or learning new skills, OnlyFocus provides the tools and community support you need to stay focused and motivated.
             </p>
+            <p>
+              Our platform fosters a vibrant community where users can connect, share progress, and hold each other accountable. This collaborative environment, combined with powerful tools like the Pomodoro timer and goal tracking, ensures you have everything you need to achieve your academic and professional aspirations.
+            </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
               {[
