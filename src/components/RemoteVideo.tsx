@@ -7,7 +7,7 @@ interface RemoteVideoProps {
   stream: MediaStream;
   username: string; // Added username prop
   isPinned: boolean;
-  onTogglePin: () => void;
+  onTogglePin: (peerId: string) => void; // Changed to pass peerId
 }
 
 const RemoteVideo = ({ peerId, stream, username, isPinned, onTogglePin }: RemoteVideoProps) => {
@@ -21,7 +21,7 @@ const RemoteVideo = ({ peerId, stream, username, isPinned, onTogglePin }: Remote
   }, [stream]);
 
   return (
-    <div className={`relative glass-card rounded-2xl overflow-hidden group ${isPinned ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
+    <div className={`relative glass-card rounded-2xl overflow-hidden group aspect-video ${isPinned ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
       <video
         ref={videoRef}
         autoPlay
@@ -35,7 +35,7 @@ const RemoteVideo = ({ peerId, stream, username, isPinned, onTogglePin }: Remote
         variant="ghost"
         size="icon"
         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity dopamine-click"
-        onClick={onTogglePin}
+        onClick={() => onTogglePin(peerId)} // Pass peerId to onTogglePin
       >
         {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
       </Button>
