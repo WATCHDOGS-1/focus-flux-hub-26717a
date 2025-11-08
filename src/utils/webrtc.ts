@@ -28,7 +28,6 @@ export class WebRTCManager {
   }
 
   async initialize(roomId: string) {
-    // 1. Get local stream FIRST.
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -39,21 +38,17 @@ export class WebRTCManager {
       throw error;
     }
 
-    // 2. Now that the stream is ready, initialize signaling.
     this.roomChannel = supabase.channel(`room:${roomId}`);
 
     this.roomChannel
-      .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
-        console.log('New peer joined:', key, newPresences);
-        // Initiate connection to new peers
+      .on('presence', { event: 'join' }, ({ newPresences }: any) => {
         newPresences.forEach((presence: any) => {
           if (presence.userId !== this.userId) {
             this.createPeerConnection(presence.userId, true);
           }
         });
       })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
-        console.log('Peer left:', key);
+      .on('presence', { event: 'leave' }, ({ leftPresences }: any) => {
         leftPresences.forEach((presence: any) => {
           this.removePeer(presence.userId);
           this.onPeerLeft();
@@ -89,7 +84,6 @@ export class WebRTCManager {
         }
       });
       
-    // 3. Return the stream for the UI to use.
     return this.localStream;
   }
 
@@ -101,9 +95,8 @@ export class WebRTCManager {
     }
   }
 
-  private async createPeerConnection(peerId: string, createOffer: boolean) {
+  private async createPeerConnection(peerId: string, shouldCreateOffer: boolean) {
     if (this.peers.has(peerId)) {
-      console.log("Connection with peer already exists:", peerId);
       return;
     }
 
@@ -123,7 +116,6 @@ export class WebRTCManager {
     }
 
     pc.ontrack = (event) => {
-      console.log('Received remote track from', peerId);
       if (event.streams && event.streams[0]) {
         this.onStreamAdded(peerId, event.streams[0]);
         const peerConn = this.peers.get(peerId);
@@ -138,29 +130,22 @@ export class WebRTCManager {
         this.roomChannel.send({
           type: 'broadcast',
           event: 'ice-candidate',
-          payload: {
-            from: this.userId,
-            to: peerId,
-            candidate: event.candidate,
-          },
+          payload: { from: this.userId, to: peerId, candidate: event.candidate },
         });
       }
     };
 
     this.peers.set(peerId, { peerId, connection: pc });
 
-    if (createOffer) {
+    // Glare handling: only the peer with the lexicographically greater ID creates the offer.
+    if (shouldCreateOffer && this.userId > peerId) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
       this.roomChannel.send({
         type: 'broadcast',
         event: 'offer',
-        payload: {
-          from: this.userId,
-          to: peerId,
-          offer: offer,
-        },
+        payload: { from: this.userId, to: peerId, offer: offer },
       });
     }
   }
@@ -182,25 +167,19 @@ export class WebRTCManager {
     this.roomChannel.send({
       type: 'broadcast',
       event: 'answer',
-      payload: {
-        from: this.userId,
-        to: peerId,
-        answer: answer,
-      },
+      payload: { from: this.userId, to: peerId, answer: answer },
     });
   }
 
   private async handleAnswer(peerId: string, answer: RTCSessionDescriptionInit) {
     const peerConn = this.peers.get(peerId);
     if (!peerConn) return;
-
     await peerConn.connection.setRemoteDescription(new RTCSessionDescription(answer));
   }
 
   private async handleIceCandidate(peerId: string, candidate: RTCIceCandidateInit) {
     const peerConn = this.peers.get(peerId);
     if (!peerConn) return;
-
     await peerConn.connection.addIceCandidate(new RTCIceCandidate(candidate));
   }
 
