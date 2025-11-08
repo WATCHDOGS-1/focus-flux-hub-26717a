@@ -22,6 +22,13 @@ const FocusRoom = () => {
   const [isLoading, setIsLoading] = useState(true);
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Pomodoro Timer State
+  const workTime = 25 * 60;
+  const breakTime = 5 * 60;
+  const [timeLeft, setTimeLeft] = useState(workTime);
+  const [isTimerActive, setIsTimerActive] = useState(true); // Auto-start
+  const [isBreak, setIsBreak] = useState(false);
+
   useEffect(() => {
     const checkSession = async () => {
       const {
@@ -44,6 +51,41 @@ const FocusRoom = () => {
       }
     };
   }, [navigate]);
+
+  // Pomodoro Timer Logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (isTimerActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((time) => time - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      if (isBreak) {
+        toast.success("Break over! Time to focus!");
+        setIsBreak(false);
+        setTimeLeft(workTime);
+      } else {
+        toast.success("Great work! Time for a break!");
+        setIsBreak(true);
+        setTimeLeft(breakTime);
+      }
+      setIsTimerActive(true); // Auto-start next phase
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerActive, timeLeft, isBreak]);
+
+  const toggleTimer = () => {
+    setIsTimerActive(!isTimerActive);
+  };
+
+  const resetTimer = () => {
+    setIsTimerActive(false);
+    setTimeLeft(isBreak ? breakTime : workTime);
+  };
 
   const startSession = async (uid: string) => {
     try {
@@ -222,7 +264,15 @@ const FocusRoom = () => {
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
             {activePanel === "chat" && <ChatPanel userId={userId} />}
             {activePanel === "leaderboard" && <Leaderboard />}
-            {activePanel === "pomodoro" && <PomodoroTimer />}
+            {activePanel === "pomodoro" && (
+              <PomodoroTimer
+                timeLeft={timeLeft}
+                isActive={isTimerActive}
+                isBreak={isBreak}
+                toggleTimer={toggleTimer}
+                resetTimer={resetTimer}
+              />
+            )}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}

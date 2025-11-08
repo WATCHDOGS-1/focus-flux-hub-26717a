@@ -48,16 +48,20 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
           schema: "public",
           table: "chat_messages",
         },
-        async (payload) => {
-          const { data, error } = await supabase
+        (payload) => {
+          supabase
             .from("chat_messages")
             .select(`*, profiles (username)`)
             .eq('id', payload.new.id)
-            .single();
-          
-          if (!error && data) {
-            setMessages((prevMessages) => [...prevMessages, data as ChatMessage]);
-          }
+            .single()
+            .then(({ data, error }) => {
+              if (error) {
+                console.error("Error fetching new message:", error);
+                toast.error("Failed to receive a new message.");
+              } else if (data) {
+                setMessages((prevMessages) => [...prevMessages, data as ChatMessage]);
+              }
+            });
         }
       )
       .subscribe();

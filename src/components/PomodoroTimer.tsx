@@ -1,49 +1,23 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
 
-const PomodoroTimer = () => {
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(true); // Auto-start
-  const [isBreak, setIsBreak] = useState(false);
+interface PomodoroTimerProps {
+  timeLeft: number;
+  isActive: boolean;
+  isBreak: boolean;
+  toggleTimer: () => void;
+  resetTimer: () => void;
+}
 
+const PomodoroTimer = ({
+  timeLeft,
+  isActive,
+  isBreak,
+  toggleTimer,
+  resetTimer,
+}: PomodoroTimerProps) => {
   const workTime = 25 * 60;
   const breakTime = 5 * 60;
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((time) => time - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      if (isBreak) {
-        toast.success("Break over! Time to focus!");
-        setIsBreak(false);
-        setTimeLeft(workTime);
-      } else {
-        toast.success("Great work! Time for a break!");
-        setIsBreak(true);
-        setTimeLeft(breakTime);
-      }
-      setIsActive(false);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isActive, timeLeft, isBreak]);
-
-  const toggleTimer = () => {
-    setIsActive(!isActive);
-  };
-
-  const resetTimer = () => {
-    setIsActive(false);
-    setTimeLeft(isBreak ? breakTime : workTime);
-  };
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -51,7 +25,10 @@ const PomodoroTimer = () => {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const progress = ((isBreak ? breakTime : workTime) - timeLeft) / (isBreak ? breakTime : workTime) * 100;
+  const progress =
+    (((isBreak ? breakTime : workTime) - timeLeft) /
+      (isBreak ? breakTime : workTime)) *
+    100;
 
   return (
     <div className="h-full flex flex-col items-center justify-center">
