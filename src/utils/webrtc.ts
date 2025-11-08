@@ -28,7 +28,7 @@ export class WebRTCManager {
   }
 
   async initialize(roomId: string) {
-    // 1. Get local stream FIRST. This is the critical fix.
+    // 1. Get local stream FIRST.
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -45,6 +45,12 @@ export class WebRTCManager {
     this.roomChannel
       .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
         console.log('New peer joined:', key, newPresences);
+        // Initiate connection to new peers
+        newPresences.forEach((presence: any) => {
+          if (presence.userId !== this.userId) {
+            this.createPeerConnection(presence.userId, true);
+          }
+        });
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
         console.log('Peer left:', key);
