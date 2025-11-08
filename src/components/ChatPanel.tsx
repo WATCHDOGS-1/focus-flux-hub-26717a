@@ -31,7 +31,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
 
       if (error) {
         console.error("Error loading messages:", error);
-        toast.error("Could not load chat history.", { description: error.message });
+        toast.error("Could not load chat history.");
       } else if (data) {
         setMessages(data as ChatMessage[]);
       }
@@ -48,20 +48,16 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
           schema: "public",
           table: "chat_messages",
         },
-        (payload) => {
-          supabase
+        async (payload) => {
+          const { data, error } = await supabase
             .from("chat_messages")
             .select(`*, profiles (username)`)
             .eq('id', payload.new.id)
-            .single()
-            .then(({ data, error }) => {
-              if (error) {
-                console.error("Error fetching new message:", error);
-                toast.error("Failed to receive a new message.", { description: error.message });
-              } else if (data) {
-                setMessages((prevMessages) => [...prevMessages, data as ChatMessage]);
-              }
-            });
+            .single();
+          
+          if (!error && data) {
+            setMessages((prevMessages) => [...prevMessages, data as ChatMessage]);
+          }
         }
       )
       .subscribe();
@@ -83,10 +79,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
       .insert({ user_id: userId, message: newMessage.trim() });
 
     if (error) {
-      toast.error("Message Not Sent", {
-        description: error.message,
-      });
-      console.error("Send message error:", error);
+      toast.error("Failed to send message");
     } else {
       setNewMessage("");
     }
