@@ -74,7 +74,12 @@ CREATE TABLE public.focus_sessions (
   PRIMARY KEY (id)
 );
 ALTER TABLE public.focus_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own focus sessions." ON public.focus_sessions FOR ALL USING (auth.uid() = user_id);
+-- Refined RLS policy for focus_sessions
+CREATE POLICY "Users can select their own focus sessions." ON public.focus_sessions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own focus sessions." ON public.focus_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own focus sessions." ON public.focus_sessions FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own focus sessions." ON public.focus_sessions FOR DELETE USING (auth.uid() = user_id);
+
 
 -- weekly_goals table
 CREATE TABLE public.weekly_goals (
