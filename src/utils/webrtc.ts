@@ -31,15 +31,11 @@ export class WebRTCManager {
     // Join the room channel
     this.roomChannel = supabase.channel(`room:${roomId}`);
 
-    // Listen for new peers joining
+    // Listen for events
     this.roomChannel
       .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
-        console.log('New peer joined:', key);
-        newPresences.forEach((presence: any) => {
-          if (presence.userId !== this.userId) {
-            this.createPeerConnection(presence.userId, true);
-          }
-        });
+        // A new peer joined. We will wait for their offer.
+        console.log('New peer joined:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
         console.log('Peer left:', key);
@@ -47,6 +43,17 @@ export class WebRTCManager {
           this.removePeer(presence.userId);
           this.onPeerLeft();
         });
+      })
+      .on('presence', { event: 'sync' }, () => {
+        // This event fires when we first join, giving us the current state.
+        // We will initiate connections to all existing peers.
+        const presences = this.roomChannel.presenceState();
+        for (const id in presences) {
+          const presence = presences[id][0]; // Supabase presence is an array
+          if (presence.userId !== this.userId) {
+            this.createPeerConnection(presence.userId, true);
+          }
+        }
       })
       .on('broadcast', { event: 'offer' }, async ({ payload }: any) => {
         if (payload.to === this.userId) {
@@ -84,6 +91,11 @@ export class WebRTCManager {
   }
 
   private async createPeerConnection(peerId: string, createOffer: boolean) {
+    if (this.peers.has(peerId)) {
+      console.log("Connection with peer already exists:", peerId);
+      return;
+    }
+
     const configuration: RTCConfiguration = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
