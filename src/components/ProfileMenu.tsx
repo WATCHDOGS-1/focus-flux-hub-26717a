@@ -23,38 +23,44 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   const [weeklyGoal, setWeeklyGoal] = useState(420);
 
   useEffect(() => {
-    loadProfile();
-    loadGoals();
-  }, []);
+    loadProfileAndGoals();
+  }, [userId]);
 
-  const loadProfile = async () => {
-    const { data, error } = await supabase
+  const loadProfileAndGoals = async () => {
+    // Load profile
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("username, profile_photo_url")
       .eq("id", userId)
       .single();
 
-    if (!error && data) {
-      setUsername(data.username);
-      setAvatarUrl(data.profile_photo_url);
+    if (!profileError && profileData) {
+      setUsername(profileData.username);
+      setAvatarUrl(profileData.profile_photo_url);
+    } else {
+      console.error("Error loading profile:", profileError);
+      toast.error("Failed to load profile data.");
     }
-  };
 
-  const loadGoals = async () => {
+    // Load daily goal
     const { data: daily, error: dailyError } = await supabase
       .from("daily_goals")
       .select("target_minutes")
       .eq("user_id", userId)
       .maybeSingle();
 
+    if (!dailyError && daily) setDailyGoal(daily.target_minutes);
+    else if (dailyError && dailyError.code !== 'PGRST116') console.error("Error loading daily goal:", dailyError);
+
+    // Load weekly goal
     const { data: weekly, error: weeklyError } = await supabase
       .from("weekly_goals")
       .select("target_minutes")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (!dailyError && daily) setDailyGoal(daily.target_minutes);
     if (!weeklyError && weekly) setWeeklyGoal(weekly.target_minutes);
+    else if (weeklyError && weeklyError.code !== 'PGRST116') console.error("Error loading weekly goal:", weeklyError);
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +84,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
       .from("profile-photos")
       .getPublicUrl(fileName);
 
-    const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
+    const publicUrl = `${data.publicUrl}?t=${Date.now()}`; // Add timestamp to bust cache
 
     const { error: updateError } = await supabase
       .from("profiles")
@@ -96,23 +102,50 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     }
   };
 
-  const saveGoals = async () => {
+  const saveProfileAndGoals = async () => {
+    let hasError = false;
+
+    // Save username
+    const { error: usernameError } = await supabase
+      .from("profiles")
+      .update({ username: username })
+      .eq("id", userId);
+
+    if (usernameError) {
+      console.error("Error saving username:", usernameError);
+      toast.error("Failed to save username");
+      hasError = true;
+    }
+
+    // Save daily goal
     const { error: dailyError } = await supabase
       .from("daily_goals")
-      .upsert({ user_id: userId, target_minutes: dailyGoal, date: new Date().toISOString().split("T")[0] });
+      .upsert({ user_id: userId, target_minutes: dailyGoal, date: new Date().toISOString().split("T")[0] }, { onConflict: 'user_id,date' });
 
+    if (dailyError) {
+      console.error("Error saving daily goal:", dailyError);
+      toast.error("Failed to save daily goal");
+      hasError = true;
+    }
+
+    // Save weekly goal
     const today = new Date();
-    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
     const { error: weeklyError } = await supabase
       .from("weekly_goals")
-      .upsert({ user_id: userId, target_minutes: weeklyGoal, week_start: weekStart.toISOString() });
+      .upsert({ user_id: userId, target_minutes: weeklyGoal, week_start: weekStart.toISOString() }, { onConflict: 'user_id,week_start' });
 
-    if (dailyError || weeklyError) {
-      toast.error("Failed to save goals");
-    } else {
-      toast.success("Goals updated!");
+    if (weeklyError) {
+      console.error("Error saving weekly goal:", weeklyError);
+      toast.error("Failed to save weekly goal");
+      hasError = true;
+    }
+
+    if (!hasError) {
+      toast.success("Profile and goals updated!");
     }
   };
 
@@ -136,7 +169,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
               <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-3xl font-semibold">
-                {username[0]?.toUpperCase()}
+                {username?.[0]?.toUpperCase()}
               </span>
             )}
           </div>
@@ -163,6 +196,15 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
 
         <div className="space-y-4">
           <div>
+            <label className="text-sm text-muted-foreground">Username</label>
+            <Input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Your username"
+            />
+          </div>
+          <div>
             <label className="text-sm text-muted-foreground">Daily Goal (minutes)</label>
             <Input
               type="number"
@@ -180,8 +222,8 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
             />
           </div>
 
-          <Button onClick={saveGoals} className="w-full">
-            Save Goals
+          <Button onClick={saveProfileAndGoals} className="w-full">
+            Save Profile & Goals
           </Button>
         </div>
 

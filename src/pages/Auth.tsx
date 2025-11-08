@@ -38,6 +38,36 @@ const Auth = () => {
     defaultValues: { email: "", password: "" },
   });
 
+  const handleAuthSuccess = async (userId: string, defaultUsername?: string) => {
+    // Ensure a profile exists for the user
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error("Error fetching profile:", fetchError);
+      toast.error("Failed to load profile data.");
+      return;
+    }
+
+    if (!existingProfile || !existingProfile.username) {
+      // If no profile or no username, create/update with a default
+      const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
+      const { error: upsertError } = await supabase
+        .from("profiles")
+        .upsert({ id: userId, username: usernameToSet }, { onConflict: 'id' });
+
+      if (upsertError) {
+        console.error("Error upserting profile:", upsertError);
+        toast.error("Failed to set up user profile.");
+        return;
+      }
+    }
+    navigate("/focus-room");
+  };
+
   const handleSignUp = async (values: z.infer<typeof signUpSchema>) => {
     setLoading(true);
     try {
@@ -49,7 +79,7 @@ const Auth = () => {
       if (error) throw error;
       if (!data.user) throw new Error("Sign up failed, please try again.");
 
-      // Upsert the profile to avoid race conditions with triggers
+      // Upsert the profile with the provided username
       const { error: profileError } = await supabase
         .from("profiles")
         .upsert({ id: data.user.id, username: values.username });
@@ -57,7 +87,7 @@ const Auth = () => {
       if (profileError) throw profileError;
 
       toast.success("Account created! Check your email for verification.");
-      navigate("/focus-room");
+      await handleAuthSuccess(data.user.id, values.username);
     } catch (error: any) {
       toast.error(error.message || "Sign up failed");
     } finally {
@@ -68,15 +98,16 @@ const Auth = () => {
   const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
 
       if (error) throw error;
+      if (!data.user) throw new Error("Sign in failed, please try again.");
 
       toast.success("Welcome back!");
-      navigate("/focus-room");
+      await handleAuthSuccess(data.user.id);
     } catch (error: any) {
       toast.error(error.message || "Sign in failed");
     } finally {
@@ -87,13 +118,20 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/focus-room`
         }
       });
       if (error) throw error;
+      // The redirect will handle the rest, but we need to ensure profile creation on the redirect target
+      // For now, we'll rely on the FocusRoom to call handleAuthSuccess if needed, or a trigger.
+      // However, for immediate consistency, we can add a check here if the session is immediately available.
+      // If data.user is available, we can call handleAuthSuccess.
+      if (data.user) {
+        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
+      }
     } catch (error: any) {
       toast.error(error.message || "Google sign in failed");
       setLoading(false);
