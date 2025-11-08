@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { User } from "lucide-react";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -60,46 +61,60 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden flex items-center justify-center">
-      {/* Animated background particles */}
+      {/* Subtle background pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(30)].map((_, i) => (
+        {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-primary/20 rounded-full animate-float"
+            className="absolute w-1.5 h-1.5 bg-primary/10 rounded-full animate-float"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${5 + Math.random() * 10}s`,
+              animationDuration: `${8 + Math.random() * 10}s`,
             }}
           />
         ))}
       </div>
 
-      <div className="relative z-10 glass-card p-8 rounded-3xl shadow-glow max-w-md w-full mx-4 animate-scale-in">
-        <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          OnlyFocus
-        </h1>
-        <p className="text-muted-foreground text-center mb-8">
-          Enter your username to continue
-        </p>
+      <div className="relative z-10 glass-card p-8 rounded-2xl shadow-glow max-w-md w-full mx-4 animate-scale-in">
+        <div className="text-center mb-6">
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <User className="text-primary" size={32} />
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            OnlyFocus
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Enter your username to continue
+          </p>
+        </div>
 
         <div className="space-y-4">
-          <Input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleAuth()}
-            className="h-12 text-lg"
-          />
+          <div>
+            <Input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleAuth()}
+              className="h-12 text-base"
+            />
+          </div>
 
           <Button
             onClick={handleAuth}
             disabled={loading}
-            className="w-full h-12 text-lg bg-gradient-to-r from-primary to-accent hover:scale-105 transition-all"
+            className="w-full h-12 text-base bg-gradient-to-r from-primary to-accent hover:scale-105 transition-all duration-300"
           >
-            {loading ? "Loading..." : "Continue"}
+            {loading ? (
+              <span className="flex items-center">
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                Loading...
+              </span>
+            ) : (
+              "Continue to Focus"
+            )}
           </Button>
         </div>
       </div>

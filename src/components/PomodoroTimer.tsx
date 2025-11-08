@@ -55,55 +55,55 @@ const PomodoroTimer = () => {
 
   return (
     <div className="h-full flex flex-col items-center justify-center">
-      <h3 className="text-xl font-semibold mb-8">
+      <h3 className="text-lg font-semibold mb-6">
         {isBreak ? "Break Time" : "Focus Time"}
       </h3>
 
-      <div className="relative w-64 h-64 mb-8">
+      <div className="relative w-56 h-56 mb-6">
         <svg className="w-full h-full -rotate-90">
           <circle
-            cx="128"
-            cy="128"
-            r="120"
+            cx="112"
+            cy="112"
+            r="104"
             stroke="hsl(var(--border))"
-            strokeWidth="8"
+            strokeWidth="6"
             fill="none"
           />
           <circle
-            cx="128"
-            cy="128"
-            r="120"
+            cx="112"
+            cy="112"
+            r="104"
             stroke={isBreak ? "hsl(var(--accent))" : "hsl(var(--primary))"}
-            strokeWidth="8"
+            strokeWidth="6"
             fill="none"
-            strokeDasharray={`${2 * Math.PI * 120}`}
-            strokeDashoffset={`${2 * Math.PI * 120 * (1 - progress / 100)}`}
+            strokeDasharray={`${2 * Math.PI * 104}`}
+            strokeDashoffset={`${2 * Math.PI * 104 * (1 - progress / 100)}`}
             className="transition-all duration-1000"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-5xl font-bold font-mono">
+          <div className="text-4xl font-bold font-mono text-foreground">
             {formatTime(timeLeft)}
           </div>
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <Button
           size="icon"
           variant={isActive ? "default" : "outline"}
           onClick={toggleTimer}
-          className="w-12 h-12 dopamine-click shadow-glow"
+          className="w-11 h-11 dopamine-click shadow-glow rounded-lg"
         >
-          {isActive ? <Pause /> : <Play />}
+          {isActive ? <Pause size={18} /> : <Play size={18} />}
         </Button>
         <Button
           size="icon"
           variant="outline"
           onClick={resetTimer}
-          className="w-12 h-12 dopamine-click shadow-glow"
+          className="w-11 h-11 dopamine-click shadow-glow rounded-lg"
         >
-          <RotateCcw />
+          <RotateCcw size={18} />
         </Button>
       </div>
     </div>

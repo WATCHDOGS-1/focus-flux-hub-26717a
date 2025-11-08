@@ -131,82 +131,82 @@ const FocusRoom = () => {
   if (!userId) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-background/80 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background to-background/90 relative overflow-hidden">
       {/* Main Content */}
       <EncouragementToasts />
       
       <div className="relative z-10 glass-card border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             OnlyFocus
           </h1>
           
           <TimeTracker userId={userId} sessionStartTime={sessionStartTime} />
 
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("chat")}
-              className={`dopamine-click transition-all ${
-                activePanel === "chat" ? "bg-primary/20 shadow-glow" : ""
+              className={`dopamine-click transition-all rounded-lg ${
+                activePanel === "chat" ? "bg-primary/15 shadow-glow" : ""
               }`}
             >
-              <MessageSquare className="h-5 w-5" />
+              <MessageSquare className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("leaderboard")}
-              className={`dopamine-click transition-all ${
-                activePanel === "leaderboard" ? "bg-accent/20 shadow-glow" : ""
+              className={`dopamine-click transition-all rounded-lg ${
+                activePanel === "leaderboard" ? "bg-accent/15 shadow-glow" : ""
               }`}
             >
-              <Trophy className="h-5 w-5" />
+              <Trophy className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("pomodoro")}
-              className={`dopamine-click transition-all ${
-                activePanel === "pomodoro" ? "bg-secondary/20 shadow-glow" : ""
+              className={`dopamine-click transition-all rounded-lg ${
+                activePanel === "pomodoro" ? "bg-secondary/15 shadow-glow" : ""
               }`}
             >
-              <Timer className="h-5 w-5" />
+              <Timer className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("profile")}
-              className={`dopamine-click transition-all ${
-                activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""
+              className={`dopamine-click transition-all rounded-lg ${
+                activePanel === "profile" ? "bg-primary/15 shadow-glow" : ""
               }`}
             >
-              <User className="h-5 w-5" />
+              <User className="h-4 w-4" />
             </Button>
             <ThemeToggle />
             <Button
-              variant="destructive"
+              variant="ghost"
               size="icon"
               onClick={leaveRoom}
-              className="dopamine-click shadow-glow"
+              className="dopamine-click text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="flex h-[calc(100vh-70px)]">
         {/* Video Grid */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-3">
           <VideoGrid userId={userId} roomId={sessionId || 'default-room'} />
         </div>
 
         {/* Side Panel */}
         {activePanel && (
-          <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
+          <div className="w-72 glass-card border-l border-border p-3 overflow-y-auto">
             {activePanel === "chat" && <ChatPanel userId={userId} />}
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}
