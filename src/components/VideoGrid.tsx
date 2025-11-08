@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Video, VideoOff, MonitorUp, Pin, PinOff } from "lucide-react";
+import { Video, VideoOff, Pin, PinOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { WebRTCManager } from "@/utils/webrtc";
 import RemoteVideo from "@/components/RemoteVideo";
@@ -13,12 +12,10 @@ interface VideoGridProps {
 
 const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
   const webrtcManager = useRef<WebRTCManager | null>(null);
 
   const startLocalStream = async () => {
@@ -84,43 +81,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     }
   };
 
-  const startScreenShare = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false,
-      });
-      
-      screenStreamRef.current = stream;
-      
-      stream.getVideoTracks()[0].onended = () => {
-        stopScreenShare();
-      };
-      
-      setIsScreenSharing(true);
-      toast.success("Screen sharing started");
-    } catch (error) {
-      console.error("Error sharing screen:", error);
-      toast.error("Failed to share screen");
-    }
-  };
-
-  const stopScreenShare = () => {
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop());
-      screenStreamRef.current = null;
-    }
-    setIsScreenSharing(false);
-    toast.info("Screen sharing stopped");
-  };
-
-  const toggleScreenShare = () => {
-    if (isScreenSharing) {
-      stopScreenShare();
-    } else {
-      startScreenShare();
-    }
-  };
 
   const togglePin = (index: number) => {
     setPinnedVideos(prev => {
@@ -141,14 +101,13 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       if (webrtcManager.current) {
         webrtcManager.current.cleanup();
       }
-      stopScreenShare();
     };
   }, []);
 
   return (
     <div className="h-full flex flex-col gap-4">
       {/* Controls */}
-      <div className="glass-card p-4 rounded-2xl space-y-4 animate-shimmer">
+      <div className="glass-card p-4 rounded-xl space-y-4">
         <div className="flex items-center gap-4">
           <Button
             variant={isVideoEnabled ? "default" : "outline"}
@@ -156,16 +115,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             onClick={toggleVideo}
             className="dopamine-click shadow-glow"
           >
-            {isVideoEnabled ? <Video /> : <VideoOff />}
-          </Button>
-
-          <Button
-            variant={isScreenSharing ? "default" : "outline"}
-            size="icon"
-            onClick={toggleScreenShare}
-            className="dopamine-click shadow-glow"
-          >
-            <MonitorUp />
+            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
           </Button>
 
           <div className="flex-1 flex items-center gap-4">

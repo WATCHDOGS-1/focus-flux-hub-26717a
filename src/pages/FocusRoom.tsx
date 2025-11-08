@@ -103,13 +103,12 @@ const FocusRoom = () => {
   if (!userId) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background to-background/80 relative overflow-hidden">{/* Main Content */}
       <EncouragementToasts />
       
-      {/* Header */}
-      <div className="relative z-10 glass-card border-b-4 animate-rainbow-border">
+      <div className="relative z-10 glass-card border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-holographic">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             OnlyFocus
           </h1>
           
@@ -121,49 +120,49 @@ const FocusRoom = () => {
               size="icon"
               onClick={() => togglePanel("chat")}
               className={`dopamine-click transition-all ${
-                activePanel === "chat" ? "bg-gradient-to-r from-primary to-secondary shadow-glow" : "hover:shadow-neon"
+                activePanel === "chat" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
-              <MessageSquare className="text-primary" />
+              <MessageSquare className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("leaderboard")}
               className={`dopamine-click transition-all ${
-                activePanel === "leaderboard" ? "bg-gradient-to-r from-accent to-primary shadow-glow" : "hover:shadow-neon"
+                activePanel === "leaderboard" ? "bg-accent/20 shadow-glow" : ""
               }`}
             >
-              <Trophy className="text-accent" />
+              <Trophy className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("pomodoro")}
               className={`dopamine-click transition-all ${
-                activePanel === "pomodoro" ? "bg-gradient-to-r from-secondary to-accent shadow-glow" : "hover:shadow-neon"
+                activePanel === "pomodoro" ? "bg-secondary/20 shadow-glow" : ""
               }`}
             >
-              <Timer className="text-secondary" />
+              <Timer className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => togglePanel("profile")}
               className={`dopamine-click transition-all ${
-                activePanel === "profile" ? "bg-gradient-to-r from-primary to-accent shadow-glow" : "hover:shadow-neon"
+                activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
-              <User className="text-primary" />
+              <User className="h-5 w-5" />
             </Button>
             <ThemeToggle />
             <Button
-              variant="ghost"
+              variant="destructive"
               size="icon"
               onClick={leaveRoom}
-              className="dopamine-click hover:shadow-neon hover:bg-destructive/20 transition-all"
+              className="dopamine-click shadow-glow"
             >
-              <LogOut className="text-destructive" />
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -178,7 +177,7 @@ const FocusRoom = () => {
 
         {/* Side Panel */}
         {activePanel && (
-          <div className="w-80 glass-card border-l border-primary/20 p-4 animate-slide-in-right overflow-y-auto">
+          <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
             {activePanel === "chat" && <ChatPanel userId={userId} />}
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}

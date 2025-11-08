@@ -74,7 +74,7 @@ export class WebRTCManager {
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
+        audio: false,
       });
       return this.localStream;
     } catch (error) {
