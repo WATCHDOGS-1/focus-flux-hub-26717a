@@ -56,8 +56,8 @@ export class WebRTCManager {
     this.roomChannel.on('presence', { event: 'join' }, (payload: any) => {
       payload.newPresences.forEach((presence: any) => {
         if (presence.user_id !== this.userId) {
-          // When a new user joins, create a connection to them
-          this.createPeerConnection(presence.user_id);
+          // When a new user joins, create a connection to them and initiate an offer
+          this.createPeerConnection(presence.user_id, true);
         }
       });
     });
@@ -79,7 +79,8 @@ export class WebRTCManager {
         for (const key in presenceState) {
           const presence = presenceState[key][0];
           if (presence.user_id !== this.userId) {
-            this.createPeerConnection(presence.user_id);
+            // Current user is initiating connection to existing users
+            this.createPeerConnection(presence.user_id, true);
           }
         }
       }
@@ -104,10 +105,10 @@ export class WebRTCManager {
     }
   }
 
-  private createPeerConnection(peerId: string) {
+  private async createPeerConnection(peerId: string, isInitiator: boolean = false) {
     // Prevent duplicate connections
     if (this.peers.has(peerId)) {
-      return;
+      return this.peers.get(peerId);
     }
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -144,11 +145,22 @@ export class WebRTCManager {
     // Store the peer connection
     this.peers.set(peerId, pc);
 
+    if (isInitiator) {
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        this.sendSignal(peerId, { type: 'offer', sdp: offer.sdp });
+      } catch (error) {
+        console.error('Error creating or sending offer:', error);
+        this.removePeer(peerId);
+      }
+    }
+
     return pc;
   }
 
   private async handleOffer(peerId: string, offer: any) {
-    const pc = this.createPeerConnection(peerId) || this.peers.get(peerId);
+    const pc = await this.createPeerConnection(peerId, false); // Not an initiator here, just responding
     if (!pc) return;
 
     try {
