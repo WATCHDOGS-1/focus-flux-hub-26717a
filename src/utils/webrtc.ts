@@ -87,11 +87,41 @@ export class WebRTCManager {
     return this.localStream;
   }
 
-  public toggleVideo(enable: boolean) {
-    if (this.localStream) {
-      this.localStream.getVideoTracks().forEach(track => {
-        track.enabled = enable;
-      });
+  public async toggleVideo(enable: boolean): Promise<MediaStream | null> {
+    if (enable) {
+      // Turn video ON
+      try {
+        this.localStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        // Add new tracks to existing peer connections
+        this.peers.forEach(({ connection }) => {
+          this.localStream!.getTracks().forEach(track => {
+            connection.addTrack(track, this.localStream!);
+          });
+        });
+        return this.localStream;
+      } catch (error) {
+        console.error('Error accessing media devices for re-enable:', error);
+        return null;
+      }
+    } else {
+      // Turn video OFF
+      if (this.localStream) {
+        this.localStream.getTracks().forEach(track => {
+          track.stop(); // Stop the track, turning off the light
+          // Remove track from all peer connections
+          this.peers.forEach(({ connection }) => {
+            const sender = connection.getSenders().find(s => s.track === track);
+            if (sender) {
+              connection.removeTrack(sender);
+            }
+          });
+        });
+        this.localStream = null;
+      }
+      return null;
     }
   }
 
@@ -110,7 +140,7 @@ export class WebRTCManager {
 
     const pc = new RTCPeerConnection(configuration);
 
-    if (this.localStream) {
+    if (this.localStream) { // Only add tracks if localStream exists
       this.localStream.getTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });

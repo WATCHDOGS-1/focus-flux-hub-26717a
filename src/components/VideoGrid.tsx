@@ -79,13 +79,29 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     };
   }, [userId, roomId]);
 
-  const toggleVideo = () => {
+  const toggleVideo = async () => { // Make it async
     const newVideoState = !isVideoEnabled;
     if (webrtcManager.current) {
-      webrtcManager.current.toggleVideo(newVideoState);
+      if (newVideoState) { // Turning video ON
+        const newStream = await webrtcManager.current.toggleVideo(true);
+        if (newStream && localVideoRef.current) {
+          localVideoRef.current.srcObject = newStream;
+          localVideoRef.current.play().catch(console.error);
+          setIsVideoEnabled(true);
+          toast.success("Camera enabled");
+        } else {
+          toast.error("Failed to enable camera. Please check permissions.");
+          setIsVideoEnabled(false);
+        }
+      } else { // Turning video OFF
+        webrtcManager.current.toggleVideo(false);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = null; // Clear the video element
+        }
+        setIsVideoEnabled(false);
+        toast.info("Camera disabled");
+      }
     }
-    setIsVideoEnabled(newVideoState);
-    toast.info(newVideoState ? "Camera enabled" : "Camera disabled");
   };
 
   const togglePin = (index: number) => {
@@ -152,7 +168,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             key={peerId}
             peerId={peerId}
             stream={stream}
-            username={username} // Pass the fetched username
+            username={username} {/* Pass the fetched username */}
             isPinned={pinnedVideos.has(index + 1)}
             onTogglePin={() => togglePin(index + 1)}
           />
