@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import GoogleIcon from "@/components/icons/GoogleIcon";
+import DiscordIcon from "@/components/icons/DiscordIcon"; // Import DiscordIcon
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -53,11 +54,33 @@ const Auth = () => {
       if (error) throw error;
       
       // If data.user is available, we can call handleAuthSuccess.
+      // Note: Supabase's signInWithOAuth doesn't always return the user immediately
+      // when redirecting, so the session check in FocusRoom.tsx is the primary handler.
       if (data.user) {
         await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
       }
     } catch (error: any) {
       toast.error(error.message || "Google sign in failed");
+      setLoading(false);
+    }
+  };
+
+  const handleDiscordSignIn = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${window.location.origin}/focus-room`
+        }
+      });
+      if (error) throw error;
+
+      if (data.user) {
+        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Discord sign in failed");
       setLoading(false);
     }
   };
@@ -84,7 +107,7 @@ const Auth = () => {
           <CardTitle>Welcome to OnlyFocus</CardTitle>
           <CardDescription>Sign in or create an account to join the focus room.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4"> {/* Added space-y-4 for spacing between buttons */}
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"
@@ -93,6 +116,15 @@ const Auth = () => {
           >
             <GoogleIcon className="w-5 h-5" />
             {loading ? "Signing In..." : "Continue with Google"}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full flex items-center gap-2 dopamine-click shadow-glow"
+            onClick={handleDiscordSignIn}
+            disabled={loading}
+          >
+            <DiscordIcon className="w-5 h-5" />
+            {loading ? "Signing In..." : "Continue with Discord"}
           </Button>
         </CardContent>
       </Card>
