@@ -168,7 +168,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             key={peerId}
             peerId={peerId}
             stream={stream}
-            username={username} {/* Pass the fetched username */}
+            username={username}
             isPinned={pinnedVideos.has(index + 1)}
             onTogglePin={() => togglePin(index + 1)}
           />
