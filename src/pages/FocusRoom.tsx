@@ -81,9 +81,9 @@ const FocusRoom = () => {
 
         // Update weekly stats
         const today = new Date();
-        const weekStart = new Date(today);
-        weekStart.setDate(weekStart.getDate() - today.getDay());
-        weekStart.setHours(0, 0, 0, 0);
+        const weekStart = new Date(today); // Create a new Date object from today
+        weekStart.setDate(today.getDate() - today.getDay()); // Set it to the start of the week (Sunday)
+        weekStart.setHours(0, 0, 0, 0); // Set time to midnight
 
         const { data: existingStats, error: statsError } = await supabase
           .from("weekly_stats")
