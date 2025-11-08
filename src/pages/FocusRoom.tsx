@@ -22,29 +22,6 @@ const FocusRoom = () => {
   const [isLoading, setIsLoading] = useState(true);
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const startSession = async (uid: string) => {
-    const { data, error } = await supabase
-      .from("focus_sessions")
-      .insert({ user_id: uid, start_time: new Date().toISOString() })
-      .select()
-      .single();
-
-    if (error) {
-      // Log the full error object for detailed debugging
-      console.error("Error starting focus session:", error.message, error.details, error.hint);
-      toast.error("Failed to start focus session. Please try again.");
-      return false; // Indicate failure
-    }
-
-    if (data) {
-      setSessionId(data.id);
-      setSessionStartTime(Date.now());
-      console.log("Focus session started:", data);
-      return true; // Indicate success
-    }
-    return false; // Should not happen if no error and no data
-  };
-
   useEffect(() => {
     const checkSession = async () => {
       const {
@@ -54,12 +31,7 @@ const FocusRoom = () => {
         navigate("/auth");
       } else {
         setUserId(session.user.id);
-        const sessionStarted = await startSession(session.user.id);
-        if (!sessionStarted) {
-          // If session failed to start, navigate back or show a critical error
-          toast.error("Could not initialize your focus session. Please try logging in again.");
-          navigate("/auth"); 
-        }
+        await startSession(session.user.id);
         setIsLoading(false);
       }
     };
@@ -73,12 +45,21 @@ const FocusRoom = () => {
     };
   }, [navigate]);
 
-  const leaveRoom = async () => {
-    if (!sessionId || !userId) {
-      toast.error("No active session to leave.");
-      navigate("/");
-      return;
+  const startSession = async (uid: string) => {
+    const { data, error } = await supabase
+      .from("focus_sessions")
+      .insert({ user_id: uid, start_time: new Date().toISOString() })
+      .select()
+      .single();
+
+    if (!error && data) {
+      setSessionId(data.id);
+      setSessionStartTime(Date.now());
     }
+  };
+
+  const leaveRoom = async () => {
+    if (!sessionId || !userId) return;
 
     const leavePromise = new Promise(async (resolve, reject) => {
       try {
