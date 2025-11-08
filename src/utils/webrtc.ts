@@ -36,7 +36,8 @@ export class WebRTCManager {
       });
     } catch (error) {
       console.error('Error accessing media devices:', error);
-      throw error;
+      // Do not throw error, allow user to join with video off
+      this.localStream = null;
     }
 
     // 2. Now that the stream is ready, initialize signaling.
@@ -95,31 +96,63 @@ export class WebRTCManager {
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
-        // Add new tracks to existing peer connections
-        this.peers.forEach(({ connection }) => {
-          this.localStream!.getTracks().forEach(track => {
+
+        // For each existing peer connection, replace or add tracks and renegotiate
+        for (const [peerId, { connection }] of this.peers.entries()) {
+          // Remove existing video senders
+          connection.getSenders().forEach(sender => {
+            if (sender.track && sender.track.kind === 'video') {
+              connection.removeTrack(sender);
+            }
+          });
+          // Add new video tracks
+          this.localStream.getVideoTracks().forEach(track => {
             connection.addTrack(track, this.localStream!);
           });
-        });
+          // Trigger renegotiation for this peer
+          const offer = await connection.createOffer();
+          await connection.setLocalDescription(offer);
+          this.roomChannel.send({
+            type: 'broadcast',
+            event: 'offer',
+            payload: {
+              from: this.userId,
+              to: peerId,
+              offer: offer,
+            },
+          });
+        }
         return this.localStream;
       } catch (error) {
         console.error('Error accessing media devices for re-enable:', error);
-        return null;
+        throw error; // Re-throw to be caught by VideoGrid
       }
     } else {
       // Turn video OFF
       if (this.localStream) {
-        this.localStream.getTracks().forEach(track => {
-          track.stop(); // Stop the track, turning off the light
-          // Remove track from all peer connections
-          this.peers.forEach(({ connection }) => {
-            const sender = connection.getSenders().find(s => s.track === track);
-            if (sender) {
-              connection.removeTrack(sender);
-            }
-          });
-        });
+        this.localStream.getTracks().forEach(track => track.stop());
         this.localStream = null;
+      }
+
+      // For each existing peer connection, remove tracks and renegotiate
+      for (const [peerId, { connection }] of this.peers.entries()) {
+        connection.getSenders().forEach(sender => {
+          if (sender.track && sender.track.kind === 'video') {
+            connection.removeTrack(sender);
+          }
+        });
+        // Trigger renegotiation for this peer (to signal video is off)
+        const offer = await connection.createOffer();
+        await connection.setLocalDescription(offer);
+        this.roomChannel.send({
+          type: 'broadcast',
+          event: 'offer',
+          payload: {
+            from: this.userId,
+            to: peerId,
+            offer: offer,
+          },
+        });
       }
       return null;
     }
