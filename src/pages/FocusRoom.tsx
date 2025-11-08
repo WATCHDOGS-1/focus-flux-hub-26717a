@@ -22,6 +22,9 @@ const FocusRoom = () => {
   const [isLoading, setIsLoading] = useState(true);
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Define a fixed room ID for all users to join the same video conference
+  const SHARED_FOCUS_ROOM_ID = "global-focus-room";
+
   useEffect(() => {
     const checkSession = async () => {
       const {
@@ -79,7 +82,7 @@ const FocusRoom = () => {
         // Update weekly stats
         const today = new Date();
         const weekStart = new Date(today);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        weekStart.setDate(weekStart.getDate() - today.getDay());
         weekStart.setHours(0, 0, 0, 0);
 
         const { data: existingStats, error: statsError } = await supabase
@@ -202,7 +205,8 @@ const FocusRoom = () => {
 
       <div className="flex h-[calc(100vh-80px)]">
         <div className="flex-1 p-4">
-          <VideoGrid userId={userId} roomId={sessionId || "default-room"} />
+          {/* Pass the shared room ID to VideoGrid */}
+          <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
         </div>
 
         {activePanel && (
