@@ -46,33 +46,20 @@ const FocusRoom = () => {
   }, [navigate]);
 
   const startSession = async (uid: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("focus_sessions")
-        .insert({ user_id: uid, start_time: new Date().toISOString() })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("focus_sessions")
+      .insert({ user_id: uid, start_time: new Date().toISOString() })
+      .select()
+      .single();
 
-      if (error) throw error;
-
-      if (data) {
-        setSessionId(data.id);
-        setSessionStartTime(Date.now());
-      } else {
-        throw new Error("No data returned after creating session.");
-      }
-    } catch (error) {
-      console.error("Failed to start session:", error);
-      toast.error("Could not start focus session. Please refresh the page.");
+    if (!error && data) {
+      setSessionId(data.id);
+      setSessionStartTime(Date.now());
     }
   };
 
   const leaveRoom = async () => {
-    if (!sessionId || !userId) {
-      toast.error("Session not found. Cannot save progress.");
-      navigate("/");
-      return;
-    }
+    if (!sessionId || !userId) return;
 
     const leavePromise = new Promise(async (resolve, reject) => {
       try {

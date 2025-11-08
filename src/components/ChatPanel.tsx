@@ -22,42 +22,19 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchInitialMessages = async () => {
-      const { data, error } = await supabase
-        .from("chat_messages")
-        .select(`*, profiles (username)`)
-        .order("created_at", { ascending: true })
-        .limit(100);
-
-      if (error) {
-        console.error("Error loading messages:", error);
-        toast.error("Could not load chat history.");
-      } else if (data) {
-        setMessages(data as ChatMessage[]);
-      }
-    };
-
-    fetchInitialMessages();
+    loadMessages();
 
     const channel = supabase
-      .channel("chat_messages_realtime")
+      .channel("chat_messages")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "chat_messages",
         },
-        async (payload) => {
-          const { data, error } = await supabase
-            .from("chat_messages")
-            .select(`*, profiles (username)`)
-            .eq('id', payload.new.id)
-            .single();
-          
-          if (!error && data) {
-            setMessages((prevMessages) => [...prevMessages, data as ChatMessage]);
-          }
+        () => {
+          loadMessages();
         }
       )
       .subscribe();
@@ -67,9 +44,23 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     };
   }, []);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const loadMessages = async () => {
+    const { data, error } = await supabase
+      .from("chat_messages")
+      .select(`
+        *,
+        profiles (username)
+      `)
+      .order("created_at", { ascending: true })
+      .limit(100);
+
+    if (error) {
+      console.error("Error loading messages:", error);
+    } else if (data) {
+      setMessages(data as ChatMessage[]);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  };
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -89,17 +80,17 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     <div className="h-full flex flex-col">
       <h3 className="text-xl font-semibold mb-4">Chat</h3>
 
-      <div className="flex-1 space-y-3 overflow-y-auto mb-4 p-1">
+      <div className="flex-1 space-y-3 overflow-y-auto mb-4">
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`p-3 rounded-lg max-w-[90%] break-words ${
+            className={`p-3 rounded-lg ${
               msg.user_id === userId
-                ? "bg-primary/20 ml-auto"
-                : "bg-secondary/20 mr-auto"
+                ? "bg-primary/20 ml-4"
+                : "bg-secondary/20 mr-4"
             }`}
           >
-            <div className="text-xs text-muted-foreground mb-1 font-semibold">
+            <div className="text-xs text-muted-foreground mb-1">
               {msg.profiles?.username || "Unknown"}
             </div>
             <div className="text-sm">{msg.message}</div>
