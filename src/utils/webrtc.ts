@@ -1,11 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export interface PeerConnection {
-  peerId: string;
-  connection: RTCPeerConnection;
-  stream?: MediaStream;
-}
-
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
@@ -13,7 +7,8 @@ const ICE_SERVERS = [
 
 export class WebRTCManager {
   private localStream: MediaStream | null = null;
-  private peers: Map<string, PeerConnection> = new Map();
+  private peers: Map<string, RTCPeerConnection> = new Map();
+  private remoteStreams: Map<string, MediaStream> = new Map();
   private roomChannel: any = null;
   private userId: string;
   private onStreamAdded: (peerId: string, stream: MediaStream) => void;
@@ -41,35 +36,13 @@ export class WebRTCManager {
     }
 
     // Create a unique channel for this room
-    this.roomChannel = supabase.channel(`room_${roomId}`, {
-      config: {
-        presence: {
-          key: this.userId,
-        },
-      },
-    });
-
-    // Handle new users joining
-    this.roomChannel.on('presence', { event: 'join' }, (payload: any) => {
-      payload.newPresences.forEach((presence: any) => {
-        if (presence.user_id !== this.userId) {
-          this.initiateConnection(presence.user_id);
-        }
-      });
-    });
-
-    // Handle users leaving
-    this.roomChannel.on('presence', { event: 'leave' }, (payload: any) => {
-      payload.leftPresences.forEach((presence: any) => {
-        this.removePeer(presence.user_id);
-      });
-    });
+    this.roomChannel = supabase.channel(`room_${roomId}`);
 
     // Handle WebRTC signaling messages
     this.roomChannel.on('broadcast', { event: 'signal' }, async (payload: any) => {
-      if (payload.payload.to !== this.userId) return;
-      
       const { from, signal } = payload.payload;
+      if (from === this.userId) return;
+      
       if (signal.type === 'offer') {
         await this.handleOffer(from, signal);
       } else if (signal.type === 'answer') {
@@ -77,6 +50,22 @@ export class WebRTCManager {
       } else if (signal.type === 'candidate') {
         await this.handleIceCandidate(from, signal.candidate);
       }
+    });
+
+    // Handle presence changes
+    this.roomChannel.on('presence', { event: 'join' }, (payload: any) => {
+      payload.newPresences.forEach((presence: any) => {
+        if (presence.user_id !== this.userId) {
+          // When a new user joins, create a connection to them
+          this.createPeerConnection(presence.user_id);
+        }
+      });
+    });
+
+    this.roomChannel.on('presence', { event: 'leave' }, (payload: any) => {
+      payload.leftPresences.forEach((presence: any) => {
+        this.removePeer(presence.user_id);
+      });
     });
 
     // Subscribe to the channel
@@ -87,12 +76,12 @@ export class WebRTCManager {
         
         // Connect to existing users
         const presenceState = this.roomChannel.presenceState();
-        Object.keys(presenceState).forEach((key) => {
+        for (const key in presenceState) {
           const presence = presenceState[key][0];
           if (presence.user_id !== this.userId) {
-            this.initiateConnection(presence.user_id);
+            this.createPeerConnection(presence.user_id);
           }
-        });
+        }
       }
     });
 
@@ -115,9 +104,11 @@ export class WebRTCManager {
     }
   }
 
-  private async initiateConnection(peerId: string) {
+  private createPeerConnection(peerId: string) {
     // Prevent duplicate connections
-    if (this.peers.has(peerId)) return;
+    if (this.peers.has(peerId)) {
+      return;
+    }
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
@@ -131,11 +122,8 @@ export class WebRTCManager {
     // Handle incoming media streams
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
+        this.remoteStreams.set(peerId, event.streams[0]);
         this.onStreamAdded(peerId, event.streams[0]);
-        const peerConn = this.peers.get(peerId);
-        if (peerConn) {
-          peerConn.stream = event.streams[0];
-        }
       }
     };
 
@@ -154,32 +142,19 @@ export class WebRTCManager {
     };
 
     // Store the peer connection
-    this.peers.set(peerId, { peerId, connection: pc });
+    this.peers.set(peerId, pc);
 
-    // Create offer for new connections
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      this.sendSignal(peerId, { type: 'offer', sdp: offer.sdp });
-    } catch (error) {
-      console.error('Error creating offer:', error);
-      this.removePeer(peerId);
-    }
+    return pc;
   }
 
   private async handleOffer(peerId: string, offer: any) {
-    // Create connection if it doesn't exist
-    if (!this.peers.has(peerId)) {
-      await this.initiateConnection(peerId);
-    }
-
-    const peerConn = this.peers.get(peerId);
-    if (!peerConn) return;
+    const pc = this.createPeerConnection(peerId) || this.peers.get(peerId);
+    if (!pc) return;
 
     try {
-      await peerConn.connection.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await peerConn.connection.createAnswer();
-      await peerConn.connection.setLocalDescription(answer);
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
       this.sendSignal(peerId, { type: 'answer', sdp: answer.sdp });
     } catch (error) {
       console.error('Error handling offer:', error);
@@ -188,11 +163,11 @@ export class WebRTCManager {
   }
 
   private async handleAnswer(peerId: string, answer: any) {
-    const peerConn = this.peers.get(peerId);
-    if (!peerConn) return;
+    const pc = this.peers.get(peerId);
+    if (!pc) return;
 
     try {
-      await peerConn.connection.setRemoteDescription(new RTCSessionDescription(answer));
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (error) {
       console.error('Error handling answer:', error);
       this.removePeer(peerId);
@@ -200,30 +175,37 @@ export class WebRTCManager {
   }
 
   private async handleIceCandidate(peerId: string, candidate: RTCIceCandidate) {
-    const peerConn = this.peers.get(peerId);
-    if (!peerConn) return;
+    const pc = this.peers.get(peerId);
+    if (!pc) return;
 
     try {
-      await peerConn.connection.addIceCandidate(new RTCIceCandidate(candidate));
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (error) {
       console.error('Error adding ICE candidate:', error);
     }
   }
 
-  private sendSignal(to: string, signal: any) {
-    this.roomChannel.send({
-      type: 'broadcast',
-      event: 'signal',
-      payload: { from: this.userId, to, signal }
-    });
+  private async sendSignal(to: string, signal: any) {
+    if (this.roomChannel) {
+      this.roomChannel.send({
+        type: 'broadcast',
+        event: 'signal',
+        payload: { from: this.userId, to, signal }
+      });
+    }
   }
 
   private removePeer(peerId: string) {
-    const peerConn = this.peers.get(peerId);
-    if (peerConn) {
-      peerConn.connection.close();
-      this.onStreamRemoved(peerId);
+    const pc = this.peers.get(peerId);
+    if (pc) {
+      pc.close();
       this.peers.delete(peerId);
+    }
+    
+    const stream = this.remoteStreams.get(peerId);
+    if (stream) {
+      this.remoteStreams.delete(peerId);
+      this.onStreamRemoved(peerId);
     }
   }
 
@@ -235,11 +217,12 @@ export class WebRTCManager {
     }
 
     // Close all peer connections
-    this.peers.forEach(peer => {
-      peer.connection.close();
-      this.onStreamRemoved(peer.peerId);
+    this.peers.forEach((pc, peerId) => {
+      pc.close();
+      this.onStreamRemoved(peerId);
     });
     this.peers.clear();
+    this.remoteStreams.clear();
 
     // Unsubscribe from the channel
     if (this.roomChannel) {
