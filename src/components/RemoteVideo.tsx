@@ -1,47 +1,35 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Pin, PinOff, VideoOff } from "lucide-react"; // Added VideoOff icon
+import { Pin, PinOff } from "lucide-react";
 
 interface RemoteVideoProps {
   peerId: string;
-  stream: MediaStream | null; // Changed to allow null
-  username: string;
+  stream: MediaStream;
+  username: string; // Added username prop
   isPinned: boolean;
   onTogglePin: () => void;
-  isLocal?: boolean; // Added to differentiate local placeholder
-  videoElementRef?: React.RefObject<HTMLVideoElement>; // New prop for external ref
 }
 
-const RemoteVideo = ({ peerId, stream, username, isPinned, onTogglePin, isLocal = false, videoElementRef }: RemoteVideoProps) => {
-  const internalVideoRef = useRef<HTMLVideoElement>(null);
-  const currentVideoRef = videoElementRef || internalVideoRef; // Use external ref if provided, else internal
+const RemoteVideo = ({ peerId, stream, username, isPinned, onTogglePin }: RemoteVideoProps) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (currentVideoRef.current) {
-      currentVideoRef.current.srcObject = stream;
-      if (stream) {
-        currentVideoRef.current.play().catch(console.error);
-      }
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(console.error);
     }
-  }, [stream, currentVideoRef]);
+  }, [stream]);
 
   return (
     <div className={`relative glass-card rounded-2xl overflow-hidden group ${isPinned ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
-      {stream ? (
-        <video
-          ref={currentVideoRef} // Assign ref here
-          autoPlay
-          playsInline
-          muted={isLocal} // Mute local video
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-          <VideoOff className="w-1/3 h-1/3 opacity-50" />
-        </div>
-      )}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        className="w-full h-full object-cover"
+      />
       <div className="absolute top-2 left-2 px-3 py-1 bg-secondary/80 backdrop-blur rounded-full text-xs font-bold">
-        {username}
+        {username} {/* Display username here */}
       </div>
       <Button
         variant="ghost"

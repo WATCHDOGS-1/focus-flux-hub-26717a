@@ -1,25 +1,22 @@
 import { useState, useEffect, useRef } from "react";
-import { Video, VideoOff, Pin, PinOff, ChevronLeft, ChevronRight } from "lucide-react"; // Added Chevron icons
+import { Video, VideoOff, Pin, PinOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { WebRTCManager } from "@/utils/webrtc";
 import RemoteVideo from "@/components/RemoteVideo";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // Import supabase client
 
 interface VideoGridProps {
   userId: string;
   roomId: string;
 }
 
-const videosPerPage = 8; // Max videos per page
-
 const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [pinnedVideos, setPinnedVideos] = useState<Set<string>>(new Set()); // Store participant IDs
+  const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
   const [remoteStreams, setRemoteStreams] = useState<Map<string, { stream: MediaStream; username: string }>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const webrtcManager = useRef<WebRTCManager | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const setup = async () => {
@@ -27,6 +24,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         webrtcManager.current = new WebRTCManager(
           userId,
           async (peerId, stream) => {
+            // Fetch username for the connected peer
             const { data, error } = await supabase
               .from("profiles")
               .select("username")
@@ -47,11 +45,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
               }
               newMap.delete(peerId);
               return newMap;
-            });
-            setPinnedVideos(prev => { // Remove from pinned if peer leaves
-              const newSet = new Set(prev);
-              newSet.delete(peerId);
-              return newSet;
             });
           },
           () => {
@@ -111,67 +104,23 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     }
   };
 
-  const togglePin = (participantId: string) => {
+  const togglePin = (index: number) => {
     setPinnedVideos(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(participantId)) {
-        newSet.delete(participantId);
+      if (newSet.has(index)) {
+        newSet.delete(index);
       } else {
-        newSet.add(participantId);
+        newSet.add(index);
       }
       return newSet;
     });
-  };
-
-  // Combine local and remote streams into a single array for easier pagination
-  const allParticipants: Array<{
-    id: string;
-    stream: MediaStream | null;
-    username: string;
-    isLocal: boolean;
-    videoElementRef?: React.RefObject<HTMLVideoElement>;
-  }> = [];
-
-  // Add local user
-  if (userId) {
-    allParticipants.push({
-      id: userId,
-      stream: isVideoEnabled ? (localVideoRef.current?.srcObject as MediaStream || null) : null,
-      username: "You",
-      isLocal: true,
-      videoElementRef: localVideoRef,
-    });
-  }
-
-  // Add remote users
-  Array.from(remoteStreams.entries()).forEach(([peerId, { stream, username }]) => {
-    allParticipants.push({
-      id: peerId,
-      stream,
-      username,
-      isLocal: false,
-    });
-  });
-
-  const totalPages = Math.ceil(allParticipants.length / videosPerPage);
-
-  const startIndex = (currentPage - 1) * videosPerPage;
-  const endIndex = startIndex + videosPerPage;
-  const videosToShow = allParticipants.slice(startIndex, endIndex);
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  };
-
-  const handlePrevPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
 
   return (
     <div className="h-full flex flex-col gap-4">
       {/* Controls */}
       <div className="glass-card p-4 rounded-xl space-y-4">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
           <Button
             variant={isVideoEnabled ? "default" : "outline"}
             size="icon"
@@ -183,50 +132,45 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
 
           <div className="flex-1 flex items-center gap-4">
             <span className="text-sm text-muted-foreground font-semibold">
-              Connected: {allParticipants.length}
+              Connected: {remoteStreams.size + 1}
             </span>
           </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-                className="dopamine-click"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="dopamine-click"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Video Grid */}
-      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
-        {videosToShow.map((participant) => (
+      <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-2">
+        {/* Local Video */}
+        <div className={`relative glass-card rounded-2xl overflow-hidden group ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-cover ${!isVideoEnabled ? 'hidden' : ''}`}
+          />
+          <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold">
+            You
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity dopamine-click"
+            onClick={() => togglePin(0)}
+          >
+            {pinnedVideos.has(0) ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+          </Button>
+        </div>
+
+        {/* Remote Videos */}
+        {Array.from(remoteStreams.entries()).map(([peerId, { stream, username }], index) => (
           <RemoteVideo
-            key={participant.id}
-            peerId={participant.id}
-            stream={participant.stream}
-            username={participant.username}
-            isPinned={pinnedVideos.has(participant.id)}
-            onTogglePin={() => togglePin(participant.id)}
-            isLocal={participant.isLocal}
-            videoElementRef={participant.videoElementRef}
+            key={peerId}
+            peerId={peerId}
+            stream={stream}
+            username={username}
+            isPinned={pinnedVideos.has(index + 1)}
+            onTogglePin={() => togglePin(index + 1)}
           />
         ))}
       </div>
