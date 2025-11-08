@@ -14,6 +14,9 @@ DROP TABLE IF EXISTS public.focus_sessions CASCADE;
 DROP POLICY IF EXISTS "Users can manage their own daily goals." ON public.daily_goals;
 DROP TABLE IF EXISTS public.daily_goals CASCADE;
 
+DROP POLICY IF EXISTS "Users can manage their own daily stats." ON public.daily_stats;
+DROP TABLE IF EXISTS public.daily_stats CASCADE;
+
 DROP POLICY IF EXISTS "Users can insert their own chat messages." ON public.chat_messages;
 DROP POLICY IF EXISTS "Chat messages are viewable by everyone." ON public.chat_messages;
 DROP TABLE IF EXISTS public.chat_messages CASCADE;
@@ -60,6 +63,18 @@ CREATE TABLE public.daily_goals (
 );
 ALTER TABLE public.daily_goals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their own daily goals." ON public.daily_goals FOR ALL USING (auth.uid() = user_id);
+
+-- daily_stats table (NEW)
+CREATE TABLE public.daily_stats (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  date date NOT NULL,
+  total_minutes integer DEFAULT 0 NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE (user_id, date)
+);
+ALTER TABLE public.daily_stats ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own daily stats." ON public.daily_stats FOR ALL USING (auth.uid() = user_id);
 
 -- focus_sessions table
 CREATE TABLE public.focus_sessions (

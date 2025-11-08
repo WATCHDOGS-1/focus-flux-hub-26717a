@@ -69,9 +69,38 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "daily_goals_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      daily_stats: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          total_minutes: number
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          total_minutes?: number
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          total_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_stats_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -155,7 +184,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "weekly_goals_user_id_fkey1"
             columns: ["user_id"]
