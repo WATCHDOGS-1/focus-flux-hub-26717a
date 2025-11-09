@@ -13,35 +13,48 @@ const Auth = () => {
   const navigate = useNavigate();
 
   const handleAuthSuccess = async (userId: string, defaultUsername?: string, discordUserId?: string) => {
-    // 1. Ensure a profile exists for the user using the auth.user.id
-    const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
-    
-    const updateData: { id: string; username: string; discord_user_id?: string } = { 
-      id: userId, // CRITICAL: Must match auth.users.id
-      username: usernameToSet,
-    };
-    if (discordUserId) {
-      updateData.discord_user_id = discordUserId; 
-    }
-
-    const { error: upsertError } = await supabase
+    // Ensure a profile exists for the user
+    const { data: existingProfile, error: fetchError } = await supabase
       .from("profiles")
-      .upsert(updateData, { onConflict: 'id' });
+      .select("username")
+      .eq("id", userId)
+      .single();
 
-    if (upsertError) {
-      console.error("Error upserting profile:", upsertError);
-      toast.error("Failed to set up user profile.");
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error("Error fetching profile:", fetchError);
+      toast.error("Failed to load profile data.");
       return;
     }
-    
-    // 2. Navigate to focus room
+
+    if (!existingProfile || !existingProfile.username || discordUserId) {
+      // If no profile or no username, create/update with a default
+      // Also update if discordUserId is provided (meaning a Discord login)
+      const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
+      const updateData: { id: string; username: string; discord_user_id?: string } = { 
+        id: userId,
+        username: usernameToSet,
+      };
+      if (discordUserId) {
+        updateData.discord_user_id = discordUserId; 
+      }
+
+      const { error: upsertError } = await supabase
+        .from("profiles")
+        .upsert(updateData, { onConflict: 'id' });
+
+      if (upsertError) {
+        console.error("Error upserting profile:", upsertError);
+        toast.error("Failed to set up user profile.");
+        return;
+      }
+    }
     navigate("/focus-room");
   };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/focus-room`
@@ -49,8 +62,12 @@ const Auth = () => {
       });
       if (error) throw error;
       
-      // Note: The primary handling happens on redirect in FocusRoom.tsx, 
-      // but we keep this for consistency if the session is immediately available.
+      // If data.user is available, we can call handleAuthSuccess.
+      // Note: Supabase's signInWithOAuth doesn't always return the user immediately
+      // when redirecting, so the session check in FocusRoom.tsx is the primary handler.
+      if (data.user) {
+        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
+      }
     } catch (error: any) {
       toast.error(error.message || "Google sign in failed");
       setLoading(false);
@@ -60,34 +77,23 @@ const Auth = () => {
   const handleDiscordSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
           redirectTo: `${window.location.origin}/focus-room`
         }
       });
       if (error) throw error;
-      
-      // Note: The primary handling happens on redirect in FocusRoom.tsx
+
+      if (data.user) {
+        const discordUserId = data.user.user_metadata?.provider_id;
+        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name, discordUserId);
+      }
     } catch (error: any) {
       toast.error(error.message || "Discord sign in failed");
       setLoading(false);
     }
   };
-
-  // Handle session check on mount for redirects (e.g., after OAuth callback)
-  useEffect(() => {
-    const checkAndHandleSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const user = session.user;
-        const discordUserId = user.user_metadata?.provider_id;
-        await handleAuthSuccess(user.id, user.user_metadata?.full_name || user.user_metadata?.name, discordUserId);
-      }
-    };
-    checkAndHandleSession();
-  }, []);
-
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
@@ -111,7 +117,7 @@ const Auth = () => {
           <CardTitle>Welcome to OnlyFocus</CardTitle>
           <CardDescription>Sign in or create an account to join the focus room.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4"> {/* Added space-y-4 for spacing between buttons */}
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"

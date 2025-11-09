@@ -27,14 +27,14 @@ const FocusRoom = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      
-      if (userErr || !user) {
-        console.error("Authentication error:", userErr);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
         navigate("/auth");
       } else {
-        setUserId(user.id);
-        await startSession(user.id);
+        setUserId(session.user.id);
+        await startSession(session.user.id);
         setIsLoading(false);
       }
     };
@@ -55,13 +55,9 @@ const FocusRoom = () => {
       .select()
       .single();
 
-    if (error) {
-      console.error("Error starting focus session:", error.message, error);
-      toast.error(`Failed to start session: ${error.message}`);
-    } else if (data) {
+    if (!error && data) {
       setSessionId(data.id);
       setSessionStartTime(Date.now());
-      toast.success("Focus session started!");
     }
   };
 
@@ -108,7 +104,7 @@ const FocusRoom = () => {
             .from("weekly_stats")
             .insert({
               user_id: userId,
-              week_start: weekStart.toISOString().split("T")[0], // Use date string for week_start
+              week_start: weekStart.toISOString(),
               total_minutes: minutes,
             });
           if (insertError) throw insertError;
