@@ -57,7 +57,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/focus-room`
+          redirectTo: `${window.location.origin}/#/focus-room` // Updated redirect URL
         }
       });
       if (error) throw error;
@@ -75,7 +75,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${window.location.origin}/focus-room`
+          redirectTo: `${window.location.origin}/#/focus-room` // Updated redirect URL
         }
       });
       if (error) throw error;
