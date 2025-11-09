@@ -8,10 +8,11 @@ import TimeTracker from "@/components/TimeTracker";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
-import FriendManagement from "@/components/FriendManagement"; // Import the new component
+import FriendManagement from "@/components/FriendManagement";
+import DirectMessagesPanel from "@/components/DirectMessagesPanel"; // Import the new component
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut, Users } from "lucide-react"; // Import Users icon
+import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle } from "lucide-react"; // Import MessageCircle for DMs
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -156,12 +157,22 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("chat")}
+              onClick={() => togglePanel("global-chat")} // Renamed to global-chat
               className={`dopamine-click transition-all ${
-                activePanel === "chat" ? "bg-primary/20 shadow-glow" : ""
+                activePanel === "global-chat" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
               <MessageSquare className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel("direct-messages")} // New button for DMs
+              className={`dopamine-click transition-all ${
+                activePanel === "direct-messages" ? "bg-primary/20 shadow-glow" : ""
+              }`}
+            >
+              <MessageCircle className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
@@ -186,7 +197,7 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("friends")} // New button for friends
+              onClick={() => togglePanel("friends")}
               className={`dopamine-click transition-all ${
                 activePanel === "friends" ? "bg-primary/20 shadow-glow" : ""
               }`}
@@ -224,10 +235,11 @@ const FocusRoom = () => {
 
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
-            {activePanel === "chat" && <ChatPanel userId={userId} />}
+            {activePanel === "global-chat" && <ChatPanel userId={userId} />}
+            {activePanel === "direct-messages" && <DirectMessagesPanel userId={userId} />} {/* Render DirectMessagesPanel */}
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}
-            {activePanel === "friends" && <FriendManagement userId={userId} />} {/* Render FriendManagement */}
+            {activePanel === "friends" && <FriendManagement userId={userId} />}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}
