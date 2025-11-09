@@ -21,7 +21,7 @@ const RemoteVideo = ({ peerId, stream, username, isPinned, onTogglePin }: Remote
   }, [stream]);
 
   return (
-    <div className={`relative glass-card rounded-2xl overflow-hidden group ${isPinned ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
+    <div className={`relative glass-card rounded-2xl overflow-hidden group aspect-video ${isPinned ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
       <video
         ref={videoRef}
         autoPlay
