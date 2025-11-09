@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,88 +12,71 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // This function is now only responsible for ensuring the profile exists/is updated
+  // after a successful login event (either here or via redirect).
   const handleAuthSuccess = async (userId: string, defaultUsername?: string, discordUserId?: string) => {
-    // Ensure a profile exists for the user
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", userId)
-      .single();
+    const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
+    
+    const updateData: { id: string; username: string; discord_user_id?: string } = { 
+      id: userId, // CRITICAL: Must match auth.users.id
+      username: usernameToSet,
+    };
+    if (discordUserId) {
+      updateData.discord_user_id = discordUserId; 
+    }
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
-      console.error("Error fetching profile:", fetchError);
-      toast.error("Failed to load profile data.");
+    const { error: upsertError } = await supabase
+      .from("profiles")
+      .upsert(updateData, { onConflict: 'id' });
+
+    if (upsertError) {
+      console.error("Error upserting profile:", upsertError);
+      toast.error("Failed to set up user profile.");
       return;
     }
-
-    if (!existingProfile || !existingProfile.username || discordUserId) {
-      // If no profile or no username, create/update with a default
-      // Also update if discordUserId is provided (meaning a Discord login)
-      const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
-      const updateData: { id: string; username: string; discord_user_id?: string } = { 
-        id: userId,
-        username: usernameToSet,
-      };
-      if (discordUserId) {
-        updateData.discord_user_id = discordUserId; 
-      }
-
-      const { error: upsertError } = await supabase
-        .from("profiles")
-        .upsert(updateData, { onConflict: 'id' });
-
-      if (upsertError) {
-        console.error("Error upserting profile:", upsertError);
-        toast.error("Failed to set up user profile.");
-        return;
-      }
-    }
+    
+    // Navigate to focus room after profile is confirmed/created
     navigate("/focus-room");
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleSignIn = async (provider: 'google' | 'discord') => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
         options: {
           redirectTo: `${window.location.origin}/focus-room`
         }
       });
       if (error) throw error;
       
-      // If data.user is available, we can call handleAuthSuccess.
-      // Note: Supabase's signInWithOAuth doesn't always return the user immediately
-      // when redirecting, so the session check in FocusRoom.tsx is the primary handler.
-      if (data.user) {
-        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
-      }
+      // Note: For OAuth, the user is redirected, and FocusRoom handles the session check.
+      // We don't need to call handleAuthSuccess here as the redirect handles it.
     } catch (error: any) {
-      toast.error(error.message || "Google sign in failed");
+      toast.error(error.message || `${provider} sign in failed`);
       setLoading(false);
     }
   };
 
-  const handleDiscordSignIn = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'discord',
-        options: {
-          redirectTo: `${window.location.origin}/focus-room`
-        }
-      });
-      if (error) throw error;
-
-      if (data.user) {
-        const discordUserId = data.user.user_metadata?.provider_id;
-        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name, discordUserId);
+  // CRITICAL: Handle session check on mount for redirects (e.g., after OAuth callback)
+  // This ensures that if the user lands here after a successful OAuth redirect, they are processed.
+  useEffect(() => {
+    const checkAndHandleSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const user = session.user;
+        const discordUserId = user.user_metadata?.provider_id;
+        // If session exists, ensure profile is set up and redirect
+        await handleAuthSuccess(user.id, user.user_metadata?.full_name || user.user_metadata?.name, discordUserId);
+      } else {
+        setLoading(false); // Ensure loading is false if no session is found
       }
-    } catch (error: any) {
-      toast.error(error.message || "Discord sign in failed");
-      setLoading(false);
-    }
-  };
+    };
+    // Set loading true initially to prevent flicker while checking session
+    setLoading(true); 
+    checkAndHandleSession();
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
@@ -117,24 +100,24 @@ const Auth = () => {
           <CardTitle>Welcome to OnlyFocus</CardTitle>
           <CardDescription>Sign in or create an account to join the focus room.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4"> {/* Added space-y-4 for spacing between buttons */}
+        <CardContent className="space-y-4">
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"
-            onClick={handleGoogleSignIn}
+            onClick={() => handleSignIn('google')}
             disabled={loading}
           >
             <GoogleIcon className="w-5 h-5" />
-            {loading ? "Signing In..." : "Continue with Google"}
+            {loading ? "Checking Session..." : "Continue with Google"}
           </Button>
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"
-            onClick={handleDiscordSignIn}
+            onClick={() => handleSignIn('discord')}
             disabled={loading}
           >
             <DiscordIcon className="w-5 h-5" />
-            {loading ? "Signing In..." : "Continue with Discord"}
+            {loading ? "Checking Session..." : "Continue with Discord"}
           </Button>
         </CardContent>
       </Card>
