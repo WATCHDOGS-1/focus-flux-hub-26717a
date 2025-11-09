@@ -12,7 +12,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleAuthSuccess = async (userId: string, defaultUsername?: string, discordUserId?: string) => {
+  const handleAuthSuccess = async (userId: string, defaultUsername?: string) => {
     // Ensure a profile exists for the user
     const { data: existingProfile, error: fetchError } = await supabase
       .from("profiles")
@@ -26,21 +26,12 @@ const Auth = () => {
       return;
     }
 
-    if (!existingProfile || !existingProfile.username || discordUserId) {
+    if (!existingProfile || !existingProfile.username) {
       // If no profile or no username, create/update with a default
-      // Also update if discordUserId is provided (meaning a Discord login)
       const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
-      const updateData: { id: string; username: string; discord_user_id?: string } = { 
-        id: userId,
-        username: usernameToSet,
-      };
-      if (discordUserId) {
-        updateData.discord_user_id = discordUserId; 
-      }
-
       const { error: upsertError } = await supabase
         .from("profiles")
-        .upsert(updateData, { onConflict: 'id' });
+        .upsert({ id: userId, username: usernameToSet }, { onConflict: 'id' });
 
       if (upsertError) {
         console.error("Error upserting profile:", upsertError);
@@ -86,8 +77,7 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        const discordUserId = data.user.user_metadata?.provider_id;
-        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name, discordUserId);
+        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
       }
     } catch (error: any) {
       toast.error(error.message || "Discord sign in failed");

@@ -46,6 +46,9 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
               newMap.delete(peerId);
               return newMap;
             });
+          },
+          () => {
+            // Peer left callback (already handled in onStreamRemoved for toast)
           }
         );
 
@@ -138,7 +141,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       {/* Video Grid */}
       <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-2">
         {/* Local Video */}
-        <div className={`relative glass-card rounded-2xl overflow-hidden group aspect-video ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
+        <div className={`relative glass-card rounded-2xl overflow-hidden group ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
           <video
             ref={localVideoRef}
             autoPlay

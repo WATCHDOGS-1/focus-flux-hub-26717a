@@ -116,19 +116,16 @@ export type Database = {
           id: string
           username: string
           profile_photo_url: string | null
-          discord_user_id: string | null
         }
         Insert: {
           id?: string
           username: string
           profile_photo_url?: string | null
-          discord_user_id?: string | null
         }
         Update: {
           id?: string
           username?: string
           profile_photo_url?: string | null
-          discord_user_id?: string | null
         }
         Relationships: []
       }
