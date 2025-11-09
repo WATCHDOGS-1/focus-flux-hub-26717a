@@ -30,7 +30,7 @@ export class WebRTCManager {
 
   public setUserStatus(status: string) {
     this.userStatus = status;
-    if (this.roomChannel && this.roomChannel.is  'SUBSCRIBED') {
+    if (this.roomChannel && this.roomChannel.isSubscribed()) { // Corrected line
       this.roomChannel.track({ userId: this.userId, status: this.userStatus });
     }
   }
