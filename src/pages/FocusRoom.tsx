@@ -11,11 +11,11 @@ import ProfileMenu from "@/components/ProfileMenu";
 import FriendManagement from "@/components/FriendManagement";
 import DirectMessagesPanel from "@/components/DirectMessagesPanel";
 import TaskManagement from "@/components/TaskManagement";
-import AchievementsPanel from "@/components/AchievementsPanel"; // Import AchievementsPanel
-import ChallengesPanel from "@/components/ChallengesPanel"; // Import ChallengesPanel
+import AchievementsPanel from "@/components/AchievementsPanel";
+import ChallengesPanel from "@/components/ChallengesPanel";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle, ListTodo, Award, Target } from "lucide-react"; // Import Award and Target icons
+import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle, ListTodo, Award, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -220,7 +220,7 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("achievements")} {/* New button for Achievements */}
+              onClick={() => togglePanel("achievements")}
               className={`dopamine-click transition-all ${
                 activePanel === "achievements" ? "bg-primary/20 shadow-glow" : ""
               }`}
@@ -230,7 +230,7 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("challenges")} {/* New button for Challenges */}
+              onClick={() => togglePanel("challenges")}
               className={`dopamine-click transition-all ${
                 activePanel === "challenges" ? "bg-primary/20 shadow-glow" : ""
               }`}
@@ -274,8 +274,8 @@ const FocusRoom = () => {
             {activePanel === "pomodoro" && <PomodoroTimer />}
             {activePanel === "friends" && <FriendManagement userId={userId} />}
             {activePanel === "tasks" && <TaskManagement userId={userId} />}
-            {activePanel === "achievements" && <AchievementsPanel userId={userId} />} {/* Render AchievementsPanel */}
-            {activePanel === "challenges" && <ChallengesPanel userId={userId} />} {/* Render ChallengesPanel */}
+            {activePanel === "achievements" && <AchievementsPanel userId={userId} />}
+            {activePanel === "challenges" && <ChallengesPanel userId={userId} />}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}
