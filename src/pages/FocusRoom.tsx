@@ -77,7 +77,7 @@ const FocusRoom = () => {
   const leaveRoom = async () => {
     if (!sessionId || !userId) return;
 
-    const leavePromise = new Promise(async (resolve, reject) => {
+    const leavePromise = new Promise<string>(async (resolve, reject) => {
       try {
         const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
         const minutes = Math.floor(sessionDuration / 60);

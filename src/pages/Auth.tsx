@@ -54,7 +54,7 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/focus-room`
@@ -62,12 +62,7 @@ const Auth = () => {
       });
       if (error) throw error;
       
-      // If data.user is available, we can call handleAuthSuccess.
-      // Note: Supabase's signInWithOAuth doesn't always return the user immediately
-      // when redirecting, so the session check in FocusRoom.tsx is the primary handler.
-      if (data.user) {
-        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
-      }
+      // OAuth will redirect, so no user data is immediately available
     } catch (error: any) {
       toast.error(error.message || "Google sign in failed");
       setLoading(false);
@@ -77,7 +72,7 @@ const Auth = () => {
   const handleDiscordSignIn = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
           redirectTo: `${window.location.origin}/focus-room`
@@ -85,10 +80,7 @@ const Auth = () => {
       });
       if (error) throw error;
 
-      if (data.user) {
-        const discordUserId = data.user.user_metadata?.provider_id;
-        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name, discordUserId);
-      }
+      // OAuth will redirect, so no user data is immediately available
     } catch (error: any) {
       toast.error(error.message || "Discord sign in failed");
       setLoading(false);

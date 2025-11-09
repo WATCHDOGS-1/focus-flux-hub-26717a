@@ -102,7 +102,13 @@ const FriendsPanel = ({ userId, onStartDm }: FriendsPanelProps) => {
       );
       const filteredResults = data.filter(
         (profile) => !existingConnections.has(profile.id)
-      );
+      ).map(profile => ({
+        ...profile,
+        bio: null,
+        discord_user_id: null,
+        interests: null,
+        social_links: null
+      }));
       setSearchResults(filteredResults);
     }
   };
@@ -241,10 +247,10 @@ const FriendsPanel = ({ userId, onStartDm }: FriendsPanelProps) => {
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        variant="success"
+                        variant="default"
                         size="icon"
                         onClick={() => updateFriendshipStatus(friendship.id, "accepted")}
-                        className="dopamine-click"
+                        className="dopamine-click bg-green-600 hover:bg-green-700"
                       >
                         <Check className="w-4 h-4" />
                       </Button>

@@ -91,12 +91,12 @@ const ChallengesPanel = ({ userId }: ChallengesPanelProps) => {
     }
   };
 
-  const getUserChallengeProgress = (challengeId: string) => {
+  const getUserChallengeProgress = (challengeId: string, targetMinutes: number) => {
     const userChallenge = userChallenges.find((uc) => uc.challenge_id === challengeId);
     if (!userChallenge) return { joined: false, progress: 0, completed: false };
 
     const progress = Math.min(
-      (userChallenge.current_progress_minutes / challenge.target_minutes) * 100,
+      (userChallenge.current_progress_minutes / targetMinutes) * 100,
       100
     );
     const completed = userChallenge.completed_at !== null;
@@ -117,7 +117,7 @@ const ChallengesPanel = ({ userId }: ChallengesPanelProps) => {
       ) : (
         <div className="space-y-4 overflow-y-auto pr-2">
           {activeChallenges.map((challenge) => {
-            const { joined, progress, completed, current_progress_minutes } = getUserChallengeProgress(challenge.id);
+            const { joined, progress, completed, current_progress_minutes } = getUserChallengeProgress(challenge.id, challenge.target_minutes);
             const endDate = new Date(challenge.end_date);
             const timeLeft = endDate.getTime() - Date.now();
             const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
