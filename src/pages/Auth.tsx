@@ -30,12 +30,12 @@ const Auth = () => {
       // If no profile or no username, create/update with a default
       // Also update if discordUserId is provided (meaning a Discord login)
       const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
-      const updateData: { id: string; username: string; discord_user_id?: string } = {
+      const updateData: { id: string; username: string; user_id?: string } = { // Changed discord_user_id to user_id
         id: userId,
         username: usernameToSet,
       };
       if (discordUserId) {
-        updateData.discord_user_id = discordUserId;
+        updateData.user_id = discordUserId; // Changed discord_user_id to user_id
       }
 
       const { error: upsertError } = await supabase
