@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import VideoGrid from "@/components/VideoGrid";
@@ -8,14 +6,9 @@ import TimeTracker from "@/components/TimeTracker";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
-import FriendManagement from "@/components/FriendManagement";
-import DirectMessagesPanel from "@/components/DirectMessagesPanel";
-import TaskManagement from "@/components/TaskManagement";
-import AchievementsPanel from "@/components/AchievementsPanel";
-import ChallengesPanel from "@/components/ChallengesPanel";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle, ListTodo, Award, Target } from "lucide-react";
+import { MessageSquare, Trophy, Timer, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -160,22 +153,12 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("global-chat")}
+              onClick={() => togglePanel("chat")}
               className={`dopamine-click transition-all ${
-                activePanel === "global-chat" ? "bg-primary/20 shadow-glow" : ""
+                activePanel === "chat" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
               <MessageSquare className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => togglePanel("direct-messages")}
-              className={`dopamine-click transition-all ${
-                activePanel === "direct-messages" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <MessageCircle className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
@@ -196,46 +179,6 @@ const FocusRoom = () => {
               }`}
             >
               <Timer className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => togglePanel("friends")}
-              className={`dopamine-click transition-all ${
-                activePanel === "friends" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <Users className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => togglePanel("tasks")}
-              className={`dopamine-click transition-all ${
-                activePanel === "tasks" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <ListTodo className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => togglePanel("achievements")}
-              className={`dopamine-click transition-all ${
-                activePanel === "achievements" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <Award className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => togglePanel("challenges")}
-              className={`dopamine-click transition-all ${
-                activePanel === "challenges" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <Target className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
@@ -268,14 +211,9 @@ const FocusRoom = () => {
 
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
-            {activePanel === "global-chat" && <ChatPanel userId={userId} />}
-            {activePanel === "direct-messages" && <DirectMessagesPanel userId={userId} />}
+            {activePanel === "chat" && <ChatPanel userId={userId} />}
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}
-            {activePanel === "friends" && <FriendManagement userId={userId} />}
-            {activePanel === "tasks" && <TaskManagement userId={userId} />}
-            {activePanel === "achievements" && <AchievementsPanel userId={userId} />}
-            {activePanel === "challenges" && <ChallengesPanel userId={userId} />}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}

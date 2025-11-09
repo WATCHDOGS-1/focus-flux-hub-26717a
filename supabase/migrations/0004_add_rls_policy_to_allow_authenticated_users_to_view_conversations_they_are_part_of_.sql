@@ -1,2 +1,0 @@
-CREATE POLICY "Users can view conversations they are part of." ON public.conversations
-FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.conversation_participants WHERE conversation_id = conversations.id AND user_id = auth.uid()));

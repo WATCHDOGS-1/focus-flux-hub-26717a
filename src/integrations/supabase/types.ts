@@ -117,67 +117,20 @@ export type Database = {
           username: string
           profile_photo_url: string | null
           discord_user_id: string | null
-          bio: string | null // Added bio
-          interests: string[] | null // Added interests
-          social_links: Json | null // Added social_links
         }
         Insert: {
           id?: string
           username: string
           profile_photo_url?: string | null
           discord_user_id?: string | null
-          bio?: string | null // Added bio
-          interests?: string[] | null // Added interests
-          social_links?: Json | null // Added social_links
         }
         Update: {
           id?: string
           username?: string
           profile_photo_url?: string | null
           discord_user_id?: string | null
-          bio?: string | null // Added bio
-          interests?: string[] | null // Added interests
-          social_links?: Json | null // Added social_links
         }
         Relationships: []
-      }
-      user_tasks: {
-        Row: {
-          id: string
-          user_id: string
-          description: string
-          is_completed: boolean
-          due_date: string | null
-          recurrence: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          description: string
-          is_completed?: boolean
-          due_date?: string | null
-          recurrence?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          description?: string
-          is_completed?: boolean
-          due_date?: string | null
-          recurrence?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_tasks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
       }
       weekly_goals: {
         Row: {

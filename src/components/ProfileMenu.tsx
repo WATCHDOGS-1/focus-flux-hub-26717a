@@ -1,11 +1,8 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Import Textarea
 import { LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -22,9 +19,6 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [bio, setBio] = useState<string>(""); // New state for bio
-  const [interests, setInterests] = useState<string>(""); // New state for interests (comma-separated string)
-  const [discordUserId, setDiscordUserId] = useState<string>(""); // New state for Discord User ID
   const [dailyGoal, setDailyGoal] = useState(60);
   const [weeklyGoal, setWeeklyGoal] = useState(420);
 
@@ -36,16 +30,13 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     // Load profile
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
-      .select("username, profile_photo_url, bio, interests, discord_user_id") // Select new fields
+      .select("username, profile_photo_url")
       .eq("id", userId)
       .single();
 
     if (!profileError && profileData) {
       setUsername(profileData.username);
       setAvatarUrl(profileData.profile_photo_url);
-      setBio(profileData.bio || "");
-      setInterests(profileData.interests?.join(", ") || ""); // Join array to string
-      setDiscordUserId(profileData.discord_user_id || "");
     } else {
       console.error("Error loading profile:", profileError);
       toast.error("Failed to load profile data.");
@@ -114,23 +105,15 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   const saveProfileAndGoals = async () => {
     let hasError = false;
 
-    // Prepare profile update data
-    const profileUpdateData: Partial<Profile> = {
-      username: username,
-      bio: bio,
-      interests: interests.split(",").map(s => s.trim()).filter(Boolean), // Split string to array
-      discord_user_id: discordUserId,
-    };
-
-    // Save profile
-    const { error: profileError } = await supabase
+    // Save username
+    const { error: usernameError } = await supabase
       .from("profiles")
-      .update(profileUpdateData)
+      .update({ username: username })
       .eq("id", userId);
 
-    if (profileError) {
-      console.error("Error saving profile:", profileError);
-      toast.error("Failed to save profile details.");
+    if (usernameError) {
+      console.error("Error saving username:", usernameError);
+      toast.error("Failed to save username");
       hasError = true;
     }
 
@@ -148,7 +131,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     // Save weekly goal
     const today = new Date();
     const weekStart = new Date(today);
-    weekStart.setDate(weekStart.getDate() - today.getDay()); // Set to start of the week (Sunday)
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
     const { error: weeklyError } = await supabase
@@ -219,33 +202,6 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Your username"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Bio</label>
-            <Textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell us about yourself..."
-              rows={3}
-            />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Interests (comma-separated)</label>
-            <Input
-              type="text"
-              value={interests}
-              onChange={(e) => setInterests(e.target.value)}
-              placeholder="e.g., coding, reading, fitness"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Discord User ID</label>
-            <Input
-              type="text"
-              value={discordUserId}
-              onChange={(e) => setDiscordUserId(e.target.value)}
-              placeholder="Your Discord User ID"
             />
           </div>
           <div>
