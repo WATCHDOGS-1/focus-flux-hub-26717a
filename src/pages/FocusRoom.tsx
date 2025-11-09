@@ -9,10 +9,11 @@ import PomodoroTimer from "@/components/PomodoroTimer";
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import FriendManagement from "@/components/FriendManagement";
-import DirectMessagesPanel from "@/components/DirectMessagesPanel"; // Import the new component
+import DirectMessagesPanel from "@/components/DirectMessagesPanel";
+import TaskManagement from "@/components/TaskManagement"; // Import the new component
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle } from "lucide-react"; // Import MessageCircle for DMs
+import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle, ListTodo } from "lucide-react"; // Import ListTodo icon
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -157,7 +158,7 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("global-chat")} // Renamed to global-chat
+              onClick={() => togglePanel("global-chat")}
               className={`dopamine-click transition-all ${
                 activePanel === "global-chat" ? "bg-primary/20 shadow-glow" : ""
               }`}
@@ -167,7 +168,7 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("direct-messages")} // New button for DMs
+              onClick={() => togglePanel("direct-messages")}
               className={`dopamine-click transition-all ${
                 activePanel === "direct-messages" ? "bg-primary/20 shadow-glow" : ""
               }`}
@@ -207,6 +208,16 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => togglePanel("tasks")} {/* New button for tasks */}
+              className={`dopamine-click transition-all ${
+                activePanel === "tasks" ? "bg-primary/20 shadow-glow" : ""
+              }`}
+            >
+              <ListTodo className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => togglePanel("profile")}
               className={`dopamine-click transition-all ${
                 activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""
@@ -236,10 +247,11 @@ const FocusRoom = () => {
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
             {activePanel === "global-chat" && <ChatPanel userId={userId} />}
-            {activePanel === "direct-messages" && <DirectMessagesPanel userId={userId} />} {/* Render DirectMessagesPanel */}
+            {activePanel === "direct-messages" && <DirectMessagesPanel userId={userId} />}
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}
             {activePanel === "friends" && <FriendManagement userId={userId} />}
+            {activePanel === "tasks" && <TaskManagement userId={userId} />} {/* Render TaskManagement */}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}
