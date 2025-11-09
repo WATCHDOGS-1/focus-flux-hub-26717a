@@ -10,10 +10,12 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import FriendManagement from "@/components/FriendManagement";
 import DirectMessagesPanel from "@/components/DirectMessagesPanel";
-import TaskManagement from "@/components/TaskManagement"; // Import the new component
+import TaskManagement from "@/components/TaskManagement";
+import AchievementsPanel from "@/components/AchievementsPanel"; // Import AchievementsPanel
+import ChallengesPanel from "@/components/ChallengesPanel"; // Import ChallengesPanel
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle, ListTodo } from "lucide-react"; // Import ListTodo icon
+import { MessageSquare, Trophy, Timer, User, LogOut, Users, MessageCircle, ListTodo, Award, Target } from "lucide-react"; // Import Award and Target icons
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -208,12 +210,32 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("tasks")} {/* New button for tasks */}
+              onClick={() => togglePanel("tasks")}
               className={`dopamine-click transition-all ${
                 activePanel === "tasks" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
               <ListTodo className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel("achievements")} {/* New button for Achievements */}
+              className={`dopamine-click transition-all ${
+                activePanel === "achievements" ? "bg-primary/20 shadow-glow" : ""
+              }`}
+            >
+              <Award className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel("challenges")} {/* New button for Challenges */}
+              className={`dopamine-click transition-all ${
+                activePanel === "challenges" ? "bg-primary/20 shadow-glow" : ""
+              }`}
+            >
+              <Target className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
@@ -251,7 +273,9 @@ const FocusRoom = () => {
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}
             {activePanel === "friends" && <FriendManagement userId={userId} />}
-            {activePanel === "tasks" && <TaskManagement userId={userId} />} {/* Render TaskManagement */}
+            {activePanel === "tasks" && <TaskManagement userId={userId} />}
+            {activePanel === "achievements" && <AchievementsPanel userId={userId} />} {/* Render AchievementsPanel */}
+            {activePanel === "challenges" && <ChallengesPanel userId={userId} />} {/* Render ChallengesPanel */}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}
