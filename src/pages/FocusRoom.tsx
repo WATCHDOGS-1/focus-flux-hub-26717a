@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import VideoGrid from "@/components/VideoGrid";
@@ -6,9 +8,10 @@ import TimeTracker from "@/components/TimeTracker";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
+import FriendManagement from "@/components/FriendManagement"; // Import the new component
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut } from "lucide-react";
+import { MessageSquare, Trophy, Timer, User, LogOut, Users } from "lucide-react"; // Import Users icon
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -183,6 +186,16 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => togglePanel("friends")} // New button for friends
+              className={`dopamine-click transition-all ${
+                activePanel === "friends" ? "bg-primary/20 shadow-glow" : ""
+              }`}
+            >
+              <Users className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => togglePanel("profile")}
               className={`dopamine-click transition-all ${
                 activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""
@@ -214,6 +227,7 @@ const FocusRoom = () => {
             {activePanel === "chat" && <ChatPanel userId={userId} />}
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}
+            {activePanel === "friends" && <FriendManagement userId={userId} />} {/* Render FriendManagement */}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}
