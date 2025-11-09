@@ -103,7 +103,7 @@ const AchievementsPanel = ({ userId }: AchievementsPanelProps) => {
               >
                 <div className="relative w-16 h-16 flex-shrink-0">
                   <img
-                    src={achievement.icon_url || "/placeholder.svg"}
+                    src={achievement.icon || "/placeholder.svg"}
                     alt={achievement.name}
                     className={`w-full h-full object-cover rounded-full ${
                       earned ? "" : "grayscale opacity-50"

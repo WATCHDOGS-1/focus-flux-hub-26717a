@@ -17,61 +17,32 @@ export type Database = {
       achievements: {
         Row: {
           created_at: string
-          criteria_type: string
-          criteria_value: Json
           description: string
-          icon_url: string | null
+          icon: string | null
           id: string
           name: string
+          requirement_type: string
+          requirement_value: number
         }
         Insert: {
           created_at?: string
-          criteria_type: string
-          criteria_value: Json
           description: string
-          icon_url?: string | null
+          icon?: string | null
           id?: string
           name: string
+          requirement_type: string
+          requirement_value: number
         }
         Update: {
           created_at?: string
-          criteria_type?: string
-          criteria_value?: Json
           description?: string
-          icon_url?: string | null
+          icon?: string | null
           id?: string
           name?: string
+          requirement_type?: string
+          requirement_value?: number
         }
         Relationships: []
-      }
-      chat_messages: {
-        Row: {
-          created_at: string
-          id: string
-          message: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
       }
       challenges: {
         Row: {
@@ -80,7 +51,6 @@ export type Database = {
           end_date: string
           id: string
           name: string
-          reward_achievement_id: string | null
           start_date: string
           target_minutes: number
         }
@@ -90,7 +60,6 @@ export type Database = {
           end_date: string
           id?: string
           name: string
-          reward_achievement_id?: string | null
           start_date: string
           target_minutes: number
         }
@@ -100,31 +69,60 @@ export type Database = {
           end_date?: string
           id?: string
           name?: string
-          reward_achievement_id?: string | null
           start_date?: string
           target_minutes?: number
         }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          user_id?: string
+          username?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "challenges_reward_achievement_id_fkey"
-            columns: ["reward_achievement_id"]
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "achievements"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       conversation_participants: {
         Row: {
           conversation_id: string
+          id: string
+          joined_at: string
           user_id: string
         }
         Insert: {
           conversation_id: string
+          id?: string
+          joined_at?: string
           user_id: string
         }
         Update: {
           conversation_id?: string
+          id?: string
+          joined_at?: string
           user_id?: string
         }
         Relationships: [
@@ -141,7 +139,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       conversations: {
@@ -161,21 +159,30 @@ export type Database = {
       }
       daily_goals: {
         Row: {
+          actual_minutes: number | null
+          created_at: string
           date: string
+          goal_minutes: number
           id: string
-          target_minutes: number
+          target_minutes: number | null
           user_id: string
         }
         Insert: {
+          actual_minutes?: number | null
+          created_at?: string
           date: string
+          goal_minutes: number
           id?: string
-          target_minutes: number
+          target_minutes?: number | null
           user_id: string
         }
         Update: {
+          actual_minutes?: number | null
+          created_at?: string
           date?: string
+          goal_minutes?: number
           id?: string
-          target_minutes?: number
+          target_minutes?: number | null
           user_id?: string
         }
         Relationships: [
@@ -186,34 +193,33 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "daily_goals_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
       focus_sessions: {
         Row: {
+          created_at: string
           duration_minutes: number | null
           end_time: string | null
           id: string
+          is_active: boolean | null
           start_time: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
-          start_time: string
+          is_active?: boolean | null
+          start_time?: string
           user_id: string
         }
         Update: {
+          created_at?: string
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
+          is_active?: boolean | null
           start_time?: string
           user_id?: string
         }
@@ -224,26 +230,26 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       friendships: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           status: string
           user_id_1: string
           user_id_2: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           status?: string
           user_id_1: string
           user_id_2: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           status?: string
           user_id_1?: string
@@ -263,7 +269,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       private_messages: {
@@ -302,75 +308,74 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       profiles: {
         Row: {
           bio: string | null
-          discord_user_id: string | null
+          created_at: string
           id: string
           interests: string[] | null
           profile_photo_url: string | null
           social_links: Json | null
+          updated_at: string
           username: string
         }
         Insert: {
           bio?: string | null
-          discord_user_id?: string | null
+          created_at?: string
           id?: string
           interests?: string[] | null
           profile_photo_url?: string | null
           social_links?: Json | null
+          updated_at?: string
           username: string
         }
         Update: {
           bio?: string | null
-          discord_user_id?: string | null
+          created_at?: string
           id?: string
           interests?: string[] | null
           profile_photo_url?: string | null
           social_links?: Json | null
+          updated_at?: string
           username?: string
         }
         Relationships: []
       }
       reports: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           reason: string
           reported_message_id: string | null
           reported_user_id: string | null
           reporter_id: string
+          resolved_at: string | null
           status: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           reason: string
           reported_message_id?: string | null
           reported_user_id?: string | null
           reporter_id: string
+          resolved_at?: string | null
           status?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           reason?: string
           reported_message_id?: string | null
           reported_user_id?: string | null
           reporter_id?: string
+          resolved_at?: string | null
           status?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "reports_reported_message_id_fkey"
-            columns: ["reported_message_id"]
-            isOneToOne: false
-            referencedRelation: "chat_messages"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "reports_reported_user_id_fkey"
             columns: ["reported_user_id"]
@@ -384,26 +389,26 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       user_achievements: {
         Row: {
           achievement_id: string
-          earned_at: string | null
           id: string
+          unlocked_at: string
           user_id: string
         }
         Insert: {
           achievement_id: string
-          earned_at?: string | null
           id?: string
+          unlocked_at?: string
           user_id: string
         }
         Update: {
           achievement_id?: string
-          earned_at?: string | null
           id?: string
+          unlocked_at?: string
           user_id?: string
         }
         Relationships: [
@@ -420,32 +425,32 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       user_challenges: {
         Row: {
           challenge_id: string
           completed_at: string | null
-          created_at: string | null
           current_progress_minutes: number
           id: string
+          joined_at: string
           user_id: string
         }
         Insert: {
           challenge_id: string
           completed_at?: string | null
-          created_at?: string | null
           current_progress_minutes?: number
           id?: string
+          joined_at?: string
           user_id: string
         }
         Update: {
           challenge_id?: string
           completed_at?: string | null
-          created_at?: string | null
           current_progress_minutes?: number
           id?: string
+          joined_at?: string
           user_id?: string
         }
         Relationships: [
@@ -462,25 +467,31 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       weekly_goals: {
         Row: {
+          created_at: string
+          goal_minutes: number
           id: string
-          target_minutes: number
+          target_minutes: number | null
           user_id: string
           week_start: string
         }
         Insert: {
+          created_at?: string
+          goal_minutes: number
           id?: string
-          target_minutes: number
+          target_minutes?: number | null
           user_id: string
           week_start: string
         }
         Update: {
+          created_at?: string
+          goal_minutes?: number
           id?: string
-          target_minutes?: number
+          target_minutes?: number | null
           user_id?: string
           week_start?: string
         }
@@ -492,31 +503,27 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "weekly_goals_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
       weekly_stats: {
         Row: {
           id: string
-          total_minutes: number
+          total_minutes: number | null
+          updated_at: string
           user_id: string
           week_start: string
         }
         Insert: {
           id?: string
-          total_minutes?: number
+          total_minutes?: number | null
+          updated_at?: string
           user_id: string
           week_start: string
         }
         Update: {
           id?: string
-          total_minutes?: number
+          total_minutes?: number | null
+          updated_at?: string
           user_id?: string
           week_start?: string
         }
@@ -527,7 +534,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
     }

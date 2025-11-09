@@ -103,11 +103,14 @@ const FriendsPanel = ({ userId, onStartDm }: FriendsPanelProps) => {
       const filteredResults = data.filter(
         (profile) => !existingConnections.has(profile.id)
       ).map(profile => ({
-        ...profile,
+        id: profile.id,
+        username: profile.username,
+        profile_photo_url: profile.profile_photo_url,
         bio: null,
-        discord_user_id: null,
-        interests: null,
-        social_links: null
+        interests: [],
+        social_links: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }));
       setSearchResults(filteredResults);
     }

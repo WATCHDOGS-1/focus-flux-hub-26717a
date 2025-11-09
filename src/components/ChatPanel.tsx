@@ -13,8 +13,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ReportModal from "./ReportModal"; // Import the new ReportModal
 
-type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"] & {
-  profiles: {
+type ChatMessage = {
+  id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  username?: string;
+  profiles?: {
     username: string;
   } | null;
 };
@@ -67,17 +72,18 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
   const loadMessages = async () => {
     const { data, error } = await supabase
       .from("chat_messages")
-      .select(`
-        *,
-        profiles (username)
-      `)
+      .select("*")
       .order("created_at", { ascending: true })
       .limit(100);
 
     if (error) {
       console.error("Error loading messages:", error);
     } else if (data) {
-      setMessages(data as ChatMessage[]);
+      setMessages(data.map(msg => ({
+        ...msg,
+        profiles: null,
+        username: msg.username
+      })));
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
   };
@@ -88,20 +94,29 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     const messageContent = newMessage.trim();
     setNewMessage("");
 
+    // Get current user's username from profiles
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .single();
+
+    const currentUsername = profileData?.username || "You";
+
     const optimisticMessage: ChatMessage = {
       id: `temp-${Date.now()}`,
       user_id: userId,
       message: messageContent,
       created_at: new Date().toISOString(),
-      profiles: { username: "You" },
+      username: currentUsername,
+      profiles: { username: currentUsername },
     };
     setMessages((prev) => [...prev, optimisticMessage]);
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
 
-
     const { error } = await supabase
       .from("chat_messages")
-      .insert({ user_id: userId, message: messageContent });
+      .insert({ user_id: userId, message: messageContent, username: currentUsername });
 
     if (error) {
       toast.error("Failed to send message");
@@ -146,7 +161,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
             )}
             <div className={msg.user_id === userId ? "text-right" : "text-left"}>
               <div className="text-xs text-muted-foreground mb-1">
-                {msg.profiles?.username || "Unknown"}
+                {msg.username || msg.profiles?.username || "Unknown"}
               </div>
               <div className="text-sm">{msg.message}</div>
             </div>

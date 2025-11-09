@@ -134,7 +134,12 @@ const ProfileMenu = ({ userId, onNavigateToPanel }: ProfileMenuProps) => {
     // Save daily goal
     const { error: dailyError } = await supabase
       .from("daily_goals")
-      .upsert({ user_id: userId, target_minutes: dailyGoal, date: new Date().toISOString().split("T")[0] }, { onConflict: 'user_id,date' });
+      .upsert({ 
+        user_id: userId,
+        date: new Date().toISOString().split("T")[0],
+        goal_minutes: dailyGoal,
+        target_minutes: dailyGoal
+      }, { onConflict: 'user_id,date' });
 
     if (dailyError) {
       console.error("Error saving daily goal:", dailyError);
@@ -150,7 +155,12 @@ const ProfileMenu = ({ userId, onNavigateToPanel }: ProfileMenuProps) => {
 
     const { error: weeklyError } = await supabase
       .from("weekly_goals")
-      .upsert({ user_id: userId, target_minutes: weeklyGoal, week_start: weekStart.toISOString() }, { onConflict: 'user_id,week_start' });
+      .upsert({ 
+        user_id: userId,
+        week_start: weekStart.toISOString(),
+        goal_minutes: weeklyGoal,
+        target_minutes: weeklyGoal
+      }, { onConflict: 'user_id,week_start' });
 
     if (weeklyError) {
       console.error("Error saving weekly goal:", weeklyError);
