@@ -14,24 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      chat_messages: {
+      achievements: {
         Row: {
-          id: string
-          user_id: string
-          message: string
           created_at: string
+          criteria_type: string
+          criteria_value: Json
+          description: string
+          icon_url: string | null
+          id: string
+          name: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          message: string
           created_at?: string
+          criteria_type: string
+          criteria_value: Json
+          description: string
+          icon_url?: string | null
+          id?: string
+          name: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          message?: string
           created_at?: string
+          criteria_type?: string
+          criteria_value?: Json
+          description?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -43,24 +73,110 @@ export type Database = {
           }
         ]
       }
-      daily_goals: {
+      challenges: {
         Row: {
+          created_at: string
+          description: string
+          end_date: string
           id: string
-          user_id: string
+          name: string
+          reward_achievement_id: string | null
+          start_date: string
           target_minutes: number
-          date: string
         }
         Insert: {
+          created_at?: string
+          description: string
+          end_date: string
           id?: string
-          user_id: string
+          name: string
+          reward_achievement_id?: string | null
+          start_date: string
           target_minutes: number
-          date: string
         }
         Update: {
+          created_at?: string
+          description?: string
+          end_date?: string
           id?: string
-          user_id?: string
+          name?: string
+          reward_achievement_id?: string | null
+          start_date?: string
           target_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_reward_achievement_id_fkey"
+            columns: ["reward_achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      daily_goals: {
+        Row: {
+          date: string
+          id: string
+          target_minutes: number
+          user_id: string
+        }
+        Insert: {
+          date: string
+          id?: string
+          target_minutes: number
+          user_id: string
+        }
+        Update: {
           date?: string
+          id?: string
+          target_minutes?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -69,7 +185,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "daily_goals_user_id_fkey1"
             columns: ["user_id"]
@@ -81,25 +197,25 @@ export type Database = {
       }
       focus_sessions: {
         Row: {
-          id: string
-          user_id: string
-          start_time: string
-          end_time: string | null
           duration_minutes: number | null
+          end_time: string | null
+          id: string
+          start_time: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          start_time: string
-          end_time?: string | null
           duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          start_time: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          start_time?: string
-          end_time?: string | null
           duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          start_time?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -111,44 +227,261 @@ export type Database = {
           }
         ]
       }
-      profiles: {
+      friendships: {
         Row: {
+          created_at: string | null
           id: string
-          username: string
-          profile_photo_url: string | null
-          discord_user_id: string | null
+          status: string
+          user_id_1: string
+          user_id_2: string
         }
         Insert: {
+          created_at?: string | null
           id?: string
-          username: string
-          profile_photo_url?: string | null
-          discord_user_id?: string | null
+          status?: string
+          user_id_1: string
+          user_id_2: string
         }
         Update: {
+          created_at?: string | null
           id?: string
-          username?: string
-          profile_photo_url?: string | null
+          status?: string
+          user_id_1?: string
+          user_id_2?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_user_id_1_fkey"
+            columns: ["user_id_1"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user_id_2_fkey"
+            columns: ["user_id_2"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      private_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      profiles: {
+        Row: {
+          bio: string | null
+          discord_user_id: string | null
+          id: string
+          interests: string[] | null
+          profile_photo_url: string | null
+          social_links: Json | null
+          username: string
+        }
+        Insert: {
+          bio?: string | null
           discord_user_id?: string | null
+          id?: string
+          interests?: string[] | null
+          profile_photo_url?: string | null
+          social_links?: Json | null
+          username: string
+        }
+        Update: {
+          bio?: string | null
+          discord_user_id?: string | null
+          id?: string
+          interests?: string[] | null
+          profile_photo_url?: string | null
+          social_links?: Json | null
+          username?: string
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string | null
+          id: string
+          reason: string
+          reported_message_id: string | null
+          reported_user_id: string | null
+          reporter_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reason: string
+          reported_message_id?: string | null
+          reported_user_id?: string | null
+          reporter_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reason?: string
+          reported_message_id?: string | null
+          reported_user_id?: string | null
+          reporter_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reported_message_id_fkey"
+            columns: ["reported_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reported_user_id_fkey"
+            columns: ["reported_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_challenges: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          created_at: string | null
+          current_progress_minutes: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress_minutes?: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress_minutes?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenges_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_challenges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       weekly_goals: {
         Row: {
           id: string
-          user_id: string
           target_minutes: number
+          user_id: string
           week_start: string
         }
         Insert: {
           id?: string
-          user_id: string
           target_minutes: number
+          user_id: string
           week_start: string
         }
         Update: {
           id?: string
-          user_id?: string
           target_minutes?: number
+          user_id?: string
           week_start?: string
         }
         Relationships: [
@@ -158,7 +491,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "weekly_goals_user_id_fkey1"
             columns: ["user_id"]
@@ -171,21 +504,21 @@ export type Database = {
       weekly_stats: {
         Row: {
           id: string
+          total_minutes: number
           user_id: string
           week_start: string
-          total_minutes: number
         }
         Insert: {
           id?: string
+          total_minutes?: number
           user_id: string
           week_start: string
-          total_minutes?: number
         }
         Update: {
           id?: string
+          total_minutes?: number
           user_id?: string
           week_start?: string
-          total_minutes?: number
         }
         Relationships: [
           {

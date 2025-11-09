@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Upload } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { LogOut, Upload, User, Award, Target, Users, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { Label } from "@/components/ui/label";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
@@ -13,12 +15,16 @@ type WeeklyGoal = Database["public"]["Tables"]["weekly_goals"]["Row"];
 
 interface ProfileMenuProps {
   userId: string;
+  onNavigateToPanel: (panel: string) => void;
 }
 
-const ProfileMenu = ({ userId }: ProfileMenuProps) => {
+const ProfileMenu = ({ userId, onNavigateToPanel }: ProfileMenuProps) => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [bio, setBio] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
   const [dailyGoal, setDailyGoal] = useState(60);
   const [weeklyGoal, setWeeklyGoal] = useState(420);
 
@@ -30,13 +36,16 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     // Load profile
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
-      .select("username, profile_photo_url")
+      .select("username, profile_photo_url, bio, interests, social_links")
       .eq("id", userId)
       .single();
 
     if (!profileError && profileData) {
       setUsername(profileData.username);
       setAvatarUrl(profileData.profile_photo_url);
+      setBio(profileData.bio || "");
+      setInterests(profileData.interests || []);
+      setSocialLinks((profileData.social_links as Record<string, string>) || {});
     } else {
       console.error("Error loading profile:", profileError);
       toast.error("Failed to load profile data.");
@@ -105,15 +114,20 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   const saveProfileAndGoals = async () => {
     let hasError = false;
 
-    // Save username
-    const { error: usernameError } = await supabase
+    // Save profile details
+    const { error: profileUpdateError } = await supabase
       .from("profiles")
-      .update({ username: username })
+      .update({
+        username: username,
+        bio: bio,
+        interests: interests,
+        social_links: socialLinks,
+      })
       .eq("id", userId);
 
-    if (usernameError) {
-      console.error("Error saving username:", usernameError);
-      toast.error("Failed to save username");
+    if (profileUpdateError) {
+      console.error("Error saving profile details:", profileUpdateError);
+      toast.error("Failed to save profile details");
       hasError = true;
     }
 
@@ -162,7 +176,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     <div className="h-full flex flex-col">
       <h3 className="text-xl font-semibold mb-4">Profile</h3>
 
-      <div className="space-y-6">
+      <div className="space-y-6 flex-1 overflow-y-auto pr-2">
         <div className="flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
             {avatarUrl ? (
@@ -196,7 +210,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm text-muted-foreground">Username</label>
+            <Label className="text-sm text-muted-foreground">Username</Label>
             <Input
               type="text"
               value={username}
@@ -205,7 +219,34 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
             />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground">Daily Goal (minutes)</label>
+            <Label className="text-sm text-muted-foreground">Bio</Label>
+            <Textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell us about yourself..."
+              rows={3}
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Interests (comma-separated)</Label>
+            <Input
+              type="text"
+              value={interests.join(", ")}
+              onChange={(e) => setInterests(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="e.g., coding, reading, music"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Social Link (e.g., Twitter URL)</Label>
+            <Input
+              type="url"
+              value={socialLinks.twitter || ""}
+              onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+              placeholder="https://twitter.com/yourhandle"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Daily Goal (minutes)</Label>
             <Input
               type="number"
               value={dailyGoal}
@@ -214,7 +255,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Weekly Goal (minutes)</label>
+            <Label className="text-sm text-muted-foreground">Weekly Goal (minutes)</Label>
             <Input
               type="number"
               value={weeklyGoal}
@@ -222,14 +263,26 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
             />
           </div>
 
-          <Button onClick={saveProfileAndGoals} className="w-full">
+          <Button onClick={saveProfileAndGoals} className="w-full dopamine-click">
             Save Profile & Goals
           </Button>
         </div>
 
+        <div className="space-y-2 pt-4 border-t border-border/50">
+            <Button variant="ghost" className="w-full justify-start dopamine-click" onClick={() => onNavigateToPanel("friends")}>
+                <Users className="w-4 h-4 mr-2" /> My Friends
+            </Button>
+            <Button variant="ghost" className="w-full justify-start dopamine-click" onClick={() => onNavigateToPanel("achievements")}>
+                <Award className="w-4 h-4 mr-2" /> My Achievements
+            </Button>
+            <Button variant="ghost" className="w-full justify-start dopamine-click" onClick={() => onNavigateToPanel("challenges")}>
+                <Target className="w-4 h-4 mr-2" /> Community Challenges
+            </Button>
+        </div>
+
         <Button
           variant="destructive"
-          className="w-full"
+          className="w-full dopamine-click"
           onClick={handleLogout}
         >
           <LogOut className="w-4 h-4 mr-2" />

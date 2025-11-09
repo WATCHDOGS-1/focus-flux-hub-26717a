@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy } from "lucide-react";
+import { Trophy, Users } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"] & {
   profiles: {
@@ -10,9 +13,14 @@ type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"] & {
   } | null;
 };
 
-const Leaderboard = () => {
+interface LeaderboardProps {
+  userId: string;
+}
+
+const Leaderboard = ({ userId }: LeaderboardProps) => {
   const [entries, setEntries] = useState<WeeklyStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFriendsOnly, setShowFriendsOnly] = useState(false);
 
   useEffect(() => {
     loadLeaderboard();
@@ -35,16 +43,16 @@ const Leaderboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId, showFriendsOnly]); // Re-run when userId or showFriendsOnly changes
 
   const loadLeaderboard = async () => {
     setIsLoading(true);
     const today = new Date();
-    const weekStart = new Date(today); // Create a new Date object from today
-    weekStart.setDate(today.getDate() - today.getDay()); // Set it to the start of the week (Sunday)
-    weekStart.setHours(0, 0, 0, 0); // Set time to midnight
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    weekStart.setHours(0, 0, 0, 0);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("weekly_stats")
       .select(`
         user_id,
@@ -54,6 +62,38 @@ const Leaderboard = () => {
       .gte("week_start", weekStart.toISOString())
       .order("total_minutes", { ascending: false })
       .limit(10);
+
+    if (showFriendsOnly) {
+      // Fetch friend IDs first
+      const { data: friendships, error: friendError } = await supabase
+        .from("friendships")
+        .select("user_id_1, user_id_2")
+        .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`)
+        .eq("status", "accepted");
+
+      if (friendError) {
+        console.error("Error fetching friendships for leaderboard:", friendError);
+        toast.error("Failed to load friends for leaderboard filter.");
+        setIsLoading(false);
+        return;
+      }
+
+      const friendIds = new Set<string>();
+      friendships?.forEach(f => {
+        if (f.user_id_1 === userId) friendIds.add(f.user_id_2);
+        else friendIds.add(f.user_id_1);
+      });
+      friendIds.add(userId); // Include current user in friends-only view
+
+      if (friendIds.size > 0) {
+        query = query.in("user_id", Array.from(friendIds));
+      } else {
+        // If no friends, show only current user or empty
+        query = query.eq("user_id", userId);
+      }
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       setEntries(data as WeeklyStat[]);
@@ -71,6 +111,18 @@ const Leaderboard = () => {
         Weekly Leaderboard
       </h3>
 
+      <div className="flex items-center justify-end space-x-2 mb-4">
+        <Label htmlFor="friends-only-toggle" className="flex items-center gap-1 text-sm text-muted-foreground">
+          <Users className="w-4 h-4" /> Friends Only
+        </Label>
+        <Switch
+          id="friends-only-toggle"
+          checked={showFriendsOnly}
+          onCheckedChange={setShowFriendsOnly}
+          className="dopamine-click"
+        />
+      </div>
+
       {isLoading ? (
         <div className="text-muted-foreground text-center py-8">Loading leaderboard...</div>
       ) : entries.length === 0 ? (
@@ -78,7 +130,7 @@ const Leaderboard = () => {
           No entries yet. Start focusing to get on the leaderboard!
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-y-auto pr-2">
           {entries.map((entry, index) => (
             <div
               key={entry.user_id}

@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
-const PomodoroTimer = () => {
+interface PomodoroTimerProps {
+  onSetUserStatus: (status: string) => void;
+}
+
+const PomodoroTimer = ({ onSetUserStatus }: PomodoroTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(true); // Auto-start
   const [isBreak, setIsBreak] = useState(false);
@@ -18,23 +22,28 @@ const PomodoroTimer = () => {
       interval = setInterval(() => {
         setTimeLeft((time) => time - 1);
       }, 1000);
+      onSetUserStatus(isBreak ? 'on_break' : 'focusing');
     } else if (timeLeft === 0) {
       if (isBreak) {
         toast.success("Break over! Time to focus!");
         setIsBreak(false);
         setTimeLeft(workTime);
+        onSetUserStatus('focusing');
       } else {
         toast.success("Great work! Time for a break!");
         setIsBreak(true);
         setTimeLeft(breakTime);
+        onSetUserStatus('on_break');
       }
       setIsActive(false);
+    } else {
+      onSetUserStatus('idle'); // When timer is paused or not active
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, timeLeft, isBreak]);
+  }, [isActive, timeLeft, isBreak, onSetUserStatus]);
 
   const toggleTimer = () => {
     setIsActive(!isActive);
@@ -43,6 +52,7 @@ const PomodoroTimer = () => {
   const resetTimer = () => {
     setIsActive(false);
     setTimeLeft(isBreak ? breakTime : workTime);
+    onSetUserStatus('idle');
   };
 
   const formatTime = (seconds: number) => {
