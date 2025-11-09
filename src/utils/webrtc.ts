@@ -13,14 +13,13 @@ export class WebRTCManager {
   private userId: string;
   private onStreamAdded: (peerId: string, stream: MediaStream) => void;
   private onStreamRemoved: (peerId: string) => void;
-  private onPeerLeft: (peerId: string) => void; // Changed to pass peerId
-  private userStatus: string = 'focusing'; // Default status
+  private onPeerLeft: () => void;
 
   constructor(
     userId: string,
     onStreamAdded: (peerId: string, stream: MediaStream) => void,
     onStreamRemoved: (peerId: string) => void,
-    onPeerLeft: (peerId: string) => void // Changed to pass peerId
+    onPeerLeft: () => void
   ) {
     this.userId = userId;
     this.onStreamAdded = onStreamAdded;
@@ -28,14 +27,8 @@ export class WebRTCManager {
     this.onPeerLeft = onPeerLeft;
   }
 
-  public setUserStatus(status: string) {
-    this.userStatus = status;
-    if (this.roomChannel && this.roomChannel.isSubscribed()) { // Corrected line
-      this.roomChannel.track({ userId: this.userId, status: this.userStatus });
-    }
-  }
-
   async initialize(roomId: string) {
+    // 1. Get local stream FIRST. This is the critical fix.
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -43,32 +36,29 @@ export class WebRTCManager {
       });
     } catch (error) {
       console.error('Error accessing media devices:', error);
+      // Do not throw error, allow user to join with video off
       this.localStream = null;
     }
 
+    // 2. Now that the stream is ready, initialize signaling.
     this.roomChannel = supabase.channel(`room:${roomId}`);
 
     this.roomChannel
       .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
         console.log('New peer joined:', key, newPresences);
-        newPresences.forEach((presence: any) => {
-          if (presence.userId !== this.userId) {
-            this.createPeerConnection(presence.userId, true);
-          }
-        });
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
         console.log('Peer left:', key);
         leftPresences.forEach((presence: any) => {
           this.removePeer(presence.userId);
-          this.onPeerLeft(presence.userId); // Pass peerId to callback
+          this.onPeerLeft();
         });
       })
       .on('presence', { event: 'sync' }, () => {
         const presences = this.roomChannel.presenceState();
         for (const id in presences) {
           const presence = presences[id][0];
-          if (presence.userId !== this.userId && !this.peers.has(presence.userId)) {
+          if (presence.userId !== this.userId) {
             this.createPeerConnection(presence.userId, true);
           }
         }
@@ -90,30 +80,36 @@ export class WebRTCManager {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await this.roomChannel.track({ userId: this.userId, status: this.userStatus });
+          await this.roomChannel.track({ userId: this.userId });
         }
       });
       
+    // 3. Return the stream for the UI to use.
     return this.localStream;
   }
 
   public async toggleVideo(enable: boolean): Promise<MediaStream | null> {
     if (enable) {
+      // Turn video ON
       try {
         this.localStream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
 
+        // For each existing peer connection, replace or add tracks and renegotiate
         for (const [peerId, { connection }] of this.peers.entries()) {
+          // Remove existing video senders
           connection.getSenders().forEach(sender => {
             if (sender.track && sender.track.kind === 'video') {
               connection.removeTrack(sender);
             }
           });
+          // Add new video tracks
           this.localStream.getVideoTracks().forEach(track => {
             connection.addTrack(track, this.localStream!);
           });
+          // Trigger renegotiation for this peer
           const offer = await connection.createOffer();
           await connection.setLocalDescription(offer);
           this.roomChannel.send({
@@ -129,20 +125,23 @@ export class WebRTCManager {
         return this.localStream;
       } catch (error) {
         console.error('Error accessing media devices for re-enable:', error);
-        throw error;
+        throw error; // Re-throw to be caught by VideoGrid
       }
     } else {
+      // Turn video OFF
       if (this.localStream) {
         this.localStream.getTracks().forEach(track => track.stop());
         this.localStream = null;
       }
 
+      // For each existing peer connection, remove tracks and renegotiate
       for (const [peerId, { connection }] of this.peers.entries()) {
         connection.getSenders().forEach(sender => {
           if (sender.track && sender.track.kind === 'video') {
             connection.removeTrack(sender);
           }
         });
+        // Trigger renegotiation for this peer (to signal video is off)
         const offer = await connection.createOffer();
         await connection.setLocalDescription(offer);
         this.roomChannel.send({
@@ -174,7 +173,7 @@ export class WebRTCManager {
 
     const pc = new RTCPeerConnection(configuration);
 
-    if (this.localStream) {
+    if (this.localStream) { // Only add tracks if localStream exists
       this.localStream.getTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });

@@ -8,15 +8,10 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import FriendsPanel from "@/components/FriendsPanel"; // New
-import DirectMessagePanel from "@/components/DirectMessagePanel"; // New
-import AchievementsPanel from "@/components/AchievementsPanel"; // New
-import ChallengesPanel from "@/components/ChallengesPanel"; // New
-import { MessageSquare, Trophy, Timer, User, LogOut, Users, Award, Target } from "lucide-react"; // Added Users, Award, Target
+import { MessageSquare, Trophy, Timer, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { WebRTCManager } from "@/utils/webrtc"; // Import WebRTCManager to set status
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -26,11 +21,6 @@ const FocusRoom = () => {
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const webrtcManagerRef = useRef<WebRTCManager | null>(null); // Ref for WebRTCManager
-
-  // State for Direct Messaging
-  const [dmFriendId, setDmFriendId] = useState<string | null>(null);
-  const [dmFriendUsername, setDmFriendUsername] = useState<string | null>(null);
 
   // Define a fixed room ID for all users to join the same video conference
   const SHARED_FOCUS_ROOM_ID = "global-focus-room";
@@ -55,9 +45,6 @@ const FocusRoom = () => {
       if (sessionIntervalRef.current) {
         clearInterval(sessionIntervalRef.current);
       }
-      if (webrtcManagerRef.current) {
-        webrtcManagerRef.current.cleanup();
-      }
     };
   }, [navigate]);
 
@@ -77,7 +64,7 @@ const FocusRoom = () => {
   const leaveRoom = async () => {
     if (!sessionId || !userId) return;
 
-    const leavePromise = new Promise<string>(async (resolve, reject) => {
+    const leavePromise = new Promise(async (resolve, reject) => {
       try {
         const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
         const minutes = Math.floor(sessionDuration / 60);
@@ -94,9 +81,9 @@ const FocusRoom = () => {
 
         // Update weekly stats
         const today = new Date();
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay());
-        weekStart.setHours(0, 0, 0, 0);
+        const weekStart = new Date(today); // Create a new Date object from today
+        weekStart.setDate(today.getDate() - today.getDay()); // Set it to the start of the week (Sunday)
+        weekStart.setHours(0, 0, 0, 0); // Set time to midnight
 
         const { data: existingStats, error: statsError } = await supabase
           .from("weekly_stats")
@@ -141,31 +128,7 @@ const FocusRoom = () => {
   };
 
   const togglePanel = (panel: string) => {
-    if (dmFriendId) { // If in DM, go back to friends list first
-      setDmFriendId(null);
-      setDmFriendUsername(null);
-      setActivePanel("friends");
-    } else {
-      setActivePanel(activePanel === panel ? null : panel);
-    }
-  };
-
-  const handleStartDm = (friendId: string, friendUsername: string) => {
-    setDmFriendId(friendId);
-    setDmFriendUsername(friendUsername);
-    setActivePanel("dm");
-  };
-
-  const handleBackFromDm = () => {
-    setDmFriendId(null);
-    setDmFriendUsername(null);
-    setActivePanel("friends");
-  };
-
-  const handleSetUserStatus = (status: string) => {
-    if (webrtcManagerRef.current) {
-      webrtcManagerRef.current.setUserStatus(status);
-    }
+    setActivePanel(activePanel === panel ? null : panel);
   };
 
   if (isLoading) {
@@ -200,42 +163,12 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("friends")}
-              className={`dopamine-click transition-all ${
-                activePanel === "friends" || activePanel === "dm" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <Users className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={() => togglePanel("leaderboard")}
               className={`dopamine-click transition-all ${
                 activePanel === "leaderboard" ? "bg-primary/20 shadow-glow" : ""
               }`}
             >
               <Trophy className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => togglePanel("achievements")}
-              className={`dopamine-click transition-all ${
-                activePanel === "achievements" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <Award className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => togglePanel("challenges")}
-              className={`dopamine-click transition-all ${
-                activePanel === "challenges" ? "bg-primary/20 shadow-glow" : ""
-              }`}
-            >
-              <Target className="h-5 w-5" />
             </Button>
             <Button
               variant="ghost"
@@ -272,26 +205,16 @@ const FocusRoom = () => {
 
       <div className="flex h-[calc(100vh-80px)]">
         <div className="flex-1 p-4">
-          <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} webrtcManagerRef={webrtcManagerRef} />
+          {/* Pass the shared room ID to VideoGrid */}
+          <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
         </div>
 
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
             {activePanel === "chat" && <ChatPanel userId={userId} />}
-            {activePanel === "friends" && <FriendsPanel userId={userId} onStartDm={handleStartDm} />}
-            {activePanel === "dm" && dmFriendId && dmFriendUsername && (
-              <DirectMessagePanel
-                userId={userId}
-                friendId={dmFriendId}
-                friendUsername={dmFriendUsername}
-                onBack={handleBackFromDm}
-              />
-            )}
-            {activePanel === "leaderboard" && <Leaderboard userId={userId} />}
-            {activePanel === "achievements" && <AchievementsPanel userId={userId} />}
-            {activePanel === "challenges" && <ChallengesPanel userId={userId} />}
-            {activePanel === "pomodoro" && <PomodoroTimer onSetUserStatus={handleSetUserStatus} />}
-            {activePanel === "profile" && <ProfileMenu userId={userId} onNavigateToPanel={setActivePanel} />}
+            {activePanel === "leaderboard" && <Leaderboard />}
+            {activePanel === "pomodoro" && <PomodoroTimer />}
+            {activePanel === "profile" && <ProfileMenu userId={userId} />}
           </div>
         )}
       </div>
