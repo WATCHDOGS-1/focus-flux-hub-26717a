@@ -9,7 +9,7 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import SharedWorkspace from "@/components/SharedWorkspace"; // Import new component
+import PersonalWorkspace from "@/components/PersonalWorkspace"; // Import updated component
 import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -256,9 +256,9 @@ const FocusRoom = () => {
               <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
             </div>
 
-            {/* Shared Workspace (Notion-like area) */}
+            {/* Personal Workspace (Notion-like area) */}
             <div className="mt-4">
-              <SharedWorkspace roomId={SHARED_FOCUS_ROOM_ID} userId={userId} />
+              <PersonalWorkspace userId={userId} />
             </div>
           </div>
 
