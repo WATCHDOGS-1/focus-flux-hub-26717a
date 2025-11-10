@@ -140,10 +140,10 @@ const FocusRoom = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
       <EncouragementToasts />
 
-      <div className="relative z-10 glass-card border-b border-border">
+      <div className="relative z-10 glass-card border-b border-border flex-shrink-0">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">OnlyFocus</h1>
 
@@ -235,7 +235,8 @@ const FocusRoom = () => {
         </div>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-80px)]">
+      {/* Main Content Area - Use flex-1 to fill remaining height */}
+      <div className="flex-1 overflow-y-auto">
         <div className="flex h-full">
           <div className="flex-1 p-4 flex flex-col gap-4">
             {/* Focus Tag Input - Hide in Focus Mode */}
@@ -264,26 +265,26 @@ const FocusRoom = () => {
 
           {/* Desktop Sidebar */}
           {activePanel && !isFocusMode && !isMobile && (
-            <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
+            <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
               {renderPanelContent(activePanel)}
             </div>
           )}
         </div>
+      </div>
         
-        {/* Mobile Drawer */}
-        {isMobile && (
-          <Drawer open={!!activePanel && !isFocusMode} onOpenChange={(open) => !open && setActivePanel(null)}>
-            <DrawerContent className="h-[80vh] glass-card">
-              <DrawerHeader>
-                <DrawerTitle>{getPanelTitle(activePanel || "")}</DrawerTitle>
-              </DrawerHeader>
-              <div className="p-4 h-full overflow-y-auto">
-                {activePanel && renderPanelContent(activePanel)}
-              </div>
-            </DrawerContent>
-          </Drawer>
-        )}
-      </ScrollArea>
+      {/* Mobile Drawer */}
+      {isMobile && (
+        <Drawer open={!!activePanel && !isFocusMode} onOpenChange={(open) => !open && setActivePanel(null)}>
+          <DrawerContent className="h-[80vh] glass-card">
+            <DrawerHeader>
+              <DrawerTitle>{getPanelTitle(activePanel || "")}</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4 h-full overflow-y-auto">
+              {activePanel && renderPanelContent(activePanel)}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 };
