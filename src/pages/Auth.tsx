@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { App } from "@capacitor/app";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +15,25 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set redirect URL for web environment
-    setRedirectUrl(window.location.origin);
+    const setRedirect = async () => {
+      // Check if running in Capacitor environment
+      if (window.Capacitor) {
+        try {
+          const info = await App.getInfo();
+          // Use the custom scheme for Capacitor builds
+          setRedirectUrl(`${info.id}://`);
+        } catch (e) {
+          console.error("Capacitor App.getInfo failed:", e);
+          // Fallback to web origin if Capacitor API fails
+          setRedirectUrl(window.location.origin);
+        }
+      } else {
+        // Use standard web origin for web environment
+        setRedirectUrl(window.location.origin);
+      }
+    };
+
+    setRedirect();
   }, []);
 
   const handleAuthSuccess = async (userId: string, defaultUsername?: string, discordUserId?: string) => {
