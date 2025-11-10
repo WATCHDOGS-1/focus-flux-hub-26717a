@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { getOrCreateConversation } from "@/utils/dm";
+import { usePresence, StatusDot } from "@/hooks/use-presence"; // Import presence hooks
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Conversation = Database["public"]["Tables"]["dm_conversations"]["Row"];
@@ -20,6 +21,7 @@ const DMListPanel = ({ currentUserId, onSelectConversation }: DMListPanelProps) 
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const presenceState = usePresence(); // Get presence state
 
   useEffect(() => {
     loadData();
@@ -123,22 +125,28 @@ const DMListPanel = ({ currentUserId, onSelectConversation }: DMListPanelProps) 
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground mb-2">Users:</p>
             {filteredUsers.length > 0 ? (
-              filteredUsers.map(user => (
-                <div
-                  key={user.id}
-                  className="flex items-center p-3 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors dopamine-click"
-                  onClick={() => handleUserClick(user)}
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
-                    {user.profile_photo_url ? (
-                      <img src={user.profile_photo_url} alt="" className="w-full h-full object-cover rounded-full" />
-                    ) : (
-                      <User className="w-4 h-4 text-primary" />
-                    )}
+              filteredUsers.map(user => {
+                const status = presenceState[user.id]?.status || 'offline';
+                return (
+                  <div
+                    key={user.id}
+                    className="flex items-center p-3 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors dopamine-click"
+                    onClick={() => handleUserClick(user)}
+                  >
+                    <div className="relative w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
+                      {user.profile_photo_url ? (
+                        <img src={user.profile_photo_url} alt="" className="w-full h-full object-cover rounded-full" />
+                      ) : (
+                        <User className="w-4 h-4 text-primary" />
+                      )}
+                      <div className="absolute bottom-0 right-0">
+                        <StatusDot status={status} />
+                      </div>
+                    </div>
+                    <span className="font-medium">{user.username}</span>
                   </div>
-                  <span className="font-medium">{user.username}</span>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p className="text-center text-muted-foreground text-sm">No users found.</p>
             )}
@@ -151,6 +159,7 @@ const DMListPanel = ({ currentUserId, onSelectConversation }: DMListPanelProps) 
               conversations.map(conv => {
                 const targetUser = getTargetUser(conv);
                 if (!targetUser) return null;
+                const status = presenceState[targetUser.id]?.status || 'offline';
 
                 return (
                   <div
@@ -158,12 +167,15 @@ const DMListPanel = ({ currentUserId, onSelectConversation }: DMListPanelProps) 
                     className="flex items-center p-3 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors dopamine-click"
                     onClick={() => onSelectConversation(conv.id, targetUser.username, targetUser.id)}
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
+                    <div className="relative w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
                       {targetUser.profile_photo_url ? (
                         <img src={targetUser.profile_photo_url} alt="" className="w-full h-full object-cover rounded-full" />
                       ) : (
                         <User className="w-4 h-4 text-primary" />
                       )}
+                      <div className="absolute bottom-0 right-0">
+                        <StatusDot status={status} />
+                      </div>
                     </div>
                     <span className="font-medium flex-1 truncate">{targetUser.username}</span>
                     {/* Optionally show last message snippet or unread count */}

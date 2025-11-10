@@ -1,36 +1,27 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    const handleSession = async () => {
-      // This component is hit after the OAuth provider redirects back.
-      // Supabase automatically handles the session exchange in the background.
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error("Error fetching session:", error);
-        toast.error("Authentication failed. Please try again.");
-        navigate("/auth");
-        return;
-      }
-
-      if (session) {
-        // We don't need to call handleAuthSuccess here, as the session is already set.
-        // We just need to redirect the user to the focus room.
+    // This component is hit after the OAuth provider redirects back.
+    // Supabase automatically handles the session exchange in the background.
+    
+    // We wait for the AuthProvider to finish loading and check authentication status.
+    if (!isLoading) {
+      if (isAuthenticated) {
+        // Session is confirmed and profile is loading/loaded by AuthProvider
         navigate("/focus-room", { replace: true });
       } else {
         // If no session, redirect back to auth page
         navigate("/auth", { replace: true });
       }
-    };
-
-    handleSession();
-  }, [navigate]);
+    }
+  }, [navigate, isAuthenticated, isLoading]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

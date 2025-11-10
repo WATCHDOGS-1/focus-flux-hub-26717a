@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,97 +10,49 @@ import GoogleIcon from "@/components/icons/GoogleIcon";
 import DiscordIcon from "@/components/icons/DiscordIcon";
 
 const Auth = () => {
-  const [loading, setLoading] = useState(false);
+  const { isAuthenticated, isLoading, userId } = useAuth();
+  const [authLoading, setAuthLoading] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    // For web environment, always use the standard origin
+    if (!isLoading && isAuthenticated) {
+      navigate("/focus-room", { replace: true });
+    }
     setRedirectUrl(window.location.origin);
-  }, []);
+  }, [isLoading, isAuthenticated, navigate]);
 
-  const handleAuthSuccess = async (userId: string, defaultUsername?: string, discordUserId?: string) => {
-    // Ensure a profile exists for the user
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", userId)
-      .single();
+  // The profile upsert logic is now handled by a Supabase trigger or the AuthProvider's initial setup.
+  // We only need to initiate the OAuth flow.
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
-      console.error("Error fetching profile:", fetchError);
-      toast.error("Failed to load profile data.");
-      return;
-    }
-
-    if (!existingProfile || !existingProfile.username || discordUserId) {
-      // If no profile or no username, create/update with a default
-      // Also update if discordUserId is provided (meaning a Discord login)
-      const usernameToSet = defaultUsername || `User${userId.slice(0, 6)}`;
-      const updateData: { id: string; username: string; profile_photo_url?: string | null; discord_user_id?: string | null } = { 
-        id: userId,
-        username: usernameToSet,
-      };
-      if (discordUserId) {
-        updateData.discord_user_id = discordUserId; 
-      }
-
-      const { error: upsertError } = await supabase
-        .from("profiles")
-        .upsert(updateData, { onConflict: 'id' });
-
-      if (upsertError) {
-        console.error("Error upserting profile:", upsertError);
-        toast.error("Failed to set up user profile.");
-        return;
-      }
-    }
-    navigate("/focus-room");
-  };
-
-  const handleGoogleSignIn = async () => {
+  const handleSignIn = async (provider: 'google' | 'discord') => {
     if (!redirectUrl) return;
-    setLoading(true);
+    setAuthLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
         options: {
-          redirectTo: `${redirectUrl}/auth/callback` // Use a generic callback path
+          redirectTo: `${redirectUrl}/auth/callback`,
+          // Requesting user data for profile creation/update
+          scopes: provider === 'discord' ? 'identify email' : undefined,
         }
       });
       if (error) throw error;
       
-      // If the sign-in happens without a redirect (e.g., already logged in), handle success
-      if (data.user) {
-        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
-      }
+      // If the sign-in happens without a redirect (e.g., already logged in), the AuthProvider handles it.
     } catch (error: any) {
-      toast.error(error.message || "Google sign in failed");
-      setLoading(false);
+      toast.error(error.message || `${provider} sign in failed`);
+      setAuthLoading(false);
     }
   };
 
-  const handleDiscordSignIn = async () => {
-    if (!redirectUrl) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'discord',
-        options: {
-          redirectTo: `${redirectUrl}/auth/callback` // Use a generic callback path
-        }
-      });
-      if (error) throw error;
-
-      if (data.user) {
-        const discordUserId = data.user.user_metadata?.provider_id;
-        await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name, discordUserId);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Discord sign in failed");
-      setLoading(false);
-    }
-  };
+  if (isLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-xl text-muted-foreground">Checking authentication...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
@@ -127,20 +80,20 @@ const Auth = () => {
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"
-            onClick={handleGoogleSignIn}
-            disabled={loading || !redirectUrl}
+            onClick={() => handleSignIn('google')}
+            disabled={authLoading || !redirectUrl}
           >
             <GoogleIcon className="w-5 h-5" />
-            {loading ? "Signing In..." : "Continue with Google"}
+            {authLoading && userId ? "Redirecting..." : "Continue with Google"}
           </Button>
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"
-            onClick={handleDiscordSignIn}
-            disabled={loading || !redirectUrl}
+            onClick={() => handleSignIn('discord')}
+            disabled={authLoading || !redirectUrl}
           >
             <DiscordIcon className="w-5 h-5" />
-            {loading ? "Signing In..." : "Continue with Discord"}
+            {authLoading && userId ? "Redirecting..." : "Continue with Discord"}
           </Button>
         </CardContent>
       </Card>

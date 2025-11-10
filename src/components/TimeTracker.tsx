@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface TimeTrackerProps {
-  userId: string;
   sessionStartTime: number;
 }
 
-const TimeTracker = ({ userId, sessionStartTime }: TimeTrackerProps) => {
+const TimeTracker = ({ sessionStartTime }: TimeTrackerProps) => {
+  const { userId } = useAuth();
   const [sessionTime, setSessionTime] = useState(0);
   const [weeklyTime, setWeeklyTime] = useState(0);
 

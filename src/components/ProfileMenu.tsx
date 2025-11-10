@@ -6,16 +6,14 @@ import { Input } from "@/components/ui/input";
 import { LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { useAuth } from "@/hooks/use-auth";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
 type WeeklyGoal = Database["public"]["Tables"]["weekly_goals"]["Row"];
 
-interface ProfileMenuProps {
-  userId: string;
-}
-
-const ProfileMenu = ({ userId }: ProfileMenuProps) => {
+const ProfileMenu = () => {
+  const { userId, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -23,30 +21,21 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   const [weeklyGoal, setWeeklyGoal] = useState(420);
 
   useEffect(() => {
-    loadProfileAndGoals();
-  }, [userId]);
-
-  const loadProfileAndGoals = async () => {
-    // Load profile
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("username, profile_photo_url")
-      .eq("id", userId)
-      .single();
-
-    if (!profileError && profileData) {
-      setUsername(profileData.username);
-      setAvatarUrl(profileData.profile_photo_url);
-    } else {
-      console.error("Error loading profile:", profileError);
-      toast.error("Failed to load profile data.");
+    if (profile) {
+      setUsername(profile.username);
+      setAvatarUrl(profile.profile_photo_url);
     }
+    if (userId) {
+      loadGoals(userId);
+    }
+  }, [profile, userId]);
 
+  const loadGoals = async (uid: string) => {
     // Load daily goal
     const { data: daily, error: dailyError } = await supabase
       .from("daily_goals")
       .select("target_minutes")
-      .eq("user_id", userId)
+      .eq("user_id", uid)
       .maybeSingle();
 
     if (!dailyError && daily) setDailyGoal(daily.target_minutes);
@@ -56,7 +45,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
     const { data: weekly, error: weeklyError } = await supabase
       .from("weekly_goals")
       .select("target_minutes")
-      .eq("user_id", userId)
+      .eq("user_id", uid)
       .maybeSingle();
 
     if (!weeklyError && weekly) setWeeklyGoal(weekly.target_minutes);
@@ -64,6 +53,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!userId) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -96,6 +86,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
       toast.error("Failed to update profile");
     } else {
       setAvatarUrl(publicUrl);
+      refreshProfile(); // Update global context
       toast.success("Avatar updated! 🎉", {
         duration: 3000,
       });
@@ -103,6 +94,7 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
   };
 
   const saveProfileAndGoals = async () => {
+    if (!userId) return;
     let hasError = false;
 
     // Save username
@@ -115,6 +107,8 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
       console.error("Error saving username:", usernameError);
       toast.error("Failed to save username");
       hasError = true;
+    } else {
+      refreshProfile(); // Update global context
     }
 
     // Save daily goal
@@ -157,6 +151,10 @@ const ProfileMenu = ({ userId }: ProfileMenuProps) => {
       navigate("/auth");
     }
   };
+
+  if (!userId) {
+    return <div className="text-center py-8 text-muted-foreground">Loading profile...</div>;
+  }
 
   return (
     <div className="h-full flex flex-col">

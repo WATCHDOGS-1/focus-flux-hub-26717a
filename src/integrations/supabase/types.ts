@@ -161,6 +161,7 @@ export type Database = {
           start_time: string
           end_time: string | null
           duration_minutes: number | null
+          tag: string | null // Added tag column
         }
         Insert: {
           id?: string
@@ -168,6 +169,7 @@ export type Database = {
           start_time: string
           end_time?: string | null
           duration_minutes?: number | null
+          tag?: string | null // Added tag column
         }
         Update: {
           id?: string
@@ -175,6 +177,7 @@ export type Database = {
           start_time?: string
           end_time?: string | null
           duration_minutes?: number | null
+          tag?: string | null // Added tag column
         }
         Relationships: [
           {

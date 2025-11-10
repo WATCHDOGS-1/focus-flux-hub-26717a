@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Send, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { usePresence, StatusDot } from "@/hooks/use-presence"; // Import presence hooks
+import { useAuth } from "@/hooks/use-auth";
 
 type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"] & {
   profiles: {
@@ -20,6 +22,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const presenceState = usePresence(); // Get presence state
 
   useEffect(() => {
     loadMessages();
@@ -39,7 +42,6 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
           if (payload.eventType === 'INSERT' && payload.new.user_id === userId) {
             // If it's our own insert, we've already optimistically added it.
             // We can choose to do nothing or re-fetch to ensure full consistency.
-            // For now, let's re-fetch to ensure the `created_at` and `id` are correct from DB.
             loadMessages();
           } else {
             loadMessages();
@@ -51,7 +53,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]); // Added userId to dependency array
+  }, [userId]);
 
   const loadMessages = async () => {
     const { data, error } = await supabase
@@ -111,21 +113,27 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
       </h3>
 
       <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2"> {/* Added pr-2 for scrollbar spacing */}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`p-3 rounded-lg ${
-              msg.user_id === userId
-                ? "bg-primary/20 ml-4"
-                : "bg-secondary/20 mr-4"
-            }`}
-          >
-            <div className="text-xs text-muted-foreground mb-1">
-              {msg.profiles?.username || "Unknown"}
+        {messages.map((msg) => {
+          const isCurrentUser = msg.user_id === userId;
+          const status = presenceState[msg.user_id]?.status || 'offline';
+          
+          return (
+            <div
+              key={msg.id}
+              className={`p-3 rounded-lg ${
+                isCurrentUser
+                  ? "bg-primary/20 ml-4"
+                  : "bg-secondary/20 mr-4"
+              }`}
+            >
+              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                <StatusDot status={status} />
+                <span className="font-semibold">{msg.profiles?.username || "Unknown"}</span>
+              </div>
+              <div className="text-sm">{msg.message}</div>
             </div>
-            <div className="text-sm">{msg.message}</div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
