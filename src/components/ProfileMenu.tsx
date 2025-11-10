@@ -204,7 +204,7 @@ const ProfileMenu = () => {
         
         {/* Stats Section */}
         <div className="glass-card p-4 rounded-xl space-y-3">
-            <h4 className="text-md font-semibold border-b border-border pb-2 mb-2">Gamification</h4>
+            <h4 className="text-md font-semibold border-b border-border pb-2 mb-2">Stats</h4>
             
             <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
