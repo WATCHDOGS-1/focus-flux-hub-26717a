@@ -2,22 +2,26 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Send, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
-type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"] & {
+type DMMessage = Database["public"]["Tables"]["dm_messages"]["Row"] & {
   profiles: {
     username: string;
   } | null;
 };
 
-interface ChatPanelProps {
-  userId: string;
+interface DMConversationProps {
+  conversationId: string;
+  targetUsername: string;
+  targetUserId: string;
+  currentUserId: string;
+  onBack: () => void;
 }
 
-const ChatPanel = ({ userId }: ChatPanelProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+const DMConversation = ({ conversationId, targetUsername, targetUserId, currentUserId, onBack }: DMConversationProps) => {
+  const [messages, setMessages] = useState<DMMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -25,23 +29,18 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     loadMessages();
 
     const channel = supabase
-      .channel("chat_messages")
+      .channel(`dm:${conversationId}`)
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
-          table: "chat_messages",
+          table: "dm_messages",
+          filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
           // Only reload if the change is not from the current user (optimistic update handles local)
-          // Or if it's an update/delete, always reload to ensure consistency
-          if (payload.eventType === 'INSERT' && payload.new.user_id === userId) {
-            // If it's our own insert, we've already optimistically added it.
-            // We can choose to do nothing or re-fetch to ensure full consistency.
-            // For now, let's re-fetch to ensure the `created_at` and `id` are correct from DB.
-            loadMessages();
-          } else {
+          if (payload.new.sender_id !== currentUserId) {
             loadMessages();
           }
         }
@@ -51,23 +50,23 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]); // Added userId to dependency array
+  }, [conversationId, currentUserId]);
 
   const loadMessages = async () => {
     const { data, error } = await supabase
-      .from("chat_messages")
+      .from("dm_messages")
       .select(`
         *,
         profiles (username)
       `)
+      .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
       .limit(100);
 
     if (error) {
-      console.error("Error loading messages:", error);
+      console.error("Error loading DM messages:", error);
     } else if (data) {
-      setMessages(data as ChatMessage[]);
-      // Scroll to bottom after messages are loaded
+      setMessages(data as DMMessage[]);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
   };
@@ -79,10 +78,11 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
     setNewMessage(""); // Clear input immediately
 
     // Optimistically add message to UI
-    const optimisticMessage: ChatMessage = {
+    const optimisticMessage: DMMessage = {
       id: `temp-${Date.now()}`, // Temporary ID
-      user_id: userId,
-      message: messageContent,
+      conversation_id: conversationId,
+      sender_id: currentUserId,
+      content: messageContent,
       created_at: new Date().toISOString(),
       profiles: { username: "You" }, // Display "You" for optimistic message
     };
@@ -91,12 +91,16 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
 
 
     const { error } = await supabase
-      .from("chat_messages")
-      .insert({ user_id: userId, message: messageContent });
+      .from("dm_messages")
+      .insert({ 
+        conversation_id: conversationId, 
+        sender_id: currentUserId, 
+        content: messageContent 
+      });
 
     if (error) {
       toast.error("Failed to send message");
-      console.error("Error sending message:", error);
+      console.error("Error sending DM message:", error);
       // Optionally, remove the optimistic message if sending failed
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     }
@@ -105,22 +109,28 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
 
   return (
     <div className="h-full flex flex-col">
-      <h3 className="text-xl font-semibold mb-4">Chat</h3>
+      <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <h3 className="text-xl font-semibold truncate">Chatting with {targetUsername}</h3>
+        <div className="w-10" /> {/* Spacer */}
+      </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2"> {/* Added pr-2 for scrollbar spacing */}
+      <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2">
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`p-3 rounded-lg ${
-              msg.user_id === userId
-                ? "bg-primary/20 ml-4"
-                : "bg-secondary/20 mr-4"
+            className={`p-3 rounded-lg max-w-[80%] ${
+              msg.sender_id === currentUserId
+                ? "bg-primary/20 ml-auto"
+                : "bg-secondary/20 mr-auto"
             }`}
           >
             <div className="text-xs text-muted-foreground mb-1">
-              {msg.profiles?.username || "Unknown"}
+              {msg.sender_id === currentUserId ? "You" : msg.profiles?.username || targetUsername}
             </div>
-            <div className="text-sm">{msg.message}</div>
+            <div className="text-sm">{msg.content}</div>
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -131,7 +141,7 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-          placeholder="Type a message..."
+          placeholder={`Message ${targetUsername}...`}
           className="flex-1"
         />
         <Button size="icon" onClick={sendMessage} className="dopamine-click">
@@ -142,4 +152,4 @@ const ChatPanel = ({ userId }: ChatPanelProps) => {
   );
 };
 
-export default ChatPanel;
+export default DMConversation;

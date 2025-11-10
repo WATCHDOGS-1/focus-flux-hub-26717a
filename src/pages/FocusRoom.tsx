@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import VideoGrid from "@/components/VideoGrid";
-import ChatPanel from "@/components/ChatPanel";
+import GlobalChatPanel from "@/components/GlobalChatPanel"; // Renamed
+import SocialSidebar from "@/components/SocialSidebar"; // New DM component
 import TimeTracker from "@/components/TimeTracker";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MessageSquare, Trophy, Timer, User, LogOut } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -153,10 +154,22 @@ const FocusRoom = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePanel("chat")}
+              onClick={() => togglePanel("global-chat")}
               className={`dopamine-click transition-all ${
-                activePanel === "chat" ? "bg-primary/20 shadow-glow" : ""
+                activePanel === "global-chat" ? "bg-primary/20 shadow-glow" : ""
               }`}
+              title="Global Chat"
+            >
+              <Users className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel("social")}
+              className={`dopamine-click transition-all ${
+                activePanel === "social" ? "bg-primary/20 shadow-glow" : ""
+              }`}
+              title="Direct Messages"
             >
               <MessageSquare className="h-5 w-5" />
             </Button>
@@ -167,6 +180,7 @@ const FocusRoom = () => {
               className={`dopamine-click transition-all ${
                 activePanel === "leaderboard" ? "bg-primary/20 shadow-glow" : ""
               }`}
+              title="Leaderboard"
             >
               <Trophy className="h-5 w-5" />
             </Button>
@@ -177,6 +191,7 @@ const FocusRoom = () => {
               className={`dopamine-click transition-all ${
                 activePanel === "pomodoro" ? "bg-primary/20 shadow-glow" : ""
               }`}
+              title="Pomodoro Timer"
             >
               <Timer className="h-5 w-5" />
             </Button>
@@ -187,6 +202,7 @@ const FocusRoom = () => {
               className={`dopamine-click transition-all ${
                 activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""
               }`}
+              title="Profile Settings"
             >
               <User className="h-5 w-5" />
             </Button>
@@ -196,6 +212,7 @@ const FocusRoom = () => {
               size="icon"
               onClick={leaveRoom}
               className="dopamine-click shadow-glow"
+              title="Leave Room"
             >
               <LogOut className="h-5 w-5" />
             </Button>
@@ -211,7 +228,8 @@ const FocusRoom = () => {
 
         {activePanel && (
           <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
-            {activePanel === "chat" && <ChatPanel userId={userId} />}
+            {activePanel === "global-chat" && <GlobalChatPanel userId={userId} />}
+            {activePanel === "social" && <SocialSidebar userId={userId} />}
             {activePanel === "leaderboard" && <Leaderboard />}
             {activePanel === "pomodoro" && <PomodoroTimer />}
             {activePanel === "profile" && <ProfileMenu userId={userId} />}
