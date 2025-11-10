@@ -9,6 +9,7 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
+import SharedWorkspace from "@/components/SharedWorkspace"; // Import new component
 import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
 
 const FocusRoom = () => {
   const navigate = useNavigate();
-  const { userId, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { userId, isAuthenticated, isLoading: isAuthLoading, profile } = useAuth();
   const isMobile = useIsMobile();
   
   const [activePanel, setActivePanel] = useState<string | null>(null);
@@ -37,11 +38,11 @@ const FocusRoom = () => {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize presence tracking (default status is 'focusing' when in the room)
-  usePresence('focusing'); 
-
   // Define a fixed room ID for all users to join the same video conference
   const SHARED_FOCUS_ROOM_ID = "global-focus-room";
+
+  // Initialize presence tracking (default status is 'focusing' when in the room)
+  usePresence('focusing'); 
 
   // Authentication and Session Management
   useEffect(() => {
@@ -234,48 +235,55 @@ const FocusRoom = () => {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-80px)]">
-        <div className="flex-1 p-4 flex flex-col gap-4">
-          {/* Focus Tag Input - Hide in Focus Mode */}
-          {!isFocusMode && (
-            <div className="glass-card p-3 rounded-xl flex items-center gap-3">
-              <Tag className="w-5 h-5 text-primary" />
-              <Input
-                placeholder="What are you focusing on right now? (e.g., 'React Project')"
-                value={focusTag}
-                onChange={(e) => setFocusTag(e.target.value)}
-                className="flex-1 border-none bg-transparent focus-visible:ring-0"
-              />
+      <ScrollArea className="h-[calc(100vh-80px)]">
+        <div className="flex h-full">
+          <div className="flex-1 p-4 flex flex-col gap-4">
+            {/* Focus Tag Input - Hide in Focus Mode */}
+            {!isFocusMode && (
+              <div className="glass-card p-3 rounded-xl flex items-center gap-3">
+                <Tag className="w-5 h-5 text-primary" />
+                <Input
+                  placeholder="What are you focusing on right now? (e.g., 'React Project')"
+                  value={focusTag}
+                  onChange={(e) => setFocusTag(e.target.value)}
+                  className="flex-1 border-none bg-transparent focus-visible:ring-0"
+                />
+              </div>
+            )}
+            
+            {/* Video Grid */}
+            <div className="flex-1 min-h-[400px]">
+              <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
+            </div>
+
+            {/* Shared Workspace (Notion-like area) */}
+            <div className="mt-4">
+              <SharedWorkspace roomId={SHARED_FOCUS_ROOM_ID} userId={userId} />
+            </div>
+          </div>
+
+          {/* Desktop Sidebar */}
+          {activePanel && !isFocusMode && !isMobile && (
+            <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
+              {renderPanelContent(activePanel)}
             </div>
           )}
-          
-          {/* Video Grid */}
-          <div className="flex-1">
-            <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
-          </div>
         </div>
-
-        {/* Desktop Sidebar */}
-        {activePanel && !isFocusMode && !isMobile && (
-          <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto">
-            {renderPanelContent(activePanel)}
-          </div>
+        
+        {/* Mobile Drawer */}
+        {isMobile && (
+          <Drawer open={!!activePanel && !isFocusMode} onOpenChange={(open) => !open && setActivePanel(null)}>
+            <DrawerContent className="h-[80vh] glass-card">
+              <DrawerHeader>
+                <DrawerTitle>{getPanelTitle(activePanel || "")}</DrawerTitle>
+              </DrawerHeader>
+              <div className="p-4 h-full overflow-y-auto">
+                {activePanel && renderPanelContent(activePanel)}
+              </div>
+            </DrawerContent>
+          </Drawer>
         )}
-      </div>
-      
-      {/* Mobile Drawer */}
-      {isMobile && (
-        <Drawer open={!!activePanel && !isFocusMode} onOpenChange={(open) => !open && setActivePanel(null)}>
-          <DrawerContent className="h-[80vh] glass-card">
-            <DrawerHeader>
-              <DrawerTitle>{getPanelTitle(activePanel || "")}</DrawerTitle>
-            </DrawerHeader>
-            <div className="p-4 h-full overflow-y-auto">
-              {activePanel && renderPanelContent(activePanel)}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      </ScrollArea>
     </div>
   );
 };
