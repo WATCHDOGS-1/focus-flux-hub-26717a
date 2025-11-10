@@ -1,16 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { App } from "@capacitor/app"; // Import Capacitor App
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import GoogleIcon from "@/components/icons/GoogleIcon";
-import DiscordIcon from "@/components/icons/DiscordIcon"; // Import DiscordIcon
+import DiscordIcon from "@/components/icons/DiscordIcon";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const setAppRedirect = async () => {
+      const info = await App.getInfo();
+      // Use the custom scheme for Capacitor builds
+      setRedirectUrl(`${info.id}://`);
+    };
+
+    // Check if running in Capacitor environment
+    if (window.Capacitor) {
+      setAppRedirect();
+    } else {
+      // Use standard web origin for web environment
+      setRedirectUrl(window.location.origin);
+    }
+  }, []);
 
   const handleAuthSuccess = async (userId: string, defaultUsername?: string, discordUserId?: string) => {
     // Ensure a profile exists for the user
@@ -52,19 +70,17 @@ const Auth = () => {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!redirectUrl) return;
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/focus-room`
+          redirectTo: `${redirectUrl}/focus-room`
         }
       });
       if (error) throw error;
       
-      // If data.user is available, we can call handleAuthSuccess.
-      // Note: Supabase's signInWithOAuth doesn't always return the user immediately
-      // when redirecting, so the session check in FocusRoom.tsx is the primary handler.
       if (data.user) {
         await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
       }
@@ -75,12 +91,13 @@ const Auth = () => {
   };
 
   const handleDiscordSignIn = async () => {
+    if (!redirectUrl) return;
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${window.location.origin}/focus-room`
+          redirectTo: `${redirectUrl}/focus-room`
         }
       });
       if (error) throw error;
@@ -117,12 +134,12 @@ const Auth = () => {
           <CardTitle>Welcome to OnlyFocus</CardTitle>
           <CardDescription>Sign in or create an account to join the focus room.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4"> {/* Added space-y-4 for spacing between buttons */}
+        <CardContent className="space-y-4">
           <Button
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={loading || !redirectUrl}
           >
             <GoogleIcon className="w-5 h-5" />
             {loading ? "Signing In..." : "Continue with Google"}
@@ -131,7 +148,7 @@ const Auth = () => {
             variant="outline"
             className="w-full flex items-center gap-2 dopamine-click shadow-glow"
             onClick={handleDiscordSignIn}
-            disabled={loading}
+            disabled={loading || !redirectUrl}
           >
             <DiscordIcon className="w-5 h-5" />
             {loading ? "Signing In..." : "Continue with Discord"}
