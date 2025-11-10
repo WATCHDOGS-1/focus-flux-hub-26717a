@@ -1,5 +1,5 @@
 import { useState } from "react";
-import DMListPanel from "./DMListPanel";
+import SocialListPanel from "./SocialListPanel";
 import DMConversation from "./DMConversation";
 
 interface SocialSidebarProps {
@@ -36,7 +36,7 @@ const SocialSidebar = ({ userId }: SocialSidebarProps) => {
           onBack={handleBack}
         />
       ) : (
-        <DMListPanel
+        <SocialListPanel
           currentUserId={userId}
           onSelectConversation={handleSelectConversation}
         />

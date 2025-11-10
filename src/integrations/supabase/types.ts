@@ -189,6 +189,81 @@ export type Database = {
           }
         ]
       }
+      friend_requests: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          status: Database["public"]["Enums"]["friend_request_status"]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          status?: Database["public"]["Enums"]["friend_request_status"]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          status?: Database["public"]["Enums"]["friend_request_status"]
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_requests_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_requests_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      friendships: {
+        Row: {
+          id: string
+          user1_id: string
+          user2_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user1_id: string
+          user2_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user1_id?: string
+          user2_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_user1_id_fkey"
+            columns: ["user1_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user2_id_fkey"
+            columns: ["user2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           id: string
@@ -209,6 +284,67 @@ export type Database = {
           discord_user_id?: string | null
         }
         Relationships: []
+      }
+      user_levels: {
+        Row: {
+          user_id: string
+          level: number
+          total_xp: number
+          title: string
+        }
+        Insert: {
+          user_id: string
+          level?: number
+          total_xp?: number
+          title?: string
+        }
+        Update: {
+          user_id?: string
+          level?: number
+          total_xp?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_levels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_stats: {
+        Row: {
+          user_id: string
+          longest_streak: number
+          longest_session_minutes: number
+          total_focused_minutes: number
+          last_focused_date: string | null
+        }
+        Insert: {
+          user_id: string
+          longest_streak?: number
+          longest_session_minutes?: number
+          total_focused_minutes?: number
+          last_focused_date?: string | null
+        }
+        Update: {
+          user_id?: string
+          longest_streak?: number
+          longest_session_minutes?: number
+          total_focused_minutes?: number
+          last_focused_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       weekly_goals: {
         Row: {
@@ -283,7 +419,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      friend_request_status: "pending" | "accepted" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -410,6 +546,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      friend_request_status: ["pending", "accepted", "rejected"] as const,
+    },
   },
 } as const

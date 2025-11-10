@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Upload } from "lucide-react";
+import { LogOut, Upload, Flame, Zap, Clock } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserStats } from "@/hooks/use-user-stats"; // Import new hook
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
@@ -14,6 +15,7 @@ type WeeklyGoal = Database["public"]["Tables"]["weekly_goals"]["Row"];
 
 const ProfileMenu = () => {
   const { userId, profile, refreshProfile } = useAuth();
+  const { stats, levels, isLoading: isLoadingStats, refetch } = useUserStats();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -152,13 +154,17 @@ const ProfileMenu = () => {
     }
   };
 
-  if (!userId) {
+  if (!userId || isLoadingStats) {
     return <div className="text-center py-8 text-muted-foreground">Loading profile...</div>;
   }
 
+  const todayISO = new Date().toISOString().split("T")[0];
+  const isFocusedToday = stats?.last_focused_date === todayISO;
+  const currentStreak = isFocusedToday ? stats?.longest_streak || 0 : 0;
+
   return (
     <div className="h-full flex flex-col">
-      <h3 className="text-xl font-semibold mb-4">Profile</h3>
+      <h3 className="text-xl font-semibold mb-4">Profile & Stats</h3>
 
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4">
@@ -189,7 +195,48 @@ const ProfileMenu = () => {
 
           <div className="text-center">
             <div className="font-semibold text-lg">{username}</div>
+            <div className="text-sm font-medium text-accent flex items-center justify-center gap-1">
+              <Zap className="w-4 h-4" />
+              {levels?.title || "Novice Monk"} (Lvl {levels?.level || 1})
+            </div>
           </div>
+        </div>
+        
+        {/* Stats Section */}
+        <div className="glass-card p-4 rounded-xl space-y-3">
+            <h4 className="text-md font-semibold border-b border-border pb-2 mb-2">Gamification</h4>
+            
+            <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Flame className={`w-4 h-4 ${currentStreak > 0 ? 'text-red-500' : 'text-gray-500'}`} />
+                    Current Streak
+                </span>
+                <span className="font-bold">{currentStreak} days</span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-primary/50" />
+                    Longest Streak
+                </span>
+                <span className="font-bold">{stats?.longest_streak || 0} days</span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary/50" />
+                    Longest Session
+                </span>
+                <span className="font-bold">{stats?.longest_session_minutes || 0} min</span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    Total XP
+                </span>
+                <span className="font-bold">{levels?.total_xp || 0} XP</span>
+            </div>
         </div>
 
         <div className="space-y-4">

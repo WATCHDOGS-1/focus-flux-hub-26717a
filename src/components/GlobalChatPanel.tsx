@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Zap } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
-import { usePresence, StatusDot } from "@/hooks/use-presence"; // Import presence hooks
-import { useAuth } from "@/hooks/use-auth";
+import { usePresence, StatusDot } from "@/hooks/use-presence";
+import { useUserTitles } from "@/hooks/use-user-titles"; // Import new hook
 
 type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"] & {
   profiles: {
@@ -22,7 +22,10 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const presenceState = usePresence(); // Get presence state
+  const presenceState = usePresence();
+  
+  const userIdsInChat = messages.map(msg => msg.user_id);
+  const userTitles = useUserTitles(userIdsInChat); // Fetch titles for users in chat
 
   useEffect(() => {
     loadMessages();
@@ -112,10 +115,11 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
         Global Chat
       </h3>
 
-      <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2"> {/* Added pr-2 for scrollbar spacing */}
+      <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2">
         {messages.map((msg) => {
           const isCurrentUser = msg.user_id === userId;
           const status = presenceState[msg.user_id]?.status || 'offline';
+          const title = userTitles[msg.user_id];
           
           return (
             <div
@@ -128,7 +132,13 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
             >
               <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
                 <StatusDot status={status} />
-                <span className="font-semibold">{msg.profiles?.username || "Unknown"}</span>
+                <span className="font-semibold text-foreground">{msg.profiles?.username || "Unknown"}</span>
+                {title && (
+                  <span className="text-accent font-medium flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    {title}
+                  </span>
+                )}
               </div>
               <div className="text-sm">{msg.message}</div>
             </div>

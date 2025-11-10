@@ -16,18 +16,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { usePresence } from "@/hooks/use-presence";
-import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile
+import { useIsMobile } from "@/hooks/use-mobile";
+import { endFocusSession } from "@/utils/session-management"; // Import the new utility
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-} from "@/components/ui/drawer"; // Import Drawer components
+} from "@/components/ui/drawer";
 
 const FocusRoom = () => {
   const navigate = useNavigate();
   const { userId, isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const isMobile = useIsMobile(); // Use the hook
+  const isMobile = useIsMobile();
   
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -79,59 +80,7 @@ const FocusRoom = () => {
   const leaveRoom = async () => {
     if (!sessionId || !userId) return;
 
-    const leavePromise = new Promise(async (resolve, reject) => {
-      try {
-        const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
-        const minutes = Math.floor(sessionDuration / 60);
-
-        // Update session, including the tag
-        const { error: sessionError } = await supabase
-          .from("focus_sessions")
-          .update({
-            end_time: new Date().toISOString(),
-            duration_minutes: minutes,
-            tag: focusTag || null,
-          })
-          .eq("id", sessionId);
-        if (sessionError) throw sessionError;
-
-        // Update weekly stats (existing logic)
-        const today = new Date();
-        const weekStart = new Date(today); // Create a new Date object from today
-        weekStart.setDate(today.getDate() - today.getDay()); // Set it to the start of the week (Sunday)
-        weekStart.setHours(0, 0, 0, 0); // Set time to midnight
-
-        const { data: existingStats, error: statsError } = await supabase
-          .from("weekly_stats")
-          .select("*")
-          .eq("user_id", userId)
-          .gte("week_start", weekStart.toISOString())
-          .maybeSingle();
-        if (statsError) throw statsError;
-
-        if (existingStats) {
-          const { error: updateError } = await supabase
-            .from("weekly_stats")
-            .update({ total_minutes: existingStats.total_minutes + minutes })
-            .eq("id", existingStats.id);
-          if (updateError) throw updateError;
-        } else {
-          const { error: insertError } = await supabase
-            .from("weekly_stats")
-            .insert({
-              user_id: userId,
-              week_start: weekStart.toISOString(),
-              total_minutes: minutes,
-            });
-          if (insertError) throw insertError;
-        }
-
-        resolve(`Session saved! You focused for ${minutes} minutes on "${focusTag || 'an untagged session'}". 🎉`);
-      } catch (error) {
-        console.error("Error leaving room:", error);
-        reject("Failed to save your session. Please try again.");
-      }
-    });
+    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
 
     toast.promise(leavePromise, {
       loading: "Saving your session...",
