@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import FocusRoom from "./pages/FocusRoom";
 import NotFound from "./pages/NotFound";
+import AuthCallback from "./components/AuthCallback"; // Import the new component
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} /> {/* New route for OAuth callback */}
           <Route path="/focus-room" element={<FocusRoom />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

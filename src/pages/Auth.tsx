@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { App } from "@capacitor/app"; // Import Capacitor App
+import { App } from "@capacitor/app";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,19 +15,25 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const setAppRedirect = async () => {
-      const info = await App.getInfo();
-      // Use the custom scheme for Capacitor builds
-      setRedirectUrl(`${info.id}://`);
+    const setRedirect = async () => {
+      // Check if running in Capacitor environment
+      if (window.Capacitor) {
+        try {
+          const info = await App.getInfo();
+          // Use the custom scheme for Capacitor builds
+          setRedirectUrl(`${info.id}://`);
+        } catch (e) {
+          console.error("Capacitor App.getInfo failed:", e);
+          // Fallback to web origin if Capacitor API fails
+          setRedirectUrl(window.location.origin);
+        }
+      } else {
+        // Use standard web origin for web environment
+        setRedirectUrl(window.location.origin);
+      }
     };
 
-    // Check if running in Capacitor environment
-    if (window.Capacitor) {
-      setAppRedirect();
-    } else {
-      // Use standard web origin for web environment
-      setRedirectUrl(window.location.origin);
-    }
+    setRedirect();
   }, []);
 
   const handleAuthSuccess = async (userId: string, defaultUsername?: string, discordUserId?: string) => {
@@ -76,11 +82,14 @@ const Auth = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${redirectUrl}/focus-room`
+          redirectTo: `${redirectUrl}/auth/callback` // Use a generic callback path for better handling
         }
       });
       if (error) throw error;
       
+      // Note: In a real OAuth flow, the user is redirected. The code below handles the case 
+      // where the session might be immediately available (e.g., if using a deep link handler 
+      // or if the user was already logged in).
       if (data.user) {
         await handleAuthSuccess(data.user.id, data.user.user_metadata?.full_name || data.user.user_metadata?.name);
       }
@@ -97,7 +106,7 @@ const Auth = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${redirectUrl}/focus-room`
+          redirectTo: `${redirectUrl}/auth/callback` // Use a generic callback path for better handling
         }
       });
       if (error) throw error;
