@@ -73,7 +73,7 @@ const HeroSection = () => {
               size="lg"
               className="text-lg px-8 py-6 rounded-xl bg-primary dopamine-click shadow-glow group font-semibold"
             >
-              Start Focusing Now (It's Free)
+              Join Room
             </Button>
             <Button
               onClick={() => navigate("/focus-room")}
@@ -86,28 +86,7 @@ const HeroSection = () => {
           </motion.div>
         </motion.div>
 
-        {/* Live Stats Bar */}
-        <AnimatedSection delay={0.8}>
-          <div className="inline-flex glass-card p-4 rounded-full shadow-xl border-primary/30">
-            <div className="flex items-center gap-6 text-left">
-              <div className="flex items-center gap-2">
-                <Clock className="w-6 h-6 text-primary" />
-                <div>
-                  <div className="text-2xl font-bold text-primary">{LIVE_STATS.hoursStudied.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">Hours Focused This Week</div>
-                </div>
-              </div>
-              <div className="h-10 w-px bg-border" />
-              <div className="flex items-center gap-2">
-                <Users className="w-6 h-6 text-accent" />
-                <div>
-                  <div className="text-2xl font-bold text-accent">{LIVE_STATS.activeUsers}+</div>
-                  <div className="text-xs text-muted-foreground">Active Users Right Now</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </AnimatedSection>
+        {/* Live Stats Bar REMOVED */}
       </div>
     </div>
   );
