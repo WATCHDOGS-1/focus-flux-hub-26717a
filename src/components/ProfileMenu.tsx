@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Upload, Flame, Zap, Clock } from "lucide-react";
+import { LogOut, Flame, Zap, Clock } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
-import { useUserStats } from "@/hooks/use-user-stats"; // Import new hook
+import { useUserStats } from "@/hooks/use-user-stats";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
@@ -18,14 +18,12 @@ const ProfileMenu = () => {
   const { stats, levels, isLoading: isLoadingStats, refetch } = useUserStats();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [dailyGoal, setDailyGoal] = useState(60);
   const [weeklyGoal, setWeeklyGoal] = useState(420);
 
   useEffect(() => {
     if (profile) {
       setUsername(profile.username);
-      setAvatarUrl(profile.profile_photo_url);
     }
     if (userId) {
       loadGoals(userId);
@@ -52,47 +50,6 @@ const ProfileMenu = () => {
 
     if (!weeklyError && weekly) setWeeklyGoal(weekly.target_minutes);
     else if (weeklyError && weeklyError.code !== 'PGRST116') console.error("Error loading weekly goal:", weeklyError);
-  };
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!userId) return;
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${userId}-${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("profile-photos")
-      .upload(fileName, file, { upsert: true });
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      toast.error("Failed to upload avatar");
-      return;
-    }
-
-    const { data } = supabase.storage
-      .from("profile-photos")
-      .getPublicUrl(fileName);
-
-    const publicUrl = `${data.publicUrl}?t=${Date.now()}`; // Add timestamp to bust cache
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ profile_photo_url: publicUrl })
-      .eq("id", userId);
-
-    if (updateError) {
-      console.error("Update error:", updateError);
-      toast.error("Failed to update profile");
-    } else {
-      setAvatarUrl(publicUrl);
-      refreshProfile(); // Update global context
-      toast.success("Avatar updated! 🎉", {
-        duration: 3000,
-      });
-    }
   };
 
   const saveProfileAndGoals = async () => {
@@ -169,29 +126,10 @@ const ProfileMenu = () => {
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-3xl font-semibold">
-                {username?.[0]?.toUpperCase()}
-              </span>
-            )}
+            <span className="text-3xl font-semibold text-white">
+              {username?.[0]?.toUpperCase()}
+            </span>
           </div>
-
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              className="hidden"
-            />
-            <Button variant="outline" size="sm" asChild>
-              <span>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Photo
-              </span>
-            </Button>
-          </label>
 
           <div className="text-center">
             <div className="font-semibold text-lg">{username}</div>

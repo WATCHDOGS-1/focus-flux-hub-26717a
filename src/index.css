@@ -173,4 +173,23 @@
     );
     background-size: 1000px 100%;
   }
+
+  @keyframes ping-slow {
+    0% {
+      transform: scale(0.8);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.3;
+    }
+    100% {
+      transform: scale(0.8);
+      opacity: 0.7;
+    }
+  }
+
+  .animate-ping-slow {
+    animation: ping-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
 }

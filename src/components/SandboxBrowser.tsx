@@ -3,39 +3,58 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Globe, Zap } from "lucide-react";
 import { toast } from "sonner";
+import FocusGate from "./FocusGate";
 
-// Using a generic, embeddable site (like a simple public page) or removing the default entirely is safer.
-// Let's use a placeholder URL that is less likely to be blocked, or just start empty.
-// For now, I'll use a simple public page that is usually embeddable.
-const DEFAULT_URL = "https://example.com"; 
+const DEFAULT_URL = "https://google.com"; 
 
 const SandboxBrowser = () => {
   const [url, setUrl] = useState(() => localStorage.getItem("sandbox_url") || DEFAULT_URL);
   const [inputUrl, setInputUrl] = useState(url);
-  const [displayUrl, setDisplayUrl] = useState(url);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("sandbox_url", url);
   }, [url]);
 
   const handleLoadUrl = () => {
-    if (inputUrl.trim()) {
-      let newUrl = inputUrl.trim();
-      // Ensure URL starts with http:// or https://
-      if (!/^https?:\/\//i.test(newUrl)) {
-        newUrl = 'https://' + newUrl;
-      }
-      
-      // Check if the URL is likely to be blocked (e.g., Google, Facebook, etc.)
-      if (newUrl.includes('google.com') || newUrl.includes('facebook.com') || newUrl.includes('notion.so')) {
-        toast.warning("Warning: This site often blocks embedding via iframe due to security policies (X-Frame-Options). Try using a public page link.");
-      }
+    if (!inputUrl.trim()) return;
 
-      setDisplayUrl(newUrl);
+    let newUrl = inputUrl.trim();
+    if (!/^https?:\/\//i.test(newUrl)) {
+      newUrl = 'https://' + newUrl;
+    }
+    
+    // Check if the URL requires the Focus Gate
+    if (newUrl.includes('google.com')) {
+      // If it's Google, load immediately
       setUrl(newUrl);
       setIsIframeLoading(true);
+      setPendingUrl(null);
+    } else {
+      // If it's not Google, trigger the Focus Gate
+      setPendingUrl(newUrl);
     }
+  };
+
+  const handleFocusGateDecision = (proceed: boolean) => {
+    if (proceed && pendingUrl) {
+      // User confirmed, load the external URL
+      setUrl(pendingUrl);
+      setIsIframeLoading(true);
+      
+      // Optional warning for known blocked sites
+      if (pendingUrl.includes('facebook.com') || pendingUrl.includes('notion.so')) {
+        toast.warning("Warning: This site often blocks embedding via iframe due to security policies (X-Frame-Options).");
+      }
+    } else {
+      // User declined or timer ran out and they chose 'No', redirect to Google
+      setUrl(DEFAULT_URL);
+      setInputUrl(DEFAULT_URL);
+      setIsIframeLoading(true);
+      toast.info("Staying focused! Redirecting to Google.");
+    }
+    setPendingUrl(null); // Clear pending state regardless of outcome
   };
 
   return (
@@ -60,20 +79,22 @@ const SandboxBrowser = () => {
       </div>
 
       <div className="flex-1 relative border border-border rounded-lg overflow-hidden">
-        {isIframeLoading && (
+        {pendingUrl && <FocusGate onDecision={handleFocusGateDecision} />}
+        
+        {isIframeLoading && !pendingUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-card/90 backdrop-blur-sm z-10">
             <p className="text-muted-foreground animate-pulse">
-              Attempting to load {displayUrl}... 
+              Attempting to load {url}... 
               <br/>
               (If this persists, the site is likely blocking embedding.)
             </p>
           </div>
         )}
         <iframe
-          src={displayUrl}
+          src={url}
           title="Embedded Focus Browser"
           className="w-full h-full"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms" // Minimal sandbox for functionality
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
           onLoad={() => setIsIframeLoading(false)}
           onError={() => {
             setIsIframeLoading(false);

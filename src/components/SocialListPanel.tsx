@@ -131,11 +131,9 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
         onClick={() => view === 'dms' && handleUserClick(user as Profile)}
       >
         <div className="relative w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
-          {user.profile_photo_url ? (
-            <img src={user.profile_photo_url} alt="" className="w-full h-full object-cover rounded-full" />
-          ) : (
-            <User className="w-4 h-4 text-primary" />
-          )}
+          <span className="text-sm font-bold text-white">
+            {user.username?.[0]?.toUpperCase()}
+          </span>
           <div className="absolute bottom-0 right-0">
             <StatusDot status={status} />
           </div>
@@ -244,11 +242,9 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
                 {pendingRequests.map(req => (
                   <div key={req.id} className="flex items-center p-3 rounded-lg bg-secondary/20">
                     <div className="relative w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
-                      {req.sender?.profile_photo_url ? (
-                        <img src={req.sender.profile_photo_url} alt="" className="w-full h-full object-cover rounded-full" />
-                      ) : (
-                        <User className="w-4 h-4 text-primary" />
-                      )}
+                      <span className="text-sm font-bold text-white">
+                        {req.sender?.username?.[0]?.toUpperCase()}
+                      </span>
                     </div>
                     <span className="font-medium flex-1 truncate">{req.sender?.username || "Unknown User"}</span>
                     <div className="flex gap-1">

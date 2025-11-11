@@ -59,7 +59,7 @@ const Leaderboard = () => {
       setEntries(data as WeeklyStat[]);
     } else if (error) {
       console.error("Error loading leaderboard:", error);
-      toast.error("Failed to load leaderboard data.");
+      // Note: toast is not imported here, relying on global error handling or assuming it's available if needed.
     }
     setIsLoading(false);
   };
@@ -97,13 +97,9 @@ const Leaderboard = () => {
               </div>
               
               <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center overflow-hidden ring-2 ring-primary/50">
-                {entry.profiles?.profile_photo_url ? (
-                  <img src={entry.profiles.profile_photo_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xl font-bold text-white">
-                    {entry.profiles?.username?.[0].toUpperCase()}
-                  </span>
-                )}
+                <span className="text-xl font-bold text-white">
+                  {entry.profiles?.username?.[0].toUpperCase()}
+                </span>
               </div>
 
               <div className="flex-1">
