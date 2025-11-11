@@ -4,15 +4,14 @@ import VideoGrid from "@/components/VideoGrid";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import SocialSidebar from "@/components/SocialSidebar";
 import TimeTracker from "@/components/TimeTracker";
-import SessionTimer from "@/components/SessionTimer"; // Updated import
+import SessionTimer from "@/components/SessionTimer";
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import SandboxBrowser from "@/components/SandboxBrowser";
-import NotesWorkspace from "@/components/NotesWorkspace"; // New import
-import RoomThemeSelector from "@/components/RoomThemeSelector"; // New import
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, Globe, NotebookText } from "lucide-react";
+import NotesWorkspace from "@/components/NotesWorkspace";
+import RoomThemeSelector from "@/components/RoomThemeSelector";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,9 +38,8 @@ const FocusRoom = () => {
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [focusTag, setFocusTag] = useState("");
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [showSandboxBrowser, setShowSandboxBrowser] = useState(false);
-  const [showNotesWorkspace, setShowNotesWorkspace] = useState(false); // New state for Notes
-  const [roomTheme, setRoomTheme] = useState("default"); // New state for themes
+  const [showNotesWorkspace, setShowNotesWorkspace] = useState(false);
+  const [roomTheme, setRoomTheme] = useState("default");
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Define a fixed room ID for all users to join the same video conference
@@ -111,7 +109,6 @@ const FocusRoom = () => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false); // Exit focus mode if a panel is opened manually
     if (activePanel !== panel) {
-      setShowSandboxBrowser(false); // Close Sandbox if opening a sidebar panel
       setShowNotesWorkspace(false); // Close Notes if opening a sidebar panel
     }
   };
@@ -120,25 +117,14 @@ const FocusRoom = () => {
     setIsFocusMode(!isFocusMode);
     if (!isFocusMode) {
       setActivePanel(null); // Close side panel when entering focus mode
-      setShowSandboxBrowser(false); // Close Sandbox when entering focus mode
       setShowNotesWorkspace(false); // Close Notes when entering focus mode
     }
   };
   
-  const toggleSandboxBrowser = () => {
-    setShowSandboxBrowser(!showSandboxBrowser);
-    if (!showSandboxBrowser) {
-      setActivePanel(null); // Close sidebar panel if opening Sandbox
-      setShowNotesWorkspace(false); // Close Notes if opening Sandbox
-    }
-    if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Sandbox
-  };
-
   const toggleNotesWorkspace = () => {
     setShowNotesWorkspace(!showNotesWorkspace);
     if (!showNotesWorkspace) {
       setActivePanel(null); // Close sidebar panel if opening Notes
-      setShowSandboxBrowser(false); // Close Sandbox if opening Notes
     }
     if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Notes
   };
@@ -152,7 +138,7 @@ const FocusRoom = () => {
       case "leaderboard":
         return <Leaderboard />;
       case "pomodoro":
-        return <SessionTimer />; // Use new SessionTimer
+        return <SessionTimer />;
       case "profile":
         return <ProfileMenu />;
       default:
@@ -233,19 +219,6 @@ const FocusRoom = () => {
                   title="Local Notes Workspace"
                 >
                   <NotebookText className="h-5 w-5 text-accent" />
-                </Button>
-
-                {/* Sandbox Browser Button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleSandboxBrowser}
-                  className={`dopamine-click transition-all ${
-                    showSandboxBrowser ? "bg-accent/20 shadow-glow" : ""
-                  }`}
-                  title="Embedded Browser"
-                >
-                  <Globe className="h-5 w-5 text-accent" />
                 </Button>
                 
                 <Button
@@ -341,15 +314,10 @@ const FocusRoom = () => {
               <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
             </div>
 
-            {/* Secondary Panels (Notes/Browser) */}
+            {/* Secondary Panels (Notes) */}
             {showNotesWorkspace && (
               <div className="mt-4">
                 <NotesWorkspace />
-              </div>
-            )}
-            {showSandboxBrowser && (
-              <div className="mt-4">
-                <SandboxBrowser />
               </div>
             )}
           </div>
