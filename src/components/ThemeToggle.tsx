@@ -1,12 +1,15 @@
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import Cookies from "js-cookie";
+
+const THEME_COOKIE_KEY = "theme";
 
 const ThemeToggle = () => {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme") as "light" | "dark" | null;
+    const stored = Cookies.get(THEME_COOKIE_KEY) as "light" | "dark" | undefined;
     const initialTheme = stored || "dark";
     setTheme(initialTheme);
     document.documentElement.classList.toggle("dark", initialTheme === "dark");
@@ -15,7 +18,8 @@ const ThemeToggle = () => {
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
+    // Set cookie to expire in 365 days
+    Cookies.set(THEME_COOKIE_KEY, newTheme, { expires: 365, sameSite: 'Lax' });
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
