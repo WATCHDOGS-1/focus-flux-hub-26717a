@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { getOrCreateConversation } from "@/utils/dm";
-import { usePresence, StatusDot } from "@/hooks/use-presence";
 import { useFriends } from "@/hooks/use-friends";
 import { sendFriendRequest, acceptFriendRequest, rejectFriendRequest } from "@/utils/friends";
 
@@ -26,7 +25,6 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [view, setView] = useState<'friends' | 'dms'>('friends');
 
-  const presenceState = usePresence();
   const { friends, pendingRequests, isLoading: isLoadingFriends, refetch } = useFriends();
 
   useEffect(() => {
@@ -121,7 +119,6 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
   };
 
   const renderUserItem = (user: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>, actions?: React.ReactNode) => {
-    const status = presenceState[user.id]?.status || 'offline';
     const isFriend = friends.some(f => f.id === user.id);
 
     return (
@@ -134,9 +131,6 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
           <span className="text-sm font-bold text-white">
             {user.username?.[0]?.toUpperCase()}
           </span>
-          <div className="absolute bottom-0 right-0">
-            <StatusDot status={status} />
-          </div>
         </div>
         <span className="font-medium flex-1 truncate">{user.username}</span>
         

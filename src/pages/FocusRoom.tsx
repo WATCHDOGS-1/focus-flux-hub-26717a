@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { usePresence } from "@/hooks/use-presence";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { endFocusSession } from "@/utils/session-management";
 import {
@@ -44,9 +43,6 @@ const FocusRoom = () => {
 
   // Define a fixed room ID for all users to join the same video conference
   const SHARED_FOCUS_ROOM_ID = "global-focus-room";
-
-  // Initialize presence tracking (default status is 'focusing' when in the room)
-  usePresence('focusing'); 
 
   // Authentication and Session Management
   useEffect(() => {

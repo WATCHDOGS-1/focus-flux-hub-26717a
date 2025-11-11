@@ -39,10 +39,8 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          // Only reload if the change is not from the current user (optimistic update handles local)
-          if (payload.new.sender_id !== currentUserId) {
-            loadMessages();
-          }
+          // Always reload on insert to ensure consistency, fetch profile data, and update the optimistic message
+          loadMessages();
         }
       )
       .subscribe();
@@ -104,7 +102,7 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
       // Optionally, remove the optimistic message if sending failed
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     }
-    // The real-time listener will eventually update the message with the correct ID and timestamp
+    // The real-time listener will now trigger loadMessages() to replace the optimistic message
   };
 
   return (

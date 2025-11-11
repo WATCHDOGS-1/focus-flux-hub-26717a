@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Send, MessageSquare, Zap } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
-import { usePresence, StatusDot } from "@/hooks/use-presence";
 import { useUserTitles } from "@/hooks/use-user-titles"; // Import new hook
 
 type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"] & {
@@ -22,7 +21,6 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const presenceState = usePresence();
   
   const userIdsInChat = messages.map(msg => msg.user_id);
   const userTitles = useUserTitles(userIdsInChat); // Fetch titles for users in chat
@@ -35,20 +33,13 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT", // Only listen for inserts
           schema: "public",
           table: "chat_messages",
         },
         (payload) => {
-          // Only reload if the change is not from the current user (optimistic update handles local)
-          // Or if it's an update/delete, always reload to ensure consistency
-          if (payload.eventType === 'INSERT' && payload.new.user_id === userId) {
-            // If it's our own insert, we've already optimistically added it.
-            // We can choose to do nothing or re-fetch to ensure full consistency.
-            loadMessages();
-          } else {
-            loadMessages();
-          }
+          // Always reload on insert to ensure consistency, fetch profile data, and update the optimistic message
+          loadMessages();
         }
       )
       .subscribe();
@@ -105,7 +96,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
       // Optionally, remove the optimistic message if sending failed
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     }
-    // The real-time listener will eventually update the message with the correct ID and timestamp
+    // The real-time listener will now trigger loadMessages() to replace the optimistic message
   };
 
   return (
@@ -118,7 +109,6 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
       <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2">
         {messages.map((msg) => {
           const isCurrentUser = msg.user_id === userId;
-          const status = presenceState[msg.user_id]?.status || 'offline';
           const title = userTitles[msg.user_id];
           
           return (
@@ -131,7 +121,6 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
               }`}
             >
               <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                <StatusDot status={status} />
                 <span className="font-semibold text-foreground">{msg.profiles?.username || "Unknown"}</span>
                 {title && (
                   <span className="text-accent font-medium flex items-center gap-1">
