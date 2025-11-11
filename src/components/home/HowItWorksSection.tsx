@@ -36,7 +36,7 @@ const HowItWorksSection = () => {
 
       <div className="relative flex flex-col lg:flex-row justify-between gap-12 pt-12"> {/* Added pt-12 for space above the line */}
         {/* Timeline Line (Desktop Only) - Positioned lower */}
-        <div className="hidden lg:block absolute top-[100px] left-0 right-0 h-1 bg-border/50">
+        <div className="hidden lg:block absolute top-[150px] left-0 right-0 h-1 bg-border/50">
           <motion.div
             initial={{ width: 0 }}
             whileInView={{ width: "100%" }}
