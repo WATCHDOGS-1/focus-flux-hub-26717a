@@ -9,8 +9,8 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import PersonalWorkspace from "@/components/PersonalWorkspace"; // Import updated component
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2 } from "lucide-react";
+import NotionIntegrationPanel from "@/components/NotionIntegrationPanel"; // Import new component
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Ensure ScrollArea is imported
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const FocusRoom = () => {
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [focusTag, setFocusTag] = useState("");
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [showNotionPanel, setShowNotionPanel] = useState(false); // New state for Notion panel
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Define a fixed room ID for all users to join the same video conference
@@ -96,11 +98,21 @@ const FocusRoom = () => {
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false); // Exit focus mode if a panel is opened manually
+    if (activePanel !== panel) setShowNotionPanel(false); // Close Notion panel if opening a sidebar panel
   };
 
   const toggleFocusMode = () => {
     setIsFocusMode(!isFocusMode);
-    if (!isFocusMode) setActivePanel(null); // Close side panel when entering focus mode
+    if (!isFocusMode) {
+      setActivePanel(null); // Close side panel when entering focus mode
+      setShowNotionPanel(false); // Close Notion panel when entering focus mode
+    }
+  };
+  
+  const toggleNotionPanel = () => {
+    setShowNotionPanel(!showNotionPanel);
+    if (!showNotionPanel) setActivePanel(null); // Close sidebar panel if opening Notion panel
+    if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Notion panel
   };
 
   const renderPanelContent = (panel: string) => {
@@ -164,6 +176,19 @@ const FocusRoom = () => {
             
             {!isFocusMode && (
               <>
+                {/* Notion Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleNotionPanel}
+                  className={`dopamine-click transition-all ${
+                    showNotionPanel ? "bg-accent/20 shadow-glow" : ""
+                  }`}
+                  title="Notion Integration"
+                >
+                  <Zap className="h-5 w-5 text-accent" />
+                </Button>
+                
                 <Button
                   variant="ghost"
                   size="icon"
@@ -257,10 +282,12 @@ const FocusRoom = () => {
               <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
             </div>
 
-            {/* Personal Workspace (Notion-like area) */}
-            <div className="mt-4">
-              <PersonalWorkspace userId={userId} />
-            </div>
+            {/* Notion Integration Panel (Appears below Video Grid) */}
+            {showNotionPanel && (
+              <div className="mt-4">
+                <NotionIntegrationPanel />
+              </div>
+            )}
           </div>
 
           {/* Desktop Sidebar */}
