@@ -4,13 +4,15 @@ import VideoGrid from "@/components/VideoGrid";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import SocialSidebar from "@/components/SocialSidebar";
 import TimeTracker from "@/components/TimeTracker";
-import PomodoroTimer from "@/components/PomodoroTimer";
+import SessionTimer from "@/components/SessionTimer"; // Updated import
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import SandboxBrowser from "@/components/SandboxBrowser"; // Import new component
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, Globe } from "lucide-react";
+import SandboxBrowser from "@/components/SandboxBrowser";
+import NotesWorkspace from "@/components/NotesWorkspace"; // New import
+import RoomThemeSelector from "@/components/RoomThemeSelector"; // New import
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, Globe, NotebookText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,14 +20,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { usePresence } from "@/hooks/use-presence";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { endFocusSession } from "@/utils/session-management"; // Import the new utility
+import { endFocusSession } from "@/utils/session-management";
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { ScrollArea } from "@/components/ui/scroll-area"; // Ensure ScrollArea is imported
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -37,7 +39,9 @@ const FocusRoom = () => {
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [focusTag, setFocusTag] = useState("");
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [showSandboxBrowser, setShowSandboxBrowser] = useState(false); // Updated state name
+  const [showSandboxBrowser, setShowSandboxBrowser] = useState(false);
+  const [showNotesWorkspace, setShowNotesWorkspace] = useState(false); // New state for Notes
+  const [roomTheme, setRoomTheme] = useState("default"); // New state for themes
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Define a fixed room ID for all users to join the same video conference
@@ -63,6 +67,14 @@ const FocusRoom = () => {
       }
     };
   }, [isAuthLoading, isAuthenticated, userId, navigate, sessionId]);
+
+  // Apply room theme class to the body
+  useEffect(() => {
+    document.body.className = roomTheme;
+    return () => {
+      document.body.className = ""; // Clean up on unmount
+    };
+  }, [roomTheme]);
 
   const startSession = async (uid: string) => {
     const { data, error } = await supabase
@@ -98,7 +110,10 @@ const FocusRoom = () => {
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false); // Exit focus mode if a panel is opened manually
-    if (activePanel !== panel) setShowSandboxBrowser(false); // Close Sandbox if opening a sidebar panel
+    if (activePanel !== panel) {
+      setShowSandboxBrowser(false); // Close Sandbox if opening a sidebar panel
+      setShowNotesWorkspace(false); // Close Notes if opening a sidebar panel
+    }
   };
 
   const toggleFocusMode = () => {
@@ -106,13 +121,26 @@ const FocusRoom = () => {
     if (!isFocusMode) {
       setActivePanel(null); // Close side panel when entering focus mode
       setShowSandboxBrowser(false); // Close Sandbox when entering focus mode
+      setShowNotesWorkspace(false); // Close Notes when entering focus mode
     }
   };
   
   const toggleSandboxBrowser = () => {
     setShowSandboxBrowser(!showSandboxBrowser);
-    if (!showSandboxBrowser) setActivePanel(null); // Close sidebar panel if opening Sandbox
+    if (!showSandboxBrowser) {
+      setActivePanel(null); // Close sidebar panel if opening Sandbox
+      setShowNotesWorkspace(false); // Close Notes if opening Sandbox
+    }
     if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Sandbox
+  };
+
+  const toggleNotesWorkspace = () => {
+    setShowNotesWorkspace(!showNotesWorkspace);
+    if (!showNotesWorkspace) {
+      setActivePanel(null); // Close sidebar panel if opening Notes
+      setShowSandboxBrowser(false); // Close Sandbox if opening Notes
+    }
+    if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Notes
   };
 
   const renderPanelContent = (panel: string) => {
@@ -124,7 +152,7 @@ const FocusRoom = () => {
       case "leaderboard":
         return <Leaderboard />;
       case "pomodoro":
-        return <PomodoroTimer />;
+        return <SessionTimer />; // Use new SessionTimer
       case "profile":
         return <ProfileMenu />;
       default:
@@ -137,7 +165,7 @@ const FocusRoom = () => {
       case "global-chat": return "Global Chat";
       case "social": return "Direct Messages";
       case "leaderboard": return "Leaderboard";
-      case "pomodoro": return "Pomodoro Timer";
+      case "pomodoro": return "Structured Timer";
       case "profile": return "Profile Settings";
       default: return "";
     }
@@ -151,8 +179,24 @@ const FocusRoom = () => {
     );
   }
 
+  // If No Mercy Mode is active, render only a black screen
+  if (roomTheme === 'no-mercy' && isFocusMode) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">NO MERCY MODE ACTIVE</h1>
+          <p className="text-lg">Focus until the timer ends.</p>
+          <Button variant="destructive" className="mt-8" onClick={leaveRoom}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Emergency Exit
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
+    <div className={`min-h-screen flex flex-col bg-background relative overflow-hidden transition-colors duration-500`}>
       <EncouragementToasts />
 
       <div className="relative z-10 glass-card border-b border-border flex-shrink-0">
@@ -161,7 +205,9 @@ const FocusRoom = () => {
 
           <TimeTracker sessionStartTime={sessionStartTime} />
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <RoomThemeSelector onThemeChange={setRoomTheme} /> {/* Theme Selector */}
+            
             <Button
               variant="ghost"
               size="icon"
@@ -176,6 +222,19 @@ const FocusRoom = () => {
             
             {!isFocusMode && (
               <>
+                {/* Notes Workspace Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleNotesWorkspace}
+                  className={`dopamine-click transition-all ${
+                    showNotesWorkspace ? "bg-accent/20 shadow-glow" : ""
+                  }`}
+                  title="Local Notes Workspace"
+                >
+                  <NotebookText className="h-5 w-5 text-accent" />
+                </Button>
+
                 {/* Sandbox Browser Button */}
                 <Button
                   variant="ghost"
@@ -229,7 +288,7 @@ const FocusRoom = () => {
                   className={`dopamine-click transition-all ${
                     activePanel === "pomodoro" ? "bg-primary/20 shadow-glow" : ""
                   }`}
-                  title="Pomodoro Timer"
+                  title="Structured Timer"
                 >
                   <Timer className="h-5 w-5" />
                 </Button>
@@ -282,7 +341,12 @@ const FocusRoom = () => {
               <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
             </div>
 
-            {/* Sandbox Browser (Appears below Video Grid) */}
+            {/* Secondary Panels (Notes/Browser) */}
+            {showNotesWorkspace && (
+              <div className="mt-4">
+                <NotesWorkspace />
+              </div>
+            )}
             {showSandboxBrowser && (
               <div className="mt-4">
                 <SandboxBrowser />

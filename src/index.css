@@ -80,6 +80,51 @@
   }
 }
 
+/* --- Room Themes --- */
+
+.deep-cave {
+  --background: 220 10% 8%;
+  --foreground: 210 40% 90%;
+  --card: 220 10% 12%;
+  --border: 220 10% 18%;
+  --primary: 217 91% 40%;
+}
+
+.library {
+  --background: 30 20% 90%;
+  --foreground: 30 10% 20%;
+  --card: 30 20% 95%;
+  --border: 30 10% 80%;
+  --primary: 30 50% 40%;
+}
+
+.cyberpunk {
+  --background: 260 50% 5%;
+  --foreground: 180 100% 80%;
+  --card: 260 50% 10%;
+  --border: 260 50% 20%;
+  --primary: 280 90% 60%; /* Magenta Neon */
+  --accent: 180 90% 50%; /* Cyan Neon */
+}
+
+.morning-sunlight {
+  --background: 40 100% 98%;
+  --foreground: 220 70% 10%;
+  --card: 40 100% 95%;
+  --border: 40 50% 80%;
+  --primary: 40 90% 50%;
+}
+
+.no-mercy {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 0%;
+  --border: 0 0% 0%;
+  --primary: 0 0% 0%;
+}
+
+/* --- Base & Utilities --- */
+
 @layer base {
   * {
     @apply border-border;
