@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Globe, Zap } from "lucide-react";
 import { toast } from "sonner";
 
-const DEFAULT_URL = "https://www.notion.so/login"; // Default to Notion login page
+// Using a generic, embeddable site (like a simple public page) or removing the default entirely is safer.
+// Let's use a placeholder URL that is less likely to be blocked, or just start empty.
+// For now, I'll use a simple public page that is usually embeddable.
+const DEFAULT_URL = "https://example.com"; 
 
 const SandboxBrowser = () => {
   const [url, setUrl] = useState(() => localStorage.getItem("sandbox_url") || DEFAULT_URL);
@@ -25,8 +28,8 @@ const SandboxBrowser = () => {
       }
       
       // Check if the URL is likely to be blocked (e.g., Google, Facebook, etc.)
-      if (newUrl.includes('google.com') || newUrl.includes('facebook.com')) {
-        toast.warning("Warning: Many sites like Google or Facebook block embedding via iframe due to security policies (X-Frame-Options).");
+      if (newUrl.includes('google.com') || newUrl.includes('facebook.com') || newUrl.includes('notion.so')) {
+        toast.warning("Warning: This site often blocks embedding via iframe due to security policies (X-Frame-Options). Try using a public page link.");
       }
 
       setDisplayUrl(newUrl);
@@ -44,7 +47,7 @@ const SandboxBrowser = () => {
       
       <div className="flex gap-2">
         <Input 
-          placeholder="Enter URL (e.g., notion.so/login)"
+          placeholder="Enter embeddable URL (e.g., public documentation, simple website)"
           value={inputUrl}
           onChange={(e) => setInputUrl(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleLoadUrl()}
@@ -59,7 +62,11 @@ const SandboxBrowser = () => {
       <div className="flex-1 relative border border-border rounded-lg overflow-hidden">
         {isIframeLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-card/90 backdrop-blur-sm z-10">
-            <p className="text-muted-foreground animate-pulse">Loading {displayUrl}... (May be blocked by site security)</p>
+            <p className="text-muted-foreground animate-pulse">
+              Attempting to load {displayUrl}... 
+              <br/>
+              (If this persists, the site is likely blocking embedding.)
+            </p>
           </div>
         )}
         <iframe
