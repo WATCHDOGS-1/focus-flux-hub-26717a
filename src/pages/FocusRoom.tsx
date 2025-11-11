@@ -221,20 +221,7 @@ const FocusRoom = () => {
                   <NotebookText className="h-5 w-5 text-accent" />
                 </Button>
                 
-                {/* Direct Messages (Social) - SWAPPED */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel("social")}
-                  className={`dopamine-click transition-all ${
-                    activePanel === "social" ? "bg-primary/20 shadow-glow" : ""
-                  }`}
-                  title="Direct Messages"
-                >
-                  <MessageSquare className="h-5 w-5" />
-                </Button>
-                
-                {/* Global Chat - SWAPPED */}
+                {/* Global Chat (Users) - UNSWAPPED */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -245,6 +232,19 @@ const FocusRoom = () => {
                   title="Global Chat"
                 >
                   <Users className="h-5 w-5" />
+                </Button>
+                
+                {/* Direct Messages (Social) - UNSWAPPED */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => togglePanel("social")}
+                  className={`dopamine-click transition-all ${
+                    activePanel === "social" ? "bg-primary/20 shadow-glow" : ""
+                  }`}
+                  title="Direct Messages"
+                >
+                  <MessageSquare className="h-5 w-5" />
                 </Button>
                 
                 <Button

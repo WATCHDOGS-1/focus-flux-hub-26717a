@@ -117,7 +117,7 @@ const SessionTimer = () => {
       </div>
 
       <div className="w-full max-w-xs mb-4">
-        <Select onValueChange={(value) => setCurrentMode(SESSION_MODES.find(m => m.name === value) || SESSION_MODES[0])} value={currentMode.name}>
+        <Select onValueChange={(value) => setCurrentMode(SESSION_MODES.find(m => m.name === value) || currentMode)} value={currentMode.name}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select Study Mode" />
           </SelectTrigger>
