@@ -180,6 +180,8 @@ const FocusRoom = () => {
       </div>
     );
   }
+  
+  const isNoMercyFocus = roomTheme === 'no-mercy' && isFocusMode;
 
   return (
     <div className={`min-h-screen flex flex-col bg-background relative overflow-hidden transition-colors duration-500`}>
@@ -189,7 +191,10 @@ const FocusRoom = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">OnlyFocus</h1>
 
-          <TimeTracker sessionStartTime={sessionStartTime} />
+          <TimeTracker 
+            sessionStartTime={sessionStartTime} 
+            className={isNoMercyFocus ? "animate-heartbeat-pulse" : ""}
+          />
 
           <div className="flex gap-2 items-center">
             <RoomThemeSelector onThemeChange={setRoomTheme} /> {/* Theme Selector */}

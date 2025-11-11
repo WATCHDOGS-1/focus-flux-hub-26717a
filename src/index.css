@@ -6,16 +6,17 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71% 4%;
+    /* Default Focus (Baseline - Inspired by Apple Productivity) */
+    --background: 210 20% 98%; /* Soft ambient light */
+    --foreground: 224 71% 4%; /* Crisp dark text */
 
-    --card: 0 0% 96%;
+    --card: 0 0% 100%; /* Clean white card */
     --card-foreground: 224 71% 4%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 217 91% 50%;
+    --primary: 217 91% 50%; /* Neutral blue */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -24,19 +25,14 @@
     --muted: 210 40% 90%;
     --muted-foreground: 215 20% 45%;
 
-    --accent: 217 91% 60%;
+    --accent: 250 70% 60%; /* Soft purple accent */
     --accent-foreground: 210 40% 98%;
 
     --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
-
     --warning: 45 93% 47%;
-    --warning-foreground: 222 47% 11%;
-
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
+    --border: 214.3 31.8% 91.4%; /* Gentle corner rounding */
     --input: 214.3 31.8% 91.4%;
     --ring: 217 91% 50%;
 
@@ -44,7 +40,8 @@
   }
 
   .dark {
-    --background: 224 71% 4%;
+    /* Default Focus (Dark Mode) */
+    --background: 224 71% 4%; /* Matte charcoal */
     --foreground: 210 40% 98%;
 
     --card: 224 71% 5.5%;
@@ -62,17 +59,12 @@
     --muted: 217 33% 14%;
     --muted-foreground: 215 20% 70%;
 
-    --accent: 217 91% 70%;
+    --accent: 250 70% 70%;
     --accent-foreground: 210 40% 98%;
 
     --success: 142 76% 41%;
-    --success-foreground: 210 40% 98%;
-
     --warning: 45 93% 52%;
-    --warning-foreground: 222 47% 8%;
-
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
 
     --border: 217 33% 12%;
     --input: 217 33% 12%;
@@ -80,58 +72,118 @@
   }
 }
 
-/* --- Room Themes (Redesigned) --- */
+/* --- Keyframes for Micro-Interactions --- */
+
+@keyframes slow-rotate {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes breathing-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1); }
+  50% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3); }
+}
+
+@keyframes heartbeat-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.01); opacity: 0.95; }
+}
+
+@keyframes neon-glow {
+  0%, 100% { text-shadow: 0 0 5px hsl(var(--primary) / 0.5), 0 0 10px hsl(var(--primary) / 0.2); }
+  50% { text-shadow: 0 0 8px hsl(var(--primary) / 0.7), 0 0 15px hsl(var(--primary) / 0.4); }
+}
+
+@keyframes sunlight-drift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* --- Room Themes --- */
+
+.default {
+  /* Subtle animated gradient shift (1 degree every 30 seconds) */
+  background-image: linear-gradient(1deg, hsl(var(--background)), hsl(var(--background) / 0.9));
+  background-size: 400% 400%;
+  animation: slow-rotate 180s ease infinite alternate;
+}
 
 .deep-cave {
-  /* Dark, cool, and minimal */
+  /* Dark ultra-minimal, matte charcoal, faint vignette */
   --background: 220 10% 6%;
   --foreground: 210 40% 95%;
   --card: 220 10% 10%;
   --border: 220 10% 15%;
-  --primary: 217 91% 55%;
-  --accent: 180 90% 50%;
+  --primary: 180 90% 50%; /* Deep Cyan */
+  --accent: 280 90% 60%; /* Subtle Purple */
+  
+  /* Faint vignette edges */
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+  
+  /* Drifting light ray animation (simulated via background position) */
+  background-image: radial-gradient(at 10% 10%, hsl(var(--primary) / 0.05), transparent 70%);
+  background-size: 200% 200%;
+  animation: sunlight-drift 500s linear infinite; /* Very slow drift */
 }
 
 .library {
-  /* Warm, cozy, and slightly vintage */
-  --background: 30 20% 92%;
-  --foreground: 30 10% 20%;
+  /* Warm, cozy, vintage library */
+  --background: 30 20% 92%; /* Soft paper-like background */
+  --foreground: 30 10% 20%; /* Deep mahogany text */
   --card: 30 20% 98%;
   --border: 30 10% 85%;
-  --primary: 30 50% 35%;
+  --primary: 40 50% 35%; /* Candlelight gold/brown */
   --accent: 10 70% 50%;
+  
+  /* Slow 1px parallax grain animation (simulated with noise texture) */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  background-blend-mode: overlay;
 }
 
 .cyberpunk {
-  /* High contrast, dark base, neon accents */
+  /* Deep purples, electric blues, holographic reflections */
   --background: 260 50% 3%;
-  --foreground: 210 40% 98%;
+  --foreground: 180 90% 70%; /* Electric blue text */
   --card: 260 50% 8%;
-  --border: 260 50% 15%;
-  --primary: 280 90% 65%;
-  --accent: 180 90% 60%;
+  --border: 280 90% 65%; /* Neon magenta border */
+  --primary: 280 90% 65%; /* Neon magenta */
+  --accent: 180 90% 60%; /* Electric cyan */
   --ring: 280 90% 65%;
+  
+  /* Animated cityscape silhouette (simulated with dark gradient) */
+  background-image: linear-gradient(to bottom, hsl(var(--background)), hsl(var(--background) / 0.8)), 
+                    repeating-linear-gradient(0deg, #00000000, #00000000 1px, hsl(var(--primary) / 0.05) 1px, hsl(var(--primary) / 0.05) 2px);
 }
 
 .morning-sunlight {
-  /* Bright, airy, and energetic */
+  /* Bright, airy, pastel gradient */
   --background: 40 100% 95%;
   --foreground: 220 70% 15%;
   --card: 40 100% 99%;
   --border: 40 50% 85%;
-  --primary: 40 90% 45%;
+  --primary: 40 90% 45%; /* Warm orange/yellow */
   --accent: 10 90% 60%;
+  
+  /* Moving sunlight texture (simulated with radial gradient drift) */
+  background-image: radial-gradient(at 80% 20%, hsl(var(--primary) / 0.2), transparent 50%),
+                    radial-gradient(at 20% 80%, hsl(var(--primary) / 0.1), transparent 50%);
+  background-size: 200% 200%;
+  animation: sunlight-drift 15s linear infinite alternate;
 }
 
 .no-mercy {
-  /* Pure black background, visible white/primary text */
+  /* Ultra-spartan, pure matte black, linear transitions */
   --background: 0 0% 0%;
-  --foreground: 210 40% 98%; /* Ensure text is visible */
+  --foreground: 0 0% 100%; /* Pure white text */
   --card: 0 0% 0%;
   --border: 0 0% 0%;
-  --primary: 217 91% 60%;
+  --input: 0 0% 0%;
+  --primary: 0 84.2% 60.2%; /* Red */
   --secondary: 0 0% 0%;
   --muted: 0 0% 0%;
+  --ring: 0 84.2% 60.2%;
+  
+  --radius: 0rem; /* Remove all rounded corners */
 }
 
 /* --- Base & Utilities --- */
@@ -146,109 +198,81 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  
+  /* Apply No Mercy Mode overrides */
+  .no-mercy * {
+    border-radius: 0 !important;
+    transition-timing-function: linear !important;
+    transition-duration: 70ms !important;
+  }
 }
 
 @layer utilities {
+  /* Spring easing: cubic-bezier(0.22, 1, 0.36, 1) */
+  .transition-spring {
+    transition: all 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  
+  /* Linear transition for No Mercy Mode */
+  .no-mercy .transition-spring {
+    transition: all 70ms linear !important;
+  }
+
   .glass-card {
-    /* Slightly more transparent and refined glass effect */
-    @apply bg-card/70 backdrop-blur-lg border border-border/50;
-    box-shadow: 0 4px 16px 0 hsl(var(--primary) / 0.08),
-                inset 0 0 1px 0 hsl(var(--foreground) / 0.05);
-    transition: all 0.3s ease-in-out;
+    /* Faint glassmorphism layer, smooth micro-shadows */
+    @apply bg-card/70 backdrop-blur-md border border-border/50 transition-spring;
+    box-shadow: 0 2px 8px 0 hsl(var(--foreground) / 0.05),
+                inset 0 0 1px 0 hsl(var(--foreground) / 0.02);
   }
   
   .shadow-glow {
-    box-shadow: 0 0 15px hsl(var(--primary) / 0.3),
-                0 0 30px hsl(var(--primary) / 0.15);
+    /* Theme-dependent glow */
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.4),
+                0 0 20px hsl(var(--primary) / 0.2);
   }
   
   .dopamine-click {
-    /* Refined click animation */
-    @apply transition-all duration-200 active:scale-[0.98] hover:scale-[1.01];
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .dopamine-click::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: radial-gradient(circle, hsl(var(--primary) / 0.15), transparent);
-    transform: translate(-50%, -50%);
-    transition: width 0.4s ease-out, height 0.4s ease-out;
-  }
-  
-  .dopamine-click:active::before {
-    width: 300px;
-    height: 300px;
+    /* Hover animation: 120ms spring easing, scale 1.03 */
+    @apply transition-spring active:scale-[0.97] hover:scale-[1.03] relative overflow-hidden;
   }
   
   .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+    /* Hover animation: 120ms spring easing, translate -1 */
+    @apply transition-spring hover:-translate-y-1 hover:shadow-lg;
   }
 
-  @keyframes float {
-    0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
-    25% { transform: translateY(-15px) translateX(10px) rotate(5deg); }
-    50% { transform: translateY(-5px) translateX(-10px) rotate(-5deg); }
-    75% { transform: translateY(-10px) translateX(10px) rotate(3deg); }
+  .animate-slow-rotate {
+    background-size: 400% 400%;
+    animation: slow-rotate 180s ease infinite alternate;
   }
   
-  .animate-float {
-    animation: float 12s ease-in-out infinite;
+  .animate-breathing-pulse {
+    /* Used for Deep Cave focus borders */
+    animation: breathing-pulse 4s ease-in-out infinite;
   }
   
-  @keyframes subtle-pulse {
-    0%, 100% {
-      filter: brightness(1);
-      box-shadow: 0 0 15px hsl(var(--primary) / 0.2);
-    }
-    50% {
-      filter: brightness(1.2);
-      box-shadow: 0 0 25px hsl(var(--primary) / 0.3);
-    }
+  .animate-heartbeat-pulse {
+    /* Used for No Mercy timer */
+    animation: heartbeat-pulse 0.7s ease-in-out infinite;
   }
   
-  .animate-subtle-pulse {
-    animation: subtle-pulse 3s ease-in-out infinite;
+  .animate-sunlight-drift {
+    animation: sunlight-drift 15s linear infinite alternate;
   }
   
-  @keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
+  /* Icon Glow on Hover (Theme Dependent) */
+  .group:hover .icon-glow {
+    filter: drop-shadow(0 0 5px hsl(var(--primary) / 0.8));
+    transition: filter 120ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   
-  .animate-shimmer {
-    animation: shimmer 3s infinite;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      hsl(var(--primary) / 0.1),
-      transparent
-    );
-    background-size: 1000px 100%;
+  /* Cyberpunk specific hover effect (Chromatic Aberration simulation) */
+  .cyberpunk .dopamine-click:hover {
+    filter: drop-shadow(1px 0 0 hsl(var(--primary) / 0.5)) drop-shadow(-1px 0 0 hsl(var(--accent) / 0.5));
   }
-
-  @keyframes ping-slow {
-    0% {
-      transform: scale(0.8);
-      opacity: 0.7;
-    }
-    50% {
-      transform: scale(1.2);
-      opacity: 0.3;
-    }
-    100% {
-      transform: scale(0.8);
-      opacity: 0.7;
-    }
-  }
-
-  .animate-ping-slow {
-    animation: ping-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  /* Library specific hover effect (+3 saturation) */
+  .library .dopamine-click:hover {
+    filter: saturate(1.3);
   }
 }

@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 interface TimeTrackerProps {
   sessionStartTime: number;
+  className?: string; // Added className prop
 }
 
-const TimeTracker = ({ sessionStartTime }: TimeTrackerProps) => {
+const TimeTracker = ({ sessionStartTime, className }: TimeTrackerProps) => {
   const { userId } = useAuth();
   const [sessionTime, setSessionTime] = useState(0);
   const [weeklyTime, setWeeklyTime] = useState(0);
@@ -64,7 +66,7 @@ const TimeTracker = ({ sessionStartTime }: TimeTrackerProps) => {
   };
 
   return (
-    <div className="flex items-center gap-6 glass-card px-6 py-3 rounded-2xl">
+    <div className={cn("flex items-center gap-6 glass-card px-6 py-3 rounded-2xl", className)}>
       <div className="text-center">
         <div className="text-xs text-muted-foreground mb-1">Session</div>
         <div className="text-3xl font-bold font-mono flex items-center gap-2 text-foreground">
