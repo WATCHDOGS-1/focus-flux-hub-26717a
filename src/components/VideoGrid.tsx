@@ -140,7 +140,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       </div>
 
       {/* Video Grid */}
-      <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-2">
+      <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2">
         {/* Local Video */}
         <div className={`relative glass-card rounded-2xl overflow-hidden group aspect-video hover-lift ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-breathing-pulse' : ''}`}>
           <video

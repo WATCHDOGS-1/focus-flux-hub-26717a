@@ -11,7 +11,7 @@ import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotesWorkspace from "@/components/NotesWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
+  DrawerTrigger,
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -33,6 +34,7 @@ const FocusRoom = () => {
   const isMobile = useIsMobile();
   
   const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [focusTag, setFocusTag] = useState("");
@@ -41,20 +43,15 @@ const FocusRoom = () => {
   const [roomTheme, setRoomTheme] = useState("default");
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Define a fixed room ID for all users to join the same video conference
   const SHARED_FOCUS_ROOM_ID = "global-focus-room";
 
-  // Authentication and Session Management
   useEffect(() => {
     if (isAuthLoading) return;
-
     if (!isAuthenticated) {
       navigate("/auth", { replace: true });
     } else if (userId && !sessionId) {
-      // Start session only once user ID is confirmed and session hasn't started
       startSession(userId);
     }
-
     return () => {
       if (sessionIntervalRef.current) {
         clearInterval(sessionIntervalRef.current);
@@ -62,11 +59,10 @@ const FocusRoom = () => {
     };
   }, [isAuthLoading, isAuthenticated, userId, navigate, sessionId]);
 
-  // Apply room theme class to the body
   useEffect(() => {
     document.body.className = roomTheme;
     return () => {
-      document.body.className = ""; // Clean up on unmount
+      document.body.className = "";
     };
   }, [roomTheme]);
 
@@ -76,7 +72,6 @@ const FocusRoom = () => {
       .insert({ user_id: uid, start_time: new Date().toISOString(), tag: focusTag || null })
       .select()
       .single();
-
     if (!error && data) {
       setSessionId(data.id);
       setSessionStartTime(Date.now());
@@ -88,9 +83,7 @@ const FocusRoom = () => {
 
   const leaveRoom = async () => {
     if (!sessionId || !userId) return;
-
     const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
-
     toast.promise(leavePromise, {
       loading: "Saving your session...",
       success: (message) => {
@@ -103,54 +96,46 @@ const FocusRoom = () => {
 
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
-    if (isFocusMode) setIsFocusMode(false); // Exit focus mode if a panel is opened manually
-    if (activePanel !== panel) {
-      setShowNotesWorkspace(false); // Close Notes if opening a sidebar panel
-    }
+    if (isFocusMode) setIsFocusMode(false);
+    if (activePanel !== panel) setShowNotesWorkspace(false);
+    setIsMobileMenuOpen(false); // Close mobile menu when a panel is selected
   };
 
   const toggleFocusMode = () => {
     setIsFocusMode(!isFocusMode);
     if (!isFocusMode) {
-      setActivePanel(null); // Close side panel when entering focus mode
-      setShowNotesWorkspace(false); // Close Notes when entering focus mode
+      setActivePanel(null);
+      setShowNotesWorkspace(false);
     }
   };
   
   const toggleNotesWorkspace = () => {
     setShowNotesWorkspace(!showNotesWorkspace);
-    if (!showNotesWorkspace) {
-      setActivePanel(null); // Close sidebar panel if opening Notes
-    }
-    if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Notes
+    if (!showNotesWorkspace) setActivePanel(null);
+    if (isFocusMode) setIsFocusMode(false);
+    setIsMobileMenuOpen(false);
   };
 
   const renderPanelContent = (panel: string) => {
     switch (panel) {
-      case "global-chat":
-        return <GlobalChatPanel userId={userId!} />;
-      case "social":
-        return <SocialSidebar userId={userId!} />;
-      case "leaderboard":
-        return <Leaderboard />;
-      case "pomodoro":
-        return <SessionTimer />;
-      case "profile":
-        return <ProfileMenu />;
-      default:
-        return null;
+      case "global-chat": return <GlobalChatPanel userId={userId!} />;
+      case "social": return <SocialSidebar userId={userId!} />;
+      case "leaderboard": return <Leaderboard />;
+      case "pomodoro": return <SessionTimer />;
+      case "profile": return <ProfileMenu />;
+      default: return null;
     }
   };
 
   const getPanelTitle = (panel: string) => {
-    switch (panel) {
-      case "global-chat": return "Global Chat";
-      case "social": return "Direct Messages";
-      case "leaderboard": return "Leaderboard";
-      case "pomodoro": return "Structured Timer";
-      case "profile": return "Profile Settings";
-      default: return "";
-    }
+    const titles: { [key: string]: string } = {
+      "global-chat": "Global Chat",
+      "social": "Direct Messages",
+      "leaderboard": "Leaderboard",
+      "pomodoro": "Structured Timer",
+      "profile": "Profile Settings",
+    };
+    return titles[panel] || "";
   };
 
   if (isAuthLoading || !userId) {
@@ -161,7 +146,6 @@ const FocusRoom = () => {
     );
   }
 
-  // If No Mercy Mode is active, render only a black screen
   if (roomTheme === 'no-mercy' && isFocusMode) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-foreground">
@@ -169,8 +153,7 @@ const FocusRoom = () => {
           <h1 className="text-4xl font-bold mb-4">NO MERCY MODE ACTIVE</h1>
           <p className="text-lg">Focus until the timer ends.</p>
           <Button variant="destructive" className="mt-8" onClick={leaveRoom}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Emergency Exit
+            <LogOut className="w-4 h-4 mr-2" /> Emergency Exit
           </Button>
         </div>
       </div>
@@ -179,164 +162,96 @@ const FocusRoom = () => {
   
   const isNoMercyFocus = roomTheme === 'no-mercy' && isFocusMode;
 
+  const renderMobileMenu = () => (
+    <Drawer open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+      <DrawerTrigger asChild>
+        <Button variant="ghost" size="icon" className="dopamine-click">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="h-[80vh] glass-card">
+        <DrawerHeader>
+          <DrawerTitle>Menu</DrawerTitle>
+        </DrawerHeader>
+        <ScrollArea className="p-4">
+          <div className="space-y-4">
+            <RoomThemeSelector onThemeChange={setRoomTheme} />
+            <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare/> Global Chat</Button>
+            <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users/> Social</Button>
+            <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy/> Leaderboard</Button>
+            <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer/> Timer</Button>
+            <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User/> Profile</Button>
+            <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText/> Notes</Button>
+            <ThemeToggle />
+            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut/> Leave Room</Button>
+          </div>
+        </ScrollArea>
+      </DrawerContent>
+    </Drawer>
+  );
+
   return (
     <div className={`min-h-screen flex flex-col bg-background relative overflow-hidden transition-colors duration-500`}>
       <EncouragementToasts />
 
-      <div className="relative z-10 glass-card border-b border-border flex-shrink-0">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">OnlyFocus</h1>
-
-          <TimeTracker 
-            sessionStartTime={sessionStartTime} 
-            className={isNoMercyFocus ? "animate-heartbeat-pulse" : ""}
-          />
-
+      <header className="relative z-10 glass-card border-b border-border flex-shrink-0">
+        <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">OnlyFocus</h1>
+          <TimeTracker sessionStartTime={sessionStartTime} className={isNoMercyFocus ? "animate-heartbeat-pulse" : ""} />
           <div className="flex gap-2 items-center">
-            <RoomThemeSelector onThemeChange={setRoomTheme} /> {/* Theme Selector */}
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleFocusMode}
-              className={`dopamine-click transition-all ${
-                isFocusMode ? "bg-destructive/20 shadow-glow" : ""
-              }`}
-              title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
-            >
-              {isFocusMode ? <Maximize2 className="h-5 w-5 text-destructive" /> : <Minimize2 className="h-5 w-5" />}
-            </Button>
-            
-            {!isFocusMode && (
+            {isMobile ? (
               <>
-                {/* Notes Workspace Button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleNotesWorkspace}
-                  className={`dopamine-click transition-all ${
-                    showNotesWorkspace ? "bg-accent/20 shadow-glow" : ""
-                  }`}
-                  title="Local Notes Workspace"
-                >
-                  <NotebookText className="h-5 w-5 text-accent" />
+                <Button variant="ghost" size="icon" onClick={toggleFocusMode} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
+                  {isFocusMode ? <Maximize2 className="h-5 w-5 text-destructive" /> : <Minimize2 className="h-5 w-5" />}
                 </Button>
-                
-                {/* Global Chat (MessageSquare icon) */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel("global-chat")}
-                  className={`dopamine-click transition-all ${
-                    activePanel === "global-chat" ? "bg-primary/20 shadow-glow" : ""
-                  }`}
-                  title="Global Chat"
-                >
-                  <MessageSquare className="h-5 w-5" />
+                {renderMobileMenu()}
+              </>
+            ) : (
+              <>
+                <RoomThemeSelector onThemeChange={setRoomTheme} />
+                <Button variant="ghost" size="icon" onClick={toggleFocusMode} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
+                  {isFocusMode ? <Maximize2 className="h-5 w-5 text-destructive" /> : <Minimize2 className="h-5 w-5" />}
                 </Button>
-                
-                {/* Direct Messages (Users icon) */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel("social")}
-                  className={`dopamine-click transition-all ${
-                    activePanel === "social" ? "bg-primary/20 shadow-glow" : ""
-                  }`}
-                  title="Direct Messages"
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel("leaderboard")}
-                  className={`dopamine-click transition-all ${
-                    activePanel === "leaderboard" ? "bg-primary/20 shadow-glow" : ""
-                  }`}
-                  title="Leaderboard"
-                >
-                  <Trophy className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel("pomodoro")}
-                  className={`dopamine-click transition-all ${
-                    activePanel === "pomodoro" ? "bg-primary/20 shadow-glow" : ""
-                  }`}
-                  title="Structured Timer"
-                >
-                  <Timer className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel("profile")}
-                  className={`dopamine-click transition-all ${
-                    activePanel === "profile" ? "bg-primary/20 shadow-glow" : ""
-                  }`}
-                  title="Profile Settings"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
+                {!isFocusMode && (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes"><NotebookText className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer"><Timer className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings"><User className="h-5 w-5" /></Button>
+                  </>
+                )}
+                <ThemeToggle />
+                <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
               </>
             )}
-            <ThemeToggle />
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={leaveRoom}
-              className="dopamine-click shadow-glow"
-              title="Leave Room"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content Area - Use flex-1 to fill remaining height */}
-      <div className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto">
         <div className="flex h-full">
-          <div className="flex-1 p-4 flex flex-col gap-4">
-            {/* Focus Tag Input - Hide in Focus Mode */}
+          <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
             {!isFocusMode && (
               <div className="glass-card p-3 rounded-xl flex items-center gap-3 hover-lift">
                 <Tag className="w-5 h-5 text-primary" />
-                <Input
-                  placeholder="What are you focusing on right now? (e.g., 'React Project')"
-                  value={focusTag}
-                  onChange={(e) => setFocusTag(e.target.value)}
-                  className="flex-1 border-none bg-transparent focus-visible:ring-0"
-                />
+                <Input placeholder="What are you focusing on right now?" value={focusTag} onChange={(e) => setFocusTag(e.target.value)} className="flex-1 border-none bg-transparent focus-visible:ring-0" />
               </div>
             )}
-            
-            {/* Video Grid */}
             <div className="flex-1 min-h-[400px]">
               <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
             </div>
-
-            {/* Secondary Panels (Notes) */}
-            {showNotesWorkspace && (
-              <div className="mt-4">
-                <NotesWorkspace />
-              </div>
-            )}
+            {showNotesWorkspace && <div className="mt-4"><NotesWorkspace /></div>}
           </div>
-
-          {/* Desktop Sidebar */}
           {activePanel && !isFocusMode && !isMobile && (
-            <div className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
+            <aside className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
               {renderPanelContent(activePanel)}
-            </div>
+            </aside>
           )}
         </div>
-      </div>
+      </main>
         
-      {/* Mobile Drawer */}
       {isMobile && (
         <Drawer open={!!activePanel && !isFocusMode} onOpenChange={(open) => !open && setActivePanel(null)}>
           <DrawerContent className="h-[80vh] glass-card">

@@ -55,7 +55,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
+    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(30)].map((_, i) => (
           <div
@@ -71,7 +71,7 @@ const Auth = () => {
         ))}
       </div>
 
-      <Card className="w-[400px] z-10 glass-card shadow-glow">
+      <Card className="w-full max-w-sm z-10 glass-card shadow-glow">
         <CardHeader className="text-center">
           <CardTitle>Welcome to OnlyFocus</CardTitle>
           <CardDescription>Sign in or create an account to join the focus room.</CardDescription>
