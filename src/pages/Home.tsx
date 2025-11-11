@@ -76,7 +76,7 @@ const Home = () => {
             <Button
               onClick={() => navigate("/auth")}
               size="lg"
-              className="text-xl px-12 py-8 rounded-2xl bg-primary hover:scale-110 transition-all duration-300 shadow-glow group"
+              className="text-xl px-12 py-8 rounded-2xl bg-primary dopamine-click shadow-glow group"
             >
               <Sparkles className="mr-3 group-hover:rotate-180 transition-transform duration-500" />
               Join Study Room
