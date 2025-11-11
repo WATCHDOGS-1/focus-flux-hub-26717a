@@ -9,8 +9,8 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import NotionIntegrationPanel from "@/components/NotionIntegrationPanel"; // Import new component
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, Zap } from "lucide-react";
+import SandboxBrowser from "@/components/SandboxBrowser"; // Import new component
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,7 @@ const FocusRoom = () => {
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [focusTag, setFocusTag] = useState("");
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [showNotionPanel, setShowNotionPanel] = useState(false); // New state for Notion panel
+  const [showSandboxBrowser, setShowSandboxBrowser] = useState(false); // Updated state name
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Define a fixed room ID for all users to join the same video conference
@@ -98,21 +98,21 @@ const FocusRoom = () => {
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false); // Exit focus mode if a panel is opened manually
-    if (activePanel !== panel) setShowNotionPanel(false); // Close Notion panel if opening a sidebar panel
+    if (activePanel !== panel) setShowSandboxBrowser(false); // Close Sandbox if opening a sidebar panel
   };
 
   const toggleFocusMode = () => {
     setIsFocusMode(!isFocusMode);
     if (!isFocusMode) {
       setActivePanel(null); // Close side panel when entering focus mode
-      setShowNotionPanel(false); // Close Notion panel when entering focus mode
+      setShowSandboxBrowser(false); // Close Sandbox when entering focus mode
     }
   };
   
-  const toggleNotionPanel = () => {
-    setShowNotionPanel(!showNotionPanel);
-    if (!showNotionPanel) setActivePanel(null); // Close sidebar panel if opening Notion panel
-    if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Notion panel
+  const toggleSandboxBrowser = () => {
+    setShowSandboxBrowser(!showSandboxBrowser);
+    if (!showSandboxBrowser) setActivePanel(null); // Close sidebar panel if opening Sandbox
+    if (isFocusMode) setIsFocusMode(false); // Exit focus mode if opening Sandbox
   };
 
   const renderPanelContent = (panel: string) => {
@@ -176,17 +176,17 @@ const FocusRoom = () => {
             
             {!isFocusMode && (
               <>
-                {/* Notion Button */}
+                {/* Sandbox Browser Button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={toggleNotionPanel}
+                  onClick={toggleSandboxBrowser}
                   className={`dopamine-click transition-all ${
-                    showNotionPanel ? "bg-accent/20 shadow-glow" : ""
+                    showSandboxBrowser ? "bg-accent/20 shadow-glow" : ""
                   }`}
-                  title="Notion Integration"
+                  title="Embedded Browser"
                 >
-                  <Zap className="h-5 w-5 text-accent" />
+                  <Globe className="h-5 w-5 text-accent" />
                 </Button>
                 
                 <Button
@@ -282,10 +282,10 @@ const FocusRoom = () => {
               <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
             </div>
 
-            {/* Notion Integration Panel (Appears below Video Grid) */}
-            {showNotionPanel && (
+            {/* Sandbox Browser (Appears below Video Grid) */}
+            {showSandboxBrowser && (
               <div className="mt-4">
-                <NotionIntegrationPanel />
+                <SandboxBrowser />
               </div>
             )}
           </div>
