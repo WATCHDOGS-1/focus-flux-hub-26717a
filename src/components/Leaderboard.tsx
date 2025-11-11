@@ -82,7 +82,7 @@ const Leaderboard = () => {
           {entries.map((entry, index) => (
             <div
               key={entry.user_id}
-              className={`p-4 rounded-2xl flex items-center gap-3 dopamine-click transition-all hover:scale-105 ${
+              className={`p-4 rounded-2xl flex items-center gap-3 dopamine-click hover-lift ${
                 index === 0
                   ? "bg-primary/20 border-2 border-primary animate-subtle-pulse"
                   : index === 1

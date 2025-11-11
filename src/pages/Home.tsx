@@ -120,7 +120,7 @@ const Home = () => {
             ].map((feature, i) => (
               <div
                 key={i}
-                className="glass-card p-6 rounded-2xl hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 animate-fade-in group"
+                className="glass-card p-6 rounded-2xl hover-lift animate-fade-in group"
                 style={{ animationDelay: `${0.6 + i * 0.1}s` }}
               >
                 <feature.icon className="w-12 h-12 text-primary mb-4 mx-auto group-hover:rotate-12 transition-transform" />
@@ -162,7 +162,7 @@ const Home = () => {
               ].map((tag, i) => (
                 <div
                   key={i}
-                  className="px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+                  className="px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors hover-lift"
                 >
                   {tag}
                 </div>

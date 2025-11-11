@@ -168,7 +168,7 @@ const FocusRoom = () => {
   // If No Mercy Mode is active, render only a black screen
   if (roomTheme === 'no-mercy' && isFocusMode) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+      <div className="min-h-screen bg-black flex items-center justify-center text-foreground">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">NO MERCY MODE ACTIVE</h1>
           <p className="text-lg">Focus until the timer ends.</p>
@@ -221,17 +221,7 @@ const FocusRoom = () => {
                   <NotebookText className="h-5 w-5 text-accent" />
                 </Button>
                 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => togglePanel("global-chat")}
-                  className={`dopamine-click transition-all ${
-                    activePanel === "global-chat" ? "bg-primary/20 shadow-glow" : ""
-                  }`}
-                  title="Global Chat"
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
+                {/* Direct Messages (Social) - SWAPPED */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -243,6 +233,20 @@ const FocusRoom = () => {
                 >
                   <MessageSquare className="h-5 w-5" />
                 </Button>
+                
+                {/* Global Chat - SWAPPED */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => togglePanel("global-chat")}
+                  className={`dopamine-click transition-all ${
+                    activePanel === "global-chat" ? "bg-primary/20 shadow-glow" : ""
+                  }`}
+                  title="Global Chat"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+                
                 <Button
                   variant="ghost"
                   size="icon"
@@ -298,7 +302,7 @@ const FocusRoom = () => {
           <div className="flex-1 p-4 flex flex-col gap-4">
             {/* Focus Tag Input - Hide in Focus Mode */}
             {!isFocusMode && (
-              <div className="glass-card p-3 rounded-xl flex items-center gap-3">
+              <div className="glass-card p-3 rounded-xl flex items-center gap-3 hover-lift">
                 <Tag className="w-5 h-5 text-primary" />
                 <Input
                   placeholder="What are you focusing on right now? (e.g., 'React Project')"

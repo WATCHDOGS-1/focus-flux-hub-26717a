@@ -127,9 +127,6 @@ const SessionTimer = () => {
                 {mode.name}
               </SelectItem>
             ))}
-            <SelectItem value="Custom Session" onClick={() => setIsSettingsOpen(true)}>
-              Custom Session...
-            </SelectItem>
           </SelectContent>
         </Select>
       </div>
