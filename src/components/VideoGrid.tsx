@@ -46,7 +46,9 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
               newMap.delete(peerId);
               return newMap;
             });
-          }
+          },
+          // onPeerLeft handler (currently unused in VideoGrid, but required by WebRTCManager constructor)
+          () => { /* No specific action needed here as stream removal handles UI update */ }
         );
 
         const stream = await webrtcManager.current.initialize(roomId);
@@ -80,13 +82,15 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     const newVideoState = !isVideoEnabled;
     if (webrtcManager.current) {
       if (newVideoState) { // Turning video ON
-        const newStream = await webrtcManager.current.toggleVideo(true);
-        if (newStream && localVideoRef.current) {
-          localVideoRef.current.srcObject = newStream;
-          localVideoRef.current.play().catch(console.error);
-          setIsVideoEnabled(true);
-          toast.success("Camera enabled");
-        } else {
+        try {
+          const newStream = await webrtcManager.current.toggleVideo(true);
+          if (newStream && localVideoRef.current) {
+            localVideoRef.current.srcObject = newStream;
+            localVideoRef.current.play().catch(console.error);
+            setIsVideoEnabled(true);
+            toast.success("Camera enabled");
+          }
+        } catch (e) {
           toast.error("Failed to enable camera. Please check permissions.");
           setIsVideoEnabled(false);
         }
@@ -116,7 +120,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   return (
     <div className="h-full flex flex-col gap-4">
       {/* Controls */}
-      <div className="glass-card p-4 rounded-xl space-y-4">
+      <div className="glass-card p-4 rounded-xl space-y-4 hover-lift">
         <div className="flex items-center gap-4">
           <Button
             variant={isVideoEnabled ? "default" : "outline"}
@@ -138,7 +142,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       {/* Video Grid */}
       <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-2">
         {/* Local Video */}
-        <div className={`relative glass-card rounded-2xl overflow-hidden group aspect-video ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-subtle-pulse' : ''}`}>
+        <div className={`relative glass-card rounded-2xl overflow-hidden group aspect-video hover-lift ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-breathing-pulse' : ''}`}>
           <video
             ref={localVideoRef}
             autoPlay
