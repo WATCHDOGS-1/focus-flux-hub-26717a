@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import HeroSection from "@/components/home/HeroSection";
 import FeatureGridSection from "@/components/home/FeatureGridSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
-import TestimonialSection from "@/components/home/TestimonialSection";
 import FAQSection from "@/components/home/FAQSection";
 import AnimatedSection from "@/components/AnimatedSection";
 import { Button } from "@/components/ui/button";
@@ -98,13 +97,10 @@ const Home = () => {
       {/* 3. How It Works Section */}
       <HowItWorksSection />
 
-      {/* 4. Testimonial Section */}
-      <TestimonialSection />
-
-      {/* 5. FAQ Section */}
+      {/* 4. FAQ Section */}
       <FAQSection />
 
-      {/* 6. Final CTA Section */}
+      {/* 5. Final CTA Section */}
       <div className="bg-primary/10 py-20">
         <div className="container mx-auto px-4 text-center">
           <AnimatedSection>
