@@ -156,20 +156,9 @@ const FocusRoom = () => {
       </div>
     );
   }
-
-  if (roomTheme === 'no-mercy' && isFocusMode) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-foreground">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">NO MERCY MODE ACTIVE</h1>
-          <p className="text-lg">Focus until the timer ends.</p>
-          <Button variant="destructive" className="mt-8" onClick={leaveRoom}>
-            <LogOut className="w-4 h-4 mr-2" /> Emergency Exit
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  
+  // The full-screen takeover logic for No Mercy Mode has been removed.
+  // The theme class applied to document.body handles the black background and styling.
   
   const isNoMercyFocus = roomTheme === 'no-mercy' && isFocusMode;
 
