@@ -270,18 +270,21 @@ export type Database = {
           username: string
           profile_photo_url: string | null
           discord_user_id: string | null
+          interests: Json | null // Added interests
         }
         Insert: {
           id?: string
           username: string
           profile_photo_url?: string | null
           discord_user_id?: string | null
+          interests?: Json | null // Added interests
         }
         Update: {
           id?: string
           username?: string
           profile_photo_url?: string | null
           discord_user_id?: string | null
+          interests?: Json | null // Added interests
         }
         Relationships: []
       }

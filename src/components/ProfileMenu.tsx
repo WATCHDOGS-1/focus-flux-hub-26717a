@@ -3,15 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Flame, Zap, Clock } from "lucide-react";
+import { LogOut, Flame, Zap, Clock, Tag, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
+import { Badge } from "@/components/ui/badge";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
 type WeeklyGoal = Database["public"]["Tables"]["weekly_goals"]["Row"];
+
+const RECOMMENDED_TAGS = [
+  "Programming", "Writing", "Music", "Reading", "Movies", "Learning Languages", 
+  "Food", "Anime", "Art", "TV series", "Sports", "Culture", "Dance", "Tech"
+];
 
 const ProfileMenu = () => {
   const { userId, profile, refreshProfile } = useAuth();
@@ -20,10 +26,18 @@ const ProfileMenu = () => {
   const [username, setUsername] = useState("");
   const [dailyGoal, setDailyGoal] = useState(60);
   const [weeklyGoal, setWeeklyGoal] = useState(420);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [newInterest, setNewInterest] = useState("");
 
   useEffect(() => {
     if (profile) {
       setUsername(profile.username);
+      // Ensure interests are treated as string[]
+      if (Array.isArray(profile.interests)) {
+        setInterests(profile.interests as string[]);
+      } else {
+        setInterests([]);
+      }
     }
     if (userId) {
       loadGoals(userId);
@@ -52,19 +66,38 @@ const ProfileMenu = () => {
     else if (weeklyError && weeklyError.code !== 'PGRST116') console.error("Error loading weekly goal:", weeklyError);
   };
 
+  const addInterest = (tag: string) => {
+    const normalizedTag = tag.trim().toLowerCase();
+    if (normalizedTag && !interests.map(t => t.toLowerCase()).includes(normalizedTag)) {
+      setInterests(prev => [...prev, tag.trim()]);
+      setNewInterest("");
+    }
+  };
+
+  const removeInterest = (tagToRemove: string) => {
+    setInterests(prev => prev.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleNewInterestKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addInterest(newInterest);
+    }
+  };
+
   const saveProfileAndGoals = async () => {
     if (!userId) return;
     let hasError = false;
 
-    // Save username
-    const { error: usernameError } = await supabase
+    // Save username and interests
+    const { error: profileError } = await supabase
       .from("profiles")
-      .update({ username: username })
+      .update({ username: username, interests: interests as unknown as Json })
       .eq("id", userId);
 
-    if (usernameError) {
-      console.error("Error saving username:", usernameError);
-      toast.error("Failed to save username");
+    if (profileError) {
+      console.error("Error saving profile:", profileError);
+      toast.error("Failed to save profile (username/interests)");
       hasError = true;
     } else {
       refreshProfile(); // Update global context
@@ -177,6 +210,59 @@ const ProfileMenu = () => {
             </div>
         </div>
 
+        {/* Interests/Tags Section */}
+        <div className="space-y-4 glass-card p-4 rounded-xl">
+          <h4 className="text-md font-semibold border-b border-border pb-2 mb-2 flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary" />
+            Interests (Tags)
+          </h4>
+          
+          <p className="text-sm text-muted-foreground">
+            Add tags to help others find you for co-working sessions.
+          </p>
+
+          {/* Current Tags */}
+          <div className="flex flex-wrap gap-2 min-h-[30px]">
+            {interests.map(tag => (
+              <Badge key={tag} variant="secondary" className="pr-1 cursor-pointer dopamine-click">
+                {tag}
+                <X className="w-3 h-3 ml-1 text-muted-foreground hover:text-destructive" onClick={() => removeInterest(tag)} />
+              </Badge>
+            ))}
+          </div>
+
+          {/* Add New Tag Input */}
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={newInterest}
+              onChange={(e) => setNewInterest(e.target.value)}
+              onKeyDown={handleNewInterestKeyDown}
+              placeholder="Add a custom interest tag..."
+              className="flex-1"
+            />
+            <Button size="icon" onClick={() => addInterest(newInterest)} disabled={!newInterest.trim()}>
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Recommended Tags */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
+            <p className="text-xs text-muted-foreground w-full mb-1">Recommendations:</p>
+            {RECOMMENDED_TAGS.filter(tag => !interests.map(t => t.toLowerCase()).includes(tag.toLowerCase())).map(tag => (
+              <Badge 
+                key={tag} 
+                variant="outline" 
+                className="cursor-pointer hover:bg-secondary/50 dopamine-click"
+                onClick={() => addInterest(tag)}
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Goals Section */}
         <div className="space-y-4">
           <div>
             <label className="text-sm text-muted-foreground">Username</label>

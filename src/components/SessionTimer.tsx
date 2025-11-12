@@ -12,6 +12,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 // Session definitions in seconds
 const SESSION_MODES = [
@@ -28,6 +30,15 @@ const SessionTimer = () => {
   const [isActive, setIsActive] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isBreathingAnimationEnabled, setIsBreathingAnimationEnabled] = useState(true);
+
+  // Load animation setting from local storage on mount
+  useEffect(() => {
+    const storedSetting = localStorage.getItem("timer_breathing_animation");
+    if (storedSetting !== null) {
+      setIsBreathingAnimationEnabled(storedSetting === 'true');
+    }
+  }, []);
 
   // Reset timer when mode changes
   useEffect(() => {
@@ -88,6 +99,12 @@ const SessionTimer = () => {
     setIsSettingsOpen(false);
     toast.success("Custom session created!");
   };
+  
+  const handleToggleAnimation = (checked: boolean) => {
+    setIsBreathingAnimationEnabled(checked);
+    localStorage.setItem("timer_breathing_animation", checked.toString());
+    toast.info(`Breathing animation ${checked ? 'enabled' : 'disabled'}.`);
+  };
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -113,6 +130,8 @@ const SessionTimer = () => {
           onSave={handleSaveCustomSettings}
           isOpen={isSettingsOpen}
           setIsOpen={setIsSettingsOpen}
+          isBreathingAnimationEnabled={isBreathingAnimationEnabled}
+          onToggleAnimation={handleToggleAnimation}
         />
       </div>
 
@@ -150,7 +169,10 @@ const SessionTimer = () => {
             fill="none"
             strokeDasharray={`${2 * Math.PI * 120}`}
             strokeDashoffset={`${2 * Math.PI * 120 * (1 - progress / 100)}`}
-            className="transition-all duration-1000"
+            className={cn(
+              "transition-all duration-1000",
+              isActive && isBreathingAnimationEnabled && "animate-timer-breathing"
+            )}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
@@ -187,9 +209,11 @@ interface SettingsDialogProps {
   onSave: (work: number, breakTime: number) => void;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  isBreathingAnimationEnabled: boolean;
+  onToggleAnimation: (checked: boolean) => void;
 }
 
-const SettingsDialog = ({ onSave, isOpen, setIsOpen }: SettingsDialogProps) => {
+const SettingsDialog = ({ onSave, isOpen, setIsOpen, isBreathingAnimationEnabled, onToggleAnimation }: SettingsDialogProps) => {
   const [workMinutes, setWorkMinutes] = useState(25);
   const [breakMinutes, setBreakMinutes] = useState(5);
 
@@ -208,7 +232,7 @@ const SettingsDialog = ({ onSave, isOpen, setIsOpen }: SettingsDialogProps) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] glass-card">
         <DialogHeader>
-          <DialogTitle>Custom Session Settings</DialogTitle>
+          <DialogTitle>Session Settings</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-3 items-center gap-4">
@@ -237,6 +261,18 @@ const SettingsDialog = ({ onSave, isOpen, setIsOpen }: SettingsDialogProps) => {
               value={breakMinutes}
               onChange={(e) => setBreakMinutes(parseInt(e.target.value) || 0)}
               className="col-span-2"
+            />
+          </div>
+          
+          <div className="flex items-center justify-between pt-4 border-t border-border">
+            <Label htmlFor="breathing-animation">
+              Breathing Animation
+              <p className="text-xs text-muted-foreground">Visual cue for focus/break.</p>
+            </Label>
+            <Switch
+              id="breathing-animation"
+              checked={isBreathingAnimationEnabled}
+              onCheckedChange={onToggleAnimation}
             />
           </div>
         </div>
