@@ -69,17 +69,9 @@ const HeroSection = () => {
             className="flex flex-col sm:flex-row justify-center gap-4 mb-16"
           >
             <Button
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/explore")}
               size="lg"
               className="text-lg px-8 py-6 rounded-xl bg-primary dopamine-click shadow-glow group font-semibold"
-            >
-              Join Room
-            </Button>
-            <Button
-              onClick={() => navigate("/explore")}
-              variant="outline"
-              size="lg"
-              className="text-lg px-8 py-6 rounded-xl dopamine-click group font-semibold"
             >
               Explore Rooms
             </Button>
