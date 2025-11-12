@@ -157,9 +157,6 @@ const FocusRoom = () => {
     );
   }
   
-  // The full-screen takeover logic for No Mercy Mode has been removed.
-  // The theme class applied to document.body handles the black background and styling.
-  
   const isNoMercyFocus = roomTheme === 'no-mercy' && isFocusMode;
 
   const renderMobileMenu = () => (
@@ -225,7 +222,10 @@ const FocusRoom = () => {
                   </>
                 )}
                 <ThemeToggle />
-                <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
+                {/* Hide Leave Room button only if No Mercy Focus Mode is active */}
+                {!(isNoMercyFocus) && (
+                  <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
+                )}
               </>
             )}
           </div>

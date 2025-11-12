@@ -78,7 +78,7 @@ const NotesWorkspace = () => {
       <h4 className="text-lg font-semibold flex items-center justify-between border-b border-border pb-2">
         <span className="flex items-center gap-2 text-primary">
           <NotebookText className="w-5 h-5" />
-          Local Study Notes (Notion Lite)
+          Local Study Notes
         </span>
         <span className="text-xs text-muted-foreground flex items-center gap-1">
           <Info className="w-3 h-3" />

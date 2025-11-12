@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Palette, Sun, Moon, BookOpen, Zap, ShieldOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const THEMES = [
   { value: "default", label: "Default Focus", icon: Palette },
@@ -35,7 +36,7 @@ const RoomThemeSelector = ({ onThemeChange }: RoomThemeSelectorProps) => {
 
   return (
     <Select onValueChange={handleThemeChange} value={selectedTheme}>
-      <SelectTrigger className="w-[180px] dopamine-click">
+      <SelectTrigger className={cn("w-[180px] dopamine-click", "text-foreground")}>
         <CurrentIcon className="w-4 h-4 mr-2" />
         <SelectValue placeholder="Select Room Theme" />
       </SelectTrigger>
