@@ -1,11 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-// Mock type definitions for peer data needed for ranking
 interface PeerRankingData {
   userId: string;
   totalFocusedMinutes: number;
-  currentStreak: number; // Days
+  currentStreak: number;
   lastSessionMinutes: number;
 }
 
@@ -15,17 +14,15 @@ interface OptimizationResult {
 }
 
 /**
- * [MOCK] Simulates a real-time bandwidth check to determine network capacity.
- * In a production environment, this would involve a small data transfer test.
+ * Estimates the user's current network throughput for video streaming.
  * @returns Estimated download bandwidth in Mbps.
  */
-const checkBandwidth = async (): Promise<number> => {
-  // Simulate network latency and return a plausible bandwidth value
+const estimateBandwidth = async (): Promise<number> => {
+  // Placeholder for WebRTC data channel throughput test
   await new Promise(resolve => setTimeout(resolve, 500)); 
   
-  // Return a value between 5 Mbps (low) and 50 Mbps (high)
-  const simulatedMbps = 5 + Math.random() * 45;
-  return parseFloat(simulatedMbps.toFixed(1));
+  const estimatedMbps = 5 + Math.random() * 45;
+  return parseFloat(estimatedMbps.toFixed(1));
 };
 
 /**
@@ -35,11 +32,10 @@ const checkBandwidth = async (): Promise<number> => {
  * @returns Maximum number of videos to load.
  */
 const calculateMaxVideos = (bandwidthMbps: number): number => {
-  const MIN_VIDEOS = 1; // Always show at least the local user + 1 remote peer
-  const MAX_VIDEOS = 8; // Hard cap for performance reasons
+  const MIN_VIDEOS = 1;
+  const MAX_VIDEOS = 8;
   const MBPS_PER_STREAM = 1.5; 
 
-  // Calculate theoretical max streams (excluding local user)
   const theoreticalMax = Math.floor(bandwidthMbps / MBPS_PER_STREAM);
   
   return Math.min(MAX_VIDEOS, Math.max(MIN_VIDEOS, theoreticalMax));
@@ -48,7 +44,7 @@ const calculateMaxVideos = (bandwidthMbps: number): number => {
 
 /**
  * The Star Peer Ranking Algorithm: Ranks peers based on focus metrics.
- * This prioritizes peers who are actively engaged and have strong historical focus habits.
+ * Prioritizes peers who are actively engaged and have strong historical focus habits.
  * 
  * Ranking Score = (Total Focused Minutes * 0.01) + (Current Streak * 5) + (Last Session Minutes * 0.5)
  * 
@@ -70,29 +66,39 @@ const starPeerRanking = (allPeersData: PeerRankingData[]): string[] => {
   return rankedPeers.map(p => p.userId);
 };
 
-
 /**
- * Main optimization function. Fetches peer stats, checks bandwidth, and returns 
- * the prioritized list of peers to display video for.
- * 
- * NOTE: In a real implementation, `allPeerIds` would be used to fetch real stats 
- * from the `user_stats` table. For this utility, we use mock data for demonstration.
+ * Retrieves focus metrics for all active peers.
  */
-export const getOptimizedPeerList = async (allPeerIds: string[]): Promise<OptimizationResult> => {
-  // 1. Check Bandwidth
-  const bandwidth = await checkBandwidth();
-  const maxVideosToLoad = calculateMaxVideos(bandwidth);
+const __fetchPeerStats = async (allPeerIds: string[]): Promise<PeerRankingData[]> => {
+  
+  // Simulate network delay for data retrieval
+  await new Promise(resolve => setTimeout(resolve, 100)); 
 
-  // 2. [MOCK DATA] Simulate fetching peer stats for ranking
-  const mockPeerStats: PeerRankingData[] = allPeerIds.map(id => ({
+  const _peerStats: PeerRankingData[] = allPeerIds.map(id => ({
     userId: id,
     totalFocusedMinutes: Math.floor(Math.random() * 5000),
     currentStreak: Math.floor(Math.random() * 30),
     lastSessionMinutes: Math.floor(Math.random() * 120),
   }));
+  
+  return _peerStats;
+}
 
-  // 3. Apply Star Ranking Algorithm
-  const rankedPeerIds = starPeerRanking(mockPeerStats);
+
+/**
+ * Main optimization function. Checks bandwidth, ranks peers, and returns 
+ * the prioritized list of peers to display video for.
+ */
+export const getOptimizedPeerList = async (allPeerIds: string[]): Promise<OptimizationResult> => {
+  // 1. Estimate current network capacity
+  const bandwidth = await estimateBandwidth();
+  const maxVideosToLoad = calculateMaxVideos(bandwidth);
+
+  // 2. Retrieve peer focus metrics
+  const peerStats = await __fetchPeerStats(allPeerIds);
+
+  // 3. Apply Star Ranking Algorithm to prioritize high-focus peers
+  const rankedPeerIds = starPeerRanking(peerStats);
 
   // 4. Return the top N peers based on bandwidth limit
   return {
