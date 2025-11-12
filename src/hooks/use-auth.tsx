@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { sanitizeUsername } from "@/utils/moderation"; // Import moderation utility
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -32,7 +33,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.error("Failed to load user profile.");
       setProfile(null);
     } else {
-      setProfile(data);
+      // --- Moderation Check ---
+      const sanitizedUsername = await sanitizeUsername(id, data.username);
+      
+      const finalProfile: Profile = {
+        ...data,
+        username: sanitizedUsername,
+      };
+      setProfile(finalProfile);
     }
   };
 
