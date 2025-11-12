@@ -157,7 +157,7 @@ const FocusRoom = () => {
     );
   }
   
-  const isNoMercyFocus = roomTheme === 'no-mercy' && isFocusMode;
+  const isDarkModeMaxFocus = roomTheme === 'dark-mode-max' && isFocusMode;
 
   const renderMobileMenu = () => (
     <Drawer open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -196,7 +196,7 @@ const FocusRoom = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
             OnlyFocus: {roomName}
           </h1>
-          <TimeTracker sessionStartTime={sessionStartTime} className={isNoMercyFocus ? "animate-heartbeat-pulse" : ""} />
+          <TimeTracker sessionStartTime={sessionStartTime} className={isDarkModeMaxFocus ? "animate-heartbeat-pulse" : ""} />
           <div className="flex gap-2 items-center">
             {isMobile ? (
               <>
@@ -222,8 +222,8 @@ const FocusRoom = () => {
                   </>
                 )}
                 <ThemeToggle />
-                {/* Hide Leave Room button only if No Mercy Focus Mode is active */}
-                {!(isNoMercyFocus) && (
+                {/* Hide Leave Room button only if Dark Mode Max Focus is active */}
+                {!(isDarkModeMaxFocus) && (
                   <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
                 )}
               </>

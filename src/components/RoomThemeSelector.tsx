@@ -10,7 +10,7 @@ const THEMES = [
   { value: "library", label: "Library (Warm)", icon: BookOpen },
   { value: "cyberpunk", label: "Cyberpunk Neon", icon: Zap },
   { value: "morning-sunlight", label: "Morning Sunlight", icon: Sun },
-  { value: "no-mercy", label: "No Mercy Mode", icon: ShieldOff },
+  { value: "dark-mode-max", label: "Dark Mode Max", icon: ShieldOff },
 ];
 
 interface RoomThemeSelectorProps {
