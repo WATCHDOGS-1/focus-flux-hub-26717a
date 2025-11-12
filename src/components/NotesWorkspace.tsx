@@ -71,7 +71,7 @@ const NotesWorkspace = () => {
   `;
 
   return (
-    <div className="glass-card p-4 rounded-xl flex flex-col gap-3 h-[600px]">
+    <div className="glass-card p-4 rounded-xl flex flex-col gap-3 h-full">
       {/* Style injection for Quill theming */}
       <style dangerouslySetInnerHTML={{ __html: quillStyles }} />
 

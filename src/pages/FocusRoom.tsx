@@ -9,7 +9,7 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import NotesWorkspace from "@/components/NotesWorkspace";
+import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace"; // Import the new combined workspace
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -192,7 +192,7 @@ const FocusRoom = () => {
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy/> Leaderboard</Button>
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer/> Timer</Button>
             <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User/> Profile</Button>
-            <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText/> Notes</Button>
+            <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText/> Notes & Tasks</Button>
             <ThemeToggle />
             <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut/> Leave Room</Button>
           </div>
@@ -227,7 +227,7 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
-                    <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes"><NotebookText className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes & Tasks"><NotebookText className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
@@ -256,7 +256,8 @@ const FocusRoom = () => {
               {/* Pass the dynamic roomId to VideoGrid */}
               <VideoGrid userId={userId} roomId={roomId} />
             </div>
-            {showNotesWorkspace && <div className="mt-4"><NotesWorkspace /></div>}
+            {/* Use the combined workspace here */}
+            {showNotesWorkspace && <div className="mt-4"><NotesAndTasksWorkspace /></div>}
           </div>
           {activePanel && !isFocusMode && !isMobile && (
             <aside className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
