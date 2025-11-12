@@ -10,4 +10,5 @@ export const PREDEFINED_ROOMS = [
   { id: "room-3", name: "Focus Room 3", maxCapacity: 10 },
   { id: "room-4", name: "Focus Room 4", maxCapacity: 10 },
   { id: "room-5", name: "Focus Room 5", maxCapacity: 10 },
+  { id: "bashh", name: "Bashh's Private Room", maxCapacity: 10 },
 ];

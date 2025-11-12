@@ -15,7 +15,7 @@ const AuthCallback = () => {
     if (!isLoading) {
       if (isAuthenticated) {
         // Session is confirmed and profile is loading/loaded by AuthProvider
-        navigate("/focus-room", { replace: true });
+        navigate("/", { replace: true }); // Redirect to Home page
       } else {
         // If no session, redirect back to auth page
         navigate("/auth", { replace: true });
