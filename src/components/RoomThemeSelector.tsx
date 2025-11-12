@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Palette, Sun, Moon, BookOpen, Zap, ShieldOff } from "lucide-react";
+import { Palette, Sun, Moon, BookOpen, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const THEMES = [
@@ -10,7 +10,6 @@ const THEMES = [
   { value: "library", label: "Library (Warm)", icon: BookOpen },
   { value: "cyberpunk", label: "Cyberpunk Neon", icon: Zap },
   { value: "morning-sunlight", label: "Morning Sunlight", icon: Sun },
-  { value: "dark-mode-max", label: "Dark Mode Max", icon: ShieldOff },
 ];
 
 interface RoomThemeSelectorProps {

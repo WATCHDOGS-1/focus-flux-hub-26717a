@@ -198,21 +198,6 @@
   animation: sunlight-drift 15s linear infinite alternate;
 }
 
-.no-mercy {
-  /* Ultra-spartan, pure matte black, linear transitions */
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%; /* Pure white text */
-  --card: 0 0% 0%;
-  --border: 0 0% 0%;
-  --input: 0 0% 0%;
-  --primary: 0 84.2% 60.2%; /* Red */
-  --secondary: 0 0% 0%;
-  --muted: 0 0% 0%;
-  --ring: 0 84.2% 60.2%;
-  
-  --radius: 0rem; /* Remove all rounded corners */
-}
-
 /* --- Base & Utilities --- */
 
 @layer base {
