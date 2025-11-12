@@ -76,12 +76,12 @@ const HeroSection = () => {
               Join Room
             </Button>
             <Button
-              onClick={() => navigate("/focus-room")}
+              onClick={() => navigate("/explore")}
               variant="outline"
               size="lg"
               className="text-lg px-8 py-6 rounded-xl dopamine-click group font-semibold"
             >
-              Explore the Room
+              Explore Rooms
             </Button>
           </motion.div>
         </motion.div>

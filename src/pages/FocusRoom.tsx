@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom"; // Import useParams
 import VideoGrid from "@/components/VideoGrid";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import SocialSidebar from "@/components/SocialSidebar";
@@ -27,9 +27,11 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PREDEFINED_ROOMS } from "@/utils/constants"; // Import room constants
 
 const FocusRoom = () => {
   const navigate = useNavigate();
+  const { roomId } = useParams<{ roomId: string }>(); // Get dynamic room ID
   const { userId, isAuthenticated, isLoading: isAuthLoading, profile } = useAuth();
   const isMobile = useIsMobile();
   
@@ -43,12 +45,18 @@ const FocusRoom = () => {
   const [roomTheme, setRoomTheme] = useState("default");
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const SHARED_FOCUS_ROOM_ID = "global-focus-room";
+  // Validate room ID and get room name
+  const currentRoom = PREDEFINED_ROOMS.find(r => r.id === roomId);
+  const roomName = currentRoom?.name || "Focus Room";
 
   useEffect(() => {
     if (isAuthLoading) return;
     if (!isAuthenticated) {
       navigate("/auth", { replace: true });
+    } else if (!roomId || !currentRoom) {
+      // If room ID is missing or invalid, redirect to explore page
+      toast.error("Invalid room selected.");
+      navigate("/explore", { replace: true });
     } else if (userId && !sessionId) {
       startSession(userId);
     }
@@ -57,7 +65,7 @@ const FocusRoom = () => {
         clearInterval(sessionIntervalRef.current);
       }
     };
-  }, [isAuthLoading, isAuthenticated, userId, navigate, sessionId]);
+  }, [isAuthLoading, isAuthenticated, userId, navigate, sessionId, roomId, currentRoom]);
 
   useEffect(() => {
     document.body.className = roomTheme;
@@ -82,12 +90,15 @@ const FocusRoom = () => {
   };
 
   const leaveRoom = async () => {
-    if (!sessionId || !userId) return;
+    if (!sessionId || !userId) {
+      navigate("/explore");
+      return;
+    }
     const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
     toast.promise(leavePromise, {
       loading: "Saving your session...",
       success: (message) => {
-        navigate("/");
+        navigate("/explore"); // Redirect to explore page
         return message;
       },
       error: (message) => message,
@@ -138,7 +149,7 @@ const FocusRoom = () => {
     return titles[panel] || "";
   };
 
-  if (isAuthLoading || !userId) {
+  if (isAuthLoading || !userId || !roomId || !currentRoom) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-xl text-muted-foreground">Loading your focus room...</div>
@@ -196,7 +207,9 @@ const FocusRoom = () => {
 
       <header className="relative z-10 glass-card border-b border-border flex-shrink-0">
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">OnlyFocus</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+            OnlyFocus: {roomName}
+          </h1>
           <TimeTracker sessionStartTime={sessionStartTime} className={isNoMercyFocus ? "animate-heartbeat-pulse" : ""} />
           <div className="flex gap-2 items-center">
             {isMobile ? (
@@ -240,7 +253,8 @@ const FocusRoom = () => {
               </div>
             )}
             <div className="flex-1 min-h-[400px]">
-              <VideoGrid userId={userId} roomId={SHARED_FOCUS_ROOM_ID} />
+              {/* Pass the dynamic roomId to VideoGrid */}
+              <VideoGrid userId={userId} roomId={roomId} />
             </div>
             {showNotesWorkspace && <div className="mt-4"><NotesWorkspace /></div>}
           </div>

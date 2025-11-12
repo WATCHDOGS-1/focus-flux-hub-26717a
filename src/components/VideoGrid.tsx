@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client"; // Import supabase cl
 
 interface VideoGridProps {
   userId: string;
-  roomId: string;
+  roomId: string; // Now dynamic
 }
 
 const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
@@ -19,6 +19,13 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const webrtcManager = useRef<WebRTCManager | null>(null);
 
   useEffect(() => {
+    // Cleanup previous manager if room ID changes
+    if (webrtcManager.current) {
+      webrtcManager.current.cleanup();
+      webrtcManager.current = null;
+      setRemoteStreams(new Map());
+    }
+
     const setup = async () => {
       try {
         webrtcManager.current = new WebRTCManager(
@@ -51,6 +58,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
           () => { /* No specific action needed here as stream removal handles UI update */ }
         );
 
+        // Initialize with the dynamic roomId
         const stream = await webrtcManager.current.initialize(roomId);
         
         if (localVideoRef.current) {
@@ -59,7 +67,11 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         }
         
         setIsVideoEnabled(true);
-        toast.success("Camera enabled");
+        if (stream) {
+          toast.success("Camera enabled");
+        } else {
+          toast.info("Joined room with camera off.");
+        }
       } catch (error) {
         console.error("Error setting up WebRTC:", error);
         toast.error("Failed to access camera. Please check permissions.");
@@ -76,7 +88,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         webrtcManager.current.cleanup();
       }
     };
-  }, [userId, roomId]);
+  }, [userId, roomId]); // Dependency on roomId ensures re-initialization when switching rooms
 
   const toggleVideo = async () => {
     const newVideoState = !isVideoEnabled;
