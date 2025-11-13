@@ -17,7 +17,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate("/focus-room", { replace: true });
+      navigate("/explore", { replace: true }); // Redirect to /explore instead of /focus-room
     }
     setRedirectUrl(window.location.origin);
   }, [isLoading, isAuthenticated, navigate]);
