@@ -34,9 +34,9 @@ const HowItWorksSection = () => {
         </p>
       </AnimatedSection>
 
-      <div className="relative flex flex-col lg:flex-row justify-between gap-12 pt-12"> {/* Added pt-12 for space above the line */}
+      <div className="relative flex flex-col lg:flex-row justify-between gap-12 pt-12">
         {/* Timeline Line (Desktop Only) - Positioned lower */}
-        <div className="hidden lg:block absolute top-[150px] left-0 right-0 h-1 bg-border/50">
+        <div className="hidden lg:block absolute top-[250px] left-0 right-0 h-1 bg-border/50">
           <motion.div
             initial={{ width: 0 }}
             whileInView={{ width: "100%" }}
@@ -50,7 +50,7 @@ const HowItWorksSection = () => {
           <AnimatedSection key={index} delay={index * 0.2} className="flex-1 relative">
             <div className="flex flex-col items-center text-center p-6">
               {/* Icon Circle */}
-              <div className="relative mb-6 z-10"> {/* Added z-10 to ensure circle is above the line */}
+              <div className="relative mb-6 z-10">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/20">
                   <step.icon className="w-8 h-8 text-primary" />
                 </div>
