@@ -103,7 +103,7 @@ const ProfileMenu = () => {
 
     if (profileError) {
       console.error("Error saving profile (username/interests):", profileError);
-      toast.error("Failed to save profile (username/interests)");
+      toast.error(`Failed to save profile: ${profileError.message}`);
       allSuccess = false;
     } else {
       await refreshProfile(); // Update global context immediately
@@ -117,7 +117,7 @@ const ProfileMenu = () => {
 
     if (dailyError) {
       console.error("Error saving daily goal:", dailyError);
-      toast.error("Failed to save daily goal");
+      toast.error(`Failed to save daily goal: ${dailyError.message}`);
       allSuccess = false;
     }
 
@@ -132,7 +132,7 @@ const ProfileMenu = () => {
 
     if (weeklyError) {
       console.error("Error saving weekly goal:", weeklyError);
-      toast.error("Failed to save weekly goal");
+      toast.error(`Failed to save weekly goal: ${weeklyError.message}`);
       allSuccess = false;
     }
 
@@ -251,7 +251,7 @@ const ProfileMenu = () => {
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary/50" />
                     Longest Session
-                </span>
+                </span >
                 <span className="font-bold">{stats?.longest_session_minutes || 0} min</span>
             </div>
             
