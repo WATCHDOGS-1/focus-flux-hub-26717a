@@ -32,10 +32,10 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
     const fetchData = async () => {
       setIsLoading(true);
       
-      // 1. Fetch Profile
+      // 1. Fetch Profile (Requires RLS on profiles to allow friends to read basic info)
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("*, user_stats(*), user_levels(*)")
+        .select("*")
         .eq("id", userId)
         .maybeSingle();
 
@@ -47,10 +47,33 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
       }
 
       setProfileData(profile);
-      setStatsData(profile.user_stats?.[0] || null);
-      setLevelsData(profile.user_levels?.[0] || null);
 
-      // 2. Check Friendship Status
+      // 2. Fetch User Stats (RLS allows friends to read)
+      const { data: stats, error: statsError } = await supabase
+        .from("user_stats")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      if (statsError && statsError.code !== 'PGRST116') {
+        console.error("Error fetching user stats:", statsError);
+      }
+      setStatsData(stats || null);
+
+      // 3. Fetch User Levels (RLS allows friends to read)
+      const { data: levels, error: levelsError } = await supabase
+        .from("user_levels")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      if (levelsError && levelsError.code !== 'PGRST116') {
+        console.error("Error fetching user levels:", levelsError);
+      }
+      setLevelsData(levels || null);
+
+
+      // 4. Check Friendship Status
       const { data: requestData, error: requestError } = await supabase
         .from("friend_requests")
         .select("sender_id, status")
