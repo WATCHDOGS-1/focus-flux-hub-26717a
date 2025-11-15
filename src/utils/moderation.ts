@@ -26,7 +26,17 @@ const BANNED_WORDS = [
 ];
 
 /**
- * Checks if a username contains any inappropriate words.
+ * Checks if a string is likely an email address.
+ * @param input The string to check.
+ * @returns true if it looks like an email, false otherwise.
+ */
+export const isLikelyEmail = (input: string): boolean => {
+  // Simple regex check for presence of '@' and '.'
+  return /\S+@\S+\.\S+/.test(input);
+};
+
+/**
+ * Checks if a username contains any inappropriate words or is an email.
  * @param username The username to check.
  * @returns true if inappropriate, false otherwise.
  */
@@ -34,6 +44,10 @@ export const isUsernameInappropriate = (username: string): boolean => {
   if (!username) return true;
   const lowerCaseUsername = username.toLowerCase();
   
+  if (isLikelyEmail(lowerCaseUsername)) {
+    return true;
+  }
+
   return BANNED_WORDS.some(word => lowerCaseUsername.includes(word));
 };
 
@@ -50,6 +64,9 @@ export const sanitizeUsername = async (userId: string, currentUsername: string):
 
   const newUsername = `User${Math.floor(Math.random() * 90000) + 10000}`;
   
+  // Determine the reason for sanitization
+  const reason = isLikelyEmail(currentUsername) ? "Your username was flagged as an email address" : "Your username was flagged as inappropriate";
+
   // Attempt to update the profile in the database
   const { error } = await supabase
     .from("profiles")
@@ -58,10 +75,10 @@ export const sanitizeUsername = async (userId: string, currentUsername: string):
 
   if (error) {
     console.error("Failed to sanitize and update username:", error);
-    toast.error("Your username was inappropriate and could not be automatically updated. Please update it manually.");
+    toast.error(`${reason} and could not be automatically updated. Please update it manually.`);
     return currentUsername; // Return original if update fails, relying on manual update later
   }
 
-  toast.warning(`Your username "${currentUsername}" was flagged and changed to "${newUsername}".`);
+  toast.warning(`${reason} and changed to "${newUsername}". Please update it in your profile settings.`);
   return newUsername;
 };
