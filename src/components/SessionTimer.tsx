@@ -150,14 +150,14 @@ const SessionTimer = () => {
         </Select>
       </div>
 
-      <div className="relative w-64 h-64 mb-8">
+      <div className="relative w-64 h-64 mb-8 shadow-glow rounded-full">
         <svg className="w-full h-full -rotate-90">
           <circle
             cx="128"
             cy="128"
             r="120"
             stroke="hsl(var(--border))"
-            strokeWidth="8"
+            strokeWidth="12"
             fill="none"
             className={cn(
               "transition-opacity duration-1000",
@@ -169,7 +169,7 @@ const SessionTimer = () => {
             cy="128"
             r="120"
             stroke={isBreak ? "hsl(var(--accent))" : "hsl(var(--primary))"}
-            strokeWidth="8"
+            strokeWidth="12"
             fill="none"
             strokeDasharray={`${2 * Math.PI * 120}`}
             strokeDashoffset={`${2 * Math.PI * 120 * (1 - progress / 100)}`}
