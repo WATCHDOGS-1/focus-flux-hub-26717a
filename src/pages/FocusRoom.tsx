@@ -12,7 +12,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace"; // Import the new combined workspace
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal"; // Import the new modal
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu } from "lucide-react";
+import AmbientSoundPlayer from "@/components/AmbientSoundPlayer"; // Import new component
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,6 +151,7 @@ const FocusRoom = () => {
       case "social": return <SocialSidebar userId={userId!} onProfileClick={handleProfileClick} />;
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <SessionTimer />;
+      case "ambient-audio": return <AmbientSoundPlayer />;
       case "profile": return <ProfileMenu />;
       default: return null;
     }
@@ -161,6 +163,7 @@ const FocusRoom = () => {
       "social": "Direct Messages",
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
+      "ambient-audio": "Ambient Focus Audio",
       "profile": "Profile Settings",
     };
     return titles[panel] || "";
@@ -192,6 +195,7 @@ const FocusRoom = () => {
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users/> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy/> Leaderboard</Button>
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer/> Timer</Button>
+            <Button onClick={() => togglePanel("ambient-audio")} className="w-full justify-start gap-2"><Music/> Ambient Audio</Button>
             <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User/> Profile</Button>
             <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText/> Notes & Tasks</Button>
             <ThemeToggle />
@@ -238,6 +242,7 @@ const FocusRoom = () => {
                 {!isFocusMode && (
                   <>
                     <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes & Tasks"><NotebookText className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("ambient-audio")} title="Ambient Audio"><Music className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>

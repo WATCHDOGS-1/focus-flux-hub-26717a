@@ -11,3 +11,10 @@ export const PREDEFINED_ROOMS = [
   { id: "room-4", name: "Focus Room 4", maxCapacity: 10 },
   { id: "room-5", name: "Focus Room 5", maxCapacity: 10 },
 ];
+
+export const AMBIENT_SOUNDS = [
+  { id: "rain", name: "Gentle Rain", url: "/audio/rain.mp3" },
+  { id: "lofi", name: "Lo-Fi Beats", url: "/audio/lofi.mp3" },
+  { id: "cafe", name: "Busy Cafe", url: "/audio/cafe.mp3" },
+  { id: "fire", name: "Crackling Fireplace", url: "/audio/fireplace.mp3" },
+];
