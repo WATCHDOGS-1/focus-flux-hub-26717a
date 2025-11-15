@@ -28,19 +28,7 @@ export class WebRTCManager {
   }
 
   async initialize(roomId: string) {
-    // 1. Get local stream FIRST. This is the critical fix.
-    try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
-      // Do not throw error, allow user to join with video off
-      this.localStream = null;
-    }
-
-    // 2. Now that the stream is ready, initialize signaling.
+    // 1. Initialize signaling channel only. Do NOT request local stream yet.
     this.roomChannel = supabase.channel(`room:${roomId}`);
 
     this.roomChannel
@@ -84,31 +72,36 @@ export class WebRTCManager {
         }
       });
       
-    // 3. Return the stream for the UI to use.
-    return this.localStream;
+    // Return null as local stream is not yet acquired.
+    return null;
   }
 
   public async toggleVideo(enable: boolean): Promise<MediaStream | null> {
     if (enable) {
       // Turn video ON
       try {
-        this.localStream = await navigator.mediaDevices.getUserMedia({
+        const newStream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
+        
+        this.localStream = newStream;
 
         // For each existing peer connection, replace or add tracks and renegotiate
         for (const [peerId, { connection }] of this.peers.entries()) {
-          // Remove existing video senders
-          connection.getSenders().forEach(sender => {
-            if (sender.track && sender.track.kind === 'video') {
-              connection.removeTrack(sender);
-            }
-          });
-          // Add new video tracks
-          this.localStream.getVideoTracks().forEach(track => {
-            connection.addTrack(track, this.localStream!);
-          });
+          const videoTrack = newStream.getVideoTracks()[0];
+          
+          // Find existing sender for video track
+          const sender = connection.getSenders().find(s => s.track?.kind === 'video');
+
+          if (sender) {
+            // Replace existing track
+            await sender.replaceTrack(videoTrack);
+          } else {
+            // Add new track
+            connection.addTrack(videoTrack, newStream);
+          }
+          
           // Trigger renegotiation for this peer
           const offer = await connection.createOffer();
           await connection.setLocalDescription(offer);
@@ -138,6 +131,7 @@ export class WebRTCManager {
       for (const [peerId, { connection }] of this.peers.entries()) {
         connection.getSenders().forEach(sender => {
           if (sender.track && sender.track.kind === 'video') {
+            // Remove the track from the connection
             connection.removeTrack(sender);
           }
         });
@@ -173,7 +167,8 @@ export class WebRTCManager {
 
     const pc = new RTCPeerConnection(configuration);
 
-    if (this.localStream) { // Only add tracks if localStream exists
+    // Only add tracks if localStream exists (i.e., user has enabled video)
+    if (this.localStream) { 
       this.localStream.getTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });

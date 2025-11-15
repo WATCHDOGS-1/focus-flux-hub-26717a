@@ -12,7 +12,8 @@ interface VideoGridProps {
 }
 
 const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  // Start with video disabled by default
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
   const [remoteStreams, setRemoteStreams] = useState<Map<string, { stream: MediaStream; username: string }>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -24,6 +25,10 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       webrtcManager.current.cleanup();
       webrtcManager.current = null;
       setRemoteStreams(new Map());
+      setIsVideoEnabled(false); // Reset state
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+      }
     }
 
     const setup = async () => {
@@ -54,28 +59,17 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
               return newMap;
             });
           },
-          // onPeerLeft handler (currently unused in VideoGrid, but required by WebRTCManager constructor)
-          () => { /* No specific action needed here as stream removal handles UI update */ }
+          () => { /* onPeerLeft handler */ }
         );
 
-        // Initialize with the dynamic roomId
-        const stream = await webrtcManager.current.initialize(roomId);
+        // Initialize signaling only
+        await webrtcManager.current.initialize(roomId);
         
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(console.error);
-        }
+        // Note: We do not call toggleVideo(true) here. Video is off by default.
         
-        setIsVideoEnabled(true);
-        if (stream) {
-          toast.success("Camera enabled");
-        } else {
-          toast.info("Joined room with camera off.");
-        }
       } catch (error) {
-        console.error("Error setting up WebRTC:", error);
-        toast.error("Failed to access camera. Please check permissions.");
-        setIsVideoEnabled(false);
+        console.error("Error setting up WebRTC signaling:", error);
+        toast.error("Failed to connect to the focus room.");
       }
     };
 
@@ -92,28 +86,29 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
 
   const toggleVideo = async () => {
     const newVideoState = !isVideoEnabled;
-    if (webrtcManager.current) {
-      if (newVideoState) { // Turning video ON
-        try {
-          const newStream = await webrtcManager.current.toggleVideo(true);
-          if (newStream && localVideoRef.current) {
-            localVideoRef.current.srcObject = newStream;
-            localVideoRef.current.play().catch(console.error);
-            setIsVideoEnabled(true);
-            toast.success("Camera enabled");
-          }
-        } catch (e) {
-          toast.error("Failed to enable camera. Please check permissions.");
-          setIsVideoEnabled(false);
+    if (!webrtcManager.current) return;
+
+    if (newVideoState) { // Turning video ON
+      try {
+        const newStream = await webrtcManager.current.toggleVideo(true);
+        if (newStream && localVideoRef.current) {
+          localVideoRef.current.srcObject = newStream;
+          localVideoRef.current.play().catch(console.error);
+          setIsVideoEnabled(true);
+          toast.success("Camera enabled");
         }
-      } else { // Turning video OFF
-        webrtcManager.current.toggleVideo(false);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = null; // Clear the video element
-        }
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to enable camera. Please check permissions.");
         setIsVideoEnabled(false);
-        toast.info("Camera disabled");
       }
+    } else { // Turning video OFF
+      webrtcManager.current.toggleVideo(false);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null; // Clear the video element
+      }
+      setIsVideoEnabled(false);
+      toast.info("Camera disabled");
     }
   };
 
@@ -136,11 +131,11 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         <div className="flex items-center gap-4">
           <Button
             variant={isVideoEnabled ? "default" : "outline"}
-            size="icon"
             onClick={toggleVideo}
-            className="dopamine-click shadow-glow"
+            className="dopamine-click shadow-glow flex items-center gap-2"
           >
             {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+            Video
           </Button>
 
           <div className="flex-1 flex items-center gap-4">
@@ -162,6 +157,11 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             muted
             className={`w-full h-full object-cover ${!isVideoEnabled ? 'hidden' : ''}`}
           />
+          {!isVideoEnabled && (
+            <div className="absolute inset-0 flex items-center justify-center bg-secondary/50 text-muted-foreground">
+              <VideoOff className="w-10 h-10" />
+            </div>
+          )}
           <div className="absolute top-2 left-2 px-3 py-1 bg-primary/80 backdrop-blur rounded-full text-xs font-bold">
             You
           </div>
