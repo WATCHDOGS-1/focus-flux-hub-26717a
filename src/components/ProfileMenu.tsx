@@ -90,37 +90,40 @@ const ProfileMenu = () => {
 
   const saveProfileAndGoals = async () => {
     if (!userId) return;
-    let hasError = false;
+    let allSuccess = true;
 
-    // Save username and interests
+    // 1. Save username and interests
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ username: username, interests: interests as unknown as Database["public"]["Tables"]["profiles"]["Insert"]["interests"] })
+      .update({ 
+        username: username, 
+        interests: interests as unknown as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
+      })
       .eq("id", userId);
 
     if (profileError) {
-      console.error("Error saving profile:", profileError);
+      console.error("Error saving profile (username/interests):", profileError);
       toast.error("Failed to save profile (username/interests)");
-      hasError = true;
+      allSuccess = false;
     } else {
-      refreshProfile(); // Update global context
+      await refreshProfile(); // Update global context immediately
     }
 
-    // Save daily goal
+    // 2. Save daily goal
+    const today = new Date().toISOString().split("T")[0];
     const { error: dailyError } = await supabase
       .from("daily_goals")
-      .upsert({ user_id: userId, target_minutes: dailyGoal, date: new Date().toISOString().split("T")[0] }, { onConflict: 'user_id,date' });
+      .upsert({ user_id: userId, target_minutes: dailyGoal, date: today }, { onConflict: 'user_id,date' });
 
     if (dailyError) {
       console.error("Error saving daily goal:", dailyError);
       toast.error("Failed to save daily goal");
-      hasError = true;
+      allSuccess = false;
     }
 
-    // Save weekly goal
-    const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
+    // 3. Save weekly goal
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
     const { error: weeklyError } = await supabase
@@ -130,11 +133,11 @@ const ProfileMenu = () => {
     if (weeklyError) {
       console.error("Error saving weekly goal:", weeklyError);
       toast.error("Failed to save weekly goal");
-      hasError = true;
+      allSuccess = false;
     }
 
-    if (!hasError) {
-      toast.success("Profile and goals updated!");
+    if (allSuccess) {
+      toast.success("Profile and goals updated successfully!");
     }
   };
 
