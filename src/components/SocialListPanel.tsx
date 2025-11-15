@@ -16,9 +16,10 @@ type Conversation = Database["public"]["Tables"]["dm_conversations"]["Row"];
 interface SocialListPanelProps {
   currentUserId: string;
   onSelectConversation: (conversationId: string, targetUsername: string, targetUserId: string) => void;
+  onProfileClick: (userId: string) => void; // New prop
 }
 
-const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPanelProps) => {
+const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }: SocialListPanelProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,7 +88,19 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
     }
   };
 
-  const handleUserClick = async (targetUser: Profile) => {
+  const handleUserClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
+    if (view === 'dms') {
+      const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
+      if (conversationId) {
+        onSelectConversation(conversationId, targetUser.username, targetUser.id);
+      }
+    } else {
+      // Default action for friends/search view is opening the profile modal
+      onProfileClick(targetUser.id);
+    }
+  };
+  
+  const handleConversationClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
     const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
     if (conversationId) {
       onSelectConversation(conversationId, targetUser.username, targetUser.id);
@@ -120,12 +133,16 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
 
   const renderUserItem = (user: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>, actions?: React.ReactNode) => {
     const isFriend = friends.some(f => f.id === user.id);
+    
+    const clickHandler = view === 'dms' && !searchTerm
+      ? () => handleConversationClick(user) // Existing DM list: open chat
+      : () => handleUserClick(user); // Friends list or Search: open profile modal
 
     return (
       <div
         key={user.id}
         className="flex items-center p-3 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors dopamine-click"
-        onClick={() => view === 'dms' && handleUserClick(user as Profile)}
+        onClick={clickHandler}
       >
         <div className="relative w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
           <span className="text-sm font-bold text-white">
@@ -134,7 +151,7 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
         </div>
         <span className="font-medium flex-1 truncate">{user.username}</span>
         
-        {actions || (view === 'friends' && !isFriend && (
+        {actions || (view === 'friends' && !isFriend && !searchTerm && (
           <Button 
             variant="ghost" 
             size="icon" 
@@ -193,7 +210,7 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
         {searchTerm ? (
           // User Search Results (for adding friends or starting DMs)
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground mb-2">Search Results:</p>
+            <p className="text-sm text-muted-foreground mb-2">Search Results (Click to view profile):</p>
             {filteredUsers.length > 0 ? (
               filteredUsers.map(user => {
                 const isFriend = friends.some(f => f.id === user.id);
@@ -234,7 +251,11 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
                   <UserPlus className="w-4 h-4" /> Requests ({pendingRequests.length})
                 </p>
                 {pendingRequests.map(req => (
-                  <div key={req.id} className="flex items-center p-3 rounded-lg bg-secondary/20">
+                  <div 
+                    key={req.id} 
+                    className="flex items-center p-3 rounded-lg bg-secondary/20 cursor-pointer hover:bg-secondary/50 transition-colors"
+                    onClick={() => onProfileClick(req.sender_id)}
+                  >
                     <div className="relative w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
                       <span className="text-sm font-bold text-white">
                         {req.sender?.username?.[0]?.toUpperCase()}
@@ -242,10 +263,10 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
                     </div>
                     <span className="font-medium flex-1 truncate">{req.sender?.username || "Unknown User"}</span>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="success" className="w-6 h-6" onClick={() => handleAcceptRequest(req.id, req.sender_id)}>
+                      <Button size="icon" variant="success" className="w-6 h-6" onClick={(e) => { e.stopPropagation(); handleAcceptRequest(req.id, req.sender_id); }}>
                         <Check className="w-4 h-4" />
                       </Button>
-                      <Button size="icon" variant="destructive" className="w-6 h-6" onClick={() => handleRejectRequest(req.id)}>
+                      <Button size="icon" variant="destructive" className="w-6 h-6" onClick={(e) => { e.stopPropagation(); handleRejectRequest(req.id); }}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -267,7 +288,7 @@ const SocialListPanel = ({ currentUserId, onSelectConversation }: SocialListPane
         ) : (
           // DM View (Existing Conversations)
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground mb-2">Conversations:</p>
+            <p className="text-sm text-muted-foreground mb-2">Conversations (Click to chat):</p>
             {conversations.length > 0 ? (
               conversations.map(conv => {
                 const targetUser = getTargetUser(conv);

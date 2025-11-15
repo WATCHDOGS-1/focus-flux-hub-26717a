@@ -11,6 +11,7 @@ import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace"; // Import the new combined workspace
 import RoomThemeSelector from "@/components/RoomThemeSelector";
+import UserProfileModal from "@/components/UserProfileModal"; // Import the new modal
 import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { endFocusSession } from "@/utils/session-management";
+import { runAIFocusCoach } from "@/utils/ai-coach"; // Import AI Coach
+import { useUserStats } from "@/hooks/use-user-stats"; // Import useUserStats to get current stats
 import {
   Drawer,
   DrawerContent,
@@ -33,6 +36,7 @@ const FocusRoom = () => {
   const navigate = useNavigate();
   const { roomId } = useParams<{ roomId: string }>(); // Get dynamic room ID
   const { userId, isAuthenticated, isLoading: isAuthLoading, profile } = useAuth();
+  const { stats, levels, refetch: refetchStats } = useUserStats(); // Use user stats hook
   const isMobile = useIsMobile();
   
   const [activePanel, setActivePanel] = useState<string | null>(null);
@@ -44,6 +48,14 @@ const FocusRoom = () => {
   const [showNotesWorkspace, setShowNotesWorkspace] = useState(false);
   const [roomTheme, setRoomTheme] = useState("default");
   const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // --- Profile Modal State and Handler ---
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
+  
+  const handleProfileClick = (id: string) => {
+    setTargetUserId(id);
+  };
+  // --- End Profile Modal State and Handler ---
 
   // Validate room ID and get room name
   const currentRoom = PREDEFINED_ROOMS.find(r => r.id === roomId);
@@ -94,12 +106,17 @@ const FocusRoom = () => {
       navigate("/explore");
       return;
     }
+    
     const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
+    
     toast.promise(leavePromise, {
       loading: "Saving your session...",
-      success: (message) => {
+      success: (result) => {
+        // Run AI Coach after successful session save
+        runAIFocusCoach(stats, levels, result.durationMinutes);
+        refetchStats(); // Refresh stats after session save
         navigate("/explore"); // Redirect to explore page
-        return message;
+        return result.message;
       },
       error: (message) => message,
     });
@@ -130,8 +147,8 @@ const FocusRoom = () => {
   const renderPanelContent = (panel: string) => {
     switch (panel) {
       case "global-chat": return <GlobalChatPanel userId={userId!} />;
-      case "social": return <SocialSidebar userId={userId!} />;
-      case "leaderboard": return <Leaderboard />;
+      case "social": return <SocialSidebar userId={userId!} onProfileClick={handleProfileClick} />;
+      case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <SessionTimer />;
       case "profile": return <ProfileMenu />;
       default: return null;
@@ -157,8 +174,6 @@ const FocusRoom = () => {
     );
   }
   
-  // Removed isDarkModeMaxFocus logic
-
   const renderMobileMenu = () => (
     <Drawer open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
       <DrawerTrigger asChild>
@@ -190,6 +205,15 @@ const FocusRoom = () => {
   return (
     <div className={`min-h-screen flex flex-col bg-background relative overflow-hidden transition-colors duration-500`}>
       <EncouragementToasts />
+      
+      {/* Profile Modal */}
+      {targetUserId && (
+        <UserProfileModal 
+          userId={targetUserId} 
+          currentUserId={userId}
+          onClose={() => setTargetUserId(null)} 
+        />
+      )}
 
       <header className="relative z-10 glass-card border-b border-border flex-shrink-0">
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2">

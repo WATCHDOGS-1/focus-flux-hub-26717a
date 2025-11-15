@@ -24,6 +24,8 @@ const getTitleByXP = (xp: number) => {
   return title;
 };
 
+export const getLevelThresholds = () => LEVEL_THRESHOLDS;
+
 /**
  * Handles all post-session logic: saving session, updating weekly stats,
  * calculating streaks, updating longest session, and calculating XP/levels.
@@ -33,7 +35,7 @@ export const endFocusSession = async (
   sessionId: string,
   sessionStartTime: number,
   focusTag: string
-) => {
+): Promise<{ message: string, durationMinutes: number }> => {
   const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
   const minutes = Math.floor(sessionDuration / 60);
   const today = new Date();
@@ -45,7 +47,7 @@ export const endFocusSession = async (
       .from("focus_sessions")
       .update({ end_time: new Date().toISOString(), duration_minutes: 0, tag: focusTag || null })
       .eq("id", sessionId);
-    return `Session ended. Duration too short to count towards stats.`;
+    return { message: `Session ended. Duration too short to count towards stats.`, durationMinutes: 0 };
   }
 
   // --- 1. Update Focus Session ---
@@ -156,5 +158,5 @@ export const endFocusSession = async (
       .insert({ user_id: userId, week_start: weekStart.toISOString(), total_minutes: minutes });
   }
 
-  return `Session saved! You focused for ${minutes} minutes and earned ${xpEarned} XP. Current streak: ${newStreak} days.`;
+  return { message: `Session saved! You focused for ${minutes} minutes and earned ${xpEarned} XP. Current streak: ${newStreak} days.`, durationMinutes: minutes };
 };

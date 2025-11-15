@@ -4,9 +4,10 @@ import DMConversation from "./DMConversation";
 
 interface SocialSidebarProps {
   userId: string;
+  onProfileClick: (userId: string) => void; // New prop
 }
 
-const SocialSidebar = ({ userId }: SocialSidebarProps) => {
+const SocialSidebar = ({ userId, onProfileClick }: SocialSidebarProps) => {
   const [activeConversation, setActiveConversation] = useState<{
     id: string;
     targetUsername: string;
@@ -39,6 +40,7 @@ const SocialSidebar = ({ userId }: SocialSidebarProps) => {
         <SocialListPanel
           currentUserId={userId}
           onSelectConversation={handleSelectConversation}
+          onProfileClick={onProfileClick} // Pass the handler
         />
       )}
     </div>

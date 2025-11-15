@@ -15,7 +15,11 @@ type WeeklyStat = Database["public"]["Tables"]["weekly_stats"]["Row"] & {
 
 const PAGE_SIZE = 10;
 
-const Leaderboard = () => {
+interface LeaderboardProps {
+  onProfileClick: (userId: string) => void;
+}
+
+const Leaderboard = ({ onProfileClick }: LeaderboardProps) => {
   const { userId } = useAuth();
   const [entries, setEntries] = useState<WeeklyStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -160,7 +164,7 @@ const Leaderboard = () => {
             return (
               <div
                 key={entry.user_id}
-                className={`p-4 rounded-2xl flex items-center gap-3 dopamine-click hover-lift ${
+                className={`p-4 rounded-2xl flex items-center gap-3 dopamine-click hover-lift cursor-pointer ${
                   globalRank === 1
                     ? "bg-primary/20 border-2 border-primary animate-subtle-pulse"
                     : globalRank === 2
@@ -169,6 +173,7 @@ const Leaderboard = () => {
                     ? "bg-primary/5 border border-primary/20"
                     : "glass-card hover:border-primary/50"
                 } ${isCurrentUser ? 'ring-2 ring-accent' : ''}`}
+                onClick={() => onProfileClick(entry.user_id)}
               >
                 <div className="text-3xl font-bold w-10 flex items-center justify-center">
                   {globalRank === 1 ? "🥇" : globalRank === 2 ? "🥈" : globalRank === 3 ? "🥉" : `${globalRank}`}

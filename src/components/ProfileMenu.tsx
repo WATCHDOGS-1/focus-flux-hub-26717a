@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Flame, Zap, Clock, Tag, Plus, X } from "lucide-react";
+import { LogOut, Flame, Zap, Clock, Tag, Plus, X, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { getLevelThresholds } from "@/utils/session-management";
+import WeeklyFocusChart from "./WeeklyFocusChart"; // Import the new chart
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
@@ -92,7 +95,7 @@ const ProfileMenu = () => {
     // Save username and interests
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ username: username, interests: interests as unknown as Json })
+      .update({ username: username, interests: interests as unknown as Database["public"]["Tables"]["profiles"]["Insert"]["interests"] })
       .eq("id", userId);
 
     if (profileError) {
@@ -117,7 +120,7 @@ const ProfileMenu = () => {
     // Save weekly goal
     const today = new Date();
     const weekStart = new Date(today);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setDate(today.getDate() - today.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
     const { error: weeklyError } = await supabase
@@ -143,6 +146,33 @@ const ProfileMenu = () => {
       navigate("/auth");
     }
   };
+
+  // --- Level Progression Calculation ---
+  const LEVEL_THRESHOLDS = getLevelThresholds();
+  const currentXP = levels?.total_xp || 0;
+  const currentLevel = levels?.level || 1;
+  
+  const nextLevelData = LEVEL_THRESHOLDS.find(t => t.level === currentLevel + 1);
+  
+  let progressPercent = 0;
+  let xpToNextLevel = 0;
+  let currentLevelXPBase = 0;
+
+  if (nextLevelData) {
+    currentLevelXPBase = LEVEL_THRESHOLDS.find(t => t.level === currentLevel)?.xp || 0;
+    const nextLevelXP = nextLevelData.xp;
+    
+    const xpInCurrentLevel = currentXP - currentLevelXPBase;
+    const xpNeededForNextLevel = nextLevelXP - currentLevelXPBase;
+    
+    xpToNextLevel = xpNeededForNextLevel - xpInCurrentLevel;
+    progressPercent = (xpInCurrentLevel / xpNeededForNextLevel) * 100;
+  } else {
+    // Max level reached
+    progressPercent = 100;
+  }
+  // --- End Level Progression Calculation ---
+
 
   if (!userId || isLoadingStats) {
     return <div className="text-center py-8 text-muted-foreground">Loading profile...</div>;
@@ -171,6 +201,27 @@ const ProfileMenu = () => {
               {levels?.title || "Novice Monk"} (Lvl {levels?.level || 1})
             </div>
           </div>
+        </div>
+        
+        {/* XP Progression */}
+        <div className="glass-card p-4 rounded-xl space-y-2">
+            <h4 className="text-md font-semibold flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-accent" />
+                XP Progression
+            </h4>
+            <div className="text-sm text-muted-foreground flex justify-between">
+                <span>Level {currentLevel}</span>
+                <span>{nextLevelData ? `Next: Lvl ${nextLevelData.level}` : 'Max Level!'}</span>
+            </div>
+            <Progress value={progressPercent} className="h-2" />
+            <p className="text-xs text-muted-foreground text-right">
+                {nextLevelData ? `${Math.max(0, xpToNextLevel)} XP until next level` : 'You are a Chrono Emperor!'}
+            </p>
+        </div>
+
+        {/* Weekly Focus Chart */}
+        <div className="glass-card p-4 rounded-xl">
+            <WeeklyFocusChart />
         </div>
         
         {/* Stats Section */}

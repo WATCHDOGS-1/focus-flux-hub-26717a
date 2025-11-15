@@ -1,0 +1,211 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, User, Flame, Clock, Zap, MessageSquare, UserPlus, Check, X } from "lucide-react";
+import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+import { sendFriendRequest } from "@/utils/friends";
+import { getOrCreateConversation } from "@/utils/dm";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
+type UserLevels = Database["public"]["Tables"]["user_levels"]["Row"];
+
+interface UserProfileModalProps {
+  userId: string; // The ID of the user to display
+  currentUserId: string; // The ID of the logged-in user
+  onClose: () => void;
+}
+
+const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalProps) => {
+  const [profileData, setProfileData] = useState<Profile | null>(null);
+  const [statsData, setStatsData] = useState<UserStats | null>(null);
+  const [levelsData, setLevelsData] = useState<UserLevels | null>(null);
+  const [friendshipStatus, setFriendshipStatus] = useState<'not_friend' | 'pending_sent' | 'pending_received' | 'friend'>('not_friend');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      
+      // 1. Fetch Profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*, user_stats(*), user_levels(*)")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        console.error("Error fetching profile:", profileError);
+        toast.error("Failed to load user profile.");
+        onClose();
+        return;
+      }
+
+      setProfileData(profile);
+      setStatsData(profile.user_stats?.[0] || null);
+      setLevelsData(profile.user_levels?.[0] || null);
+
+      // 2. Check Friendship Status
+      const { data: requestData, error: requestError } = await supabase
+        .from("friend_requests")
+        .select("sender_id, status")
+        .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUserId})`)
+        .maybeSingle();
+
+      if (requestError) {
+        console.error("Error checking friendship status:", requestError);
+      } else if (requestData) {
+        if (requestData.status === 'accepted') {
+          setFriendshipStatus('friend');
+        } else if (requestData.status === 'pending') {
+          if (requestData.sender_id === currentUserId) {
+            setFriendshipStatus('pending_sent');
+          } else {
+            setFriendshipStatus('pending_received');
+          }
+        }
+      } else {
+        setFriendshipStatus('not_friend');
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [userId, currentUserId, onClose]);
+
+  const handleSendRequest = async () => {
+    const success = await sendFriendRequest(currentUserId, userId);
+    if (success) {
+      setFriendshipStatus('pending_sent');
+    }
+  };
+
+  const handleStartDM = async () => {
+    if (!profileData) return;
+    const conversationId = await getOrCreateConversation(currentUserId, userId);
+    if (conversationId) {
+      toast.info("DM conversation started. Check your Social panel.");
+      onClose();
+      // Note: In a full app, we might navigate the user to the DM panel here.
+    }
+  };
+
+  const renderActionButtons = () => {
+    if (userId === currentUserId) {
+      return <Badge variant="secondary">This is You</Badge>;
+    }
+
+    switch (friendshipStatus) {
+      case 'friend':
+        return (
+          <div className="flex gap-2">
+            <Button onClick={handleStartDM} className="flex-1 dopamine-click">
+              <MessageSquare className="w-4 h-4 mr-2" /> Message
+            </Button>
+            {/* Remove friend functionality would go here */}
+          </div>
+        );
+      case 'pending_sent':
+        return <Button variant="outline" disabled>Request Sent <Clock className="w-4 h-4 ml-2" /></Button>;
+      case 'pending_received':
+        return <Button variant="warning" disabled>Request Received (Check Social Panel)</Button>;
+      case 'not_friend':
+      default:
+        return (
+          <Button onClick={handleSendRequest} className="dopamine-click">
+            <UserPlus className="w-4 h-4 mr-2" /> Add Friend
+          </Button>
+        );
+    }
+  };
+
+  const renderStats = () => (
+    <div className="grid grid-cols-2 gap-4">
+      <StatCard icon={Flame} label="Longest Streak" value={`${statsData?.longest_streak || 0} days`} />
+      <StatCard icon={Clock} label="Longest Session" value={`${statsData?.longest_session_minutes || 0} min`} />
+      <StatCard icon={Zap} label="Total XP" value={`${levelsData?.total_xp || 0} XP`} />
+      <StatCard icon={Clock} label="Total Focused" value={`${statsData?.total_focused_minutes || 0} min`} />
+    </div>
+  );
+
+  const renderInterests = () => {
+    const interests = Array.isArray(profileData?.interests) ? profileData.interests as string[] : [];
+    return (
+      <div className="space-y-2">
+        <h4 className="text-md font-semibold">Interests</h4>
+        <div className="flex flex-wrap gap-2">
+          {interests.length > 0 ? (
+            interests.map((tag, index) => (
+              <Badge key={index} variant="secondary">{tag}</Badge>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No interests listed.</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={!!userId} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px] glass-card">
+        <DialogHeader>
+          <DialogTitle>User Profile</DialogTitle>
+        </DialogHeader>
+        
+        {isLoading ? (
+          <div className="flex flex-col items-center py-10">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Loading profile...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-4 border-b border-border pb-4">
+              <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                <span className="text-3xl font-semibold text-white">
+                  {profileData?.username?.[0]?.toUpperCase()}
+                </span>
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-bold">{profileData?.username}</h3>
+                <p className="text-md font-medium text-accent flex items-center justify-center gap-1">
+                  <Zap className="w-4 h-4" />
+                  {levelsData?.title || "Novice Monk"} (Lvl {levelsData?.level || 1})
+                </p>
+              </div>
+              {renderActionButtons()}
+            </div>
+
+            {renderStats()}
+            
+            <div className="border-t border-border pt-4">
+                {renderInterests()}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+interface StatCardProps {
+    icon: React.ElementType;
+    label: string;
+    value: string;
+}
+
+const StatCard = ({ icon: Icon, label, value }: StatCardProps) => (
+    <div className="glass-card p-3 rounded-lg flex flex-col items-center text-center">
+        <Icon className="w-5 h-5 text-primary mb-1" />
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-lg font-bold">{value}</p>
+    </div>
+);
+
+export default UserProfileModal;
