@@ -93,12 +93,16 @@ const ProfileMenu = () => {
     let allSuccess = true;
 
     // 1. Save username and interests
+    // We explicitly cast interests to Json type to satisfy the Supabase client, 
+    // which should resolve the schema cache issue if it's related to type inference.
+    const profileUpdatePayload = { 
+      username: username, 
+      interests: interests as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
+    };
+    
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ 
-        username: username, 
-        interests: interests as unknown as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
-      })
+      .update(profileUpdatePayload)
       .eq("id", userId);
 
     if (profileError) {
@@ -109,7 +113,7 @@ const ProfileMenu = () => {
       await refreshProfile(); // Update global context immediately
     }
 
-    // 2. Save daily goal
+    // 2. Save daily goal (using upsert)
     const today = new Date().toISOString().split("T")[0];
     const { error: dailyError } = await supabase
       .from("daily_goals")
@@ -121,7 +125,7 @@ const ProfileMenu = () => {
       allSuccess = false;
     }
 
-    // 3. Save weekly goal
+    // 3. Save weekly goal (using upsert)
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
