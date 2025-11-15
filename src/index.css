@@ -126,6 +126,11 @@
   }
 }
 
+@keyframes background-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.7; }
+}
+
 /* --- Room Themes --- */
 
 .default {
@@ -274,6 +279,10 @@
   
   .animate-timer-breathing {
     animation: timer-breathing 4s ease-in-out infinite;
+  }
+  
+  .animate-background-pulse {
+    animation: background-pulse 4s ease-in-out infinite;
   }
   
   /* Icon Glow on Hover (Theme Dependent) */

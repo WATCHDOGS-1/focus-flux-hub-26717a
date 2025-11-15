@@ -159,6 +159,10 @@ const SessionTimer = () => {
             stroke="hsl(var(--border))"
             strokeWidth="8"
             fill="none"
+            className={cn(
+              "transition-opacity duration-1000",
+              isActive && isBreathingAnimationEnabled && "animate-background-pulse"
+            )}
           />
           <circle
             cx="128"
