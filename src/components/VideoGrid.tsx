@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { WebRTCManager } from "@/utils/webrtc";
 import RemoteVideo from "@/components/RemoteVideo";
-import { supabase } from "@/integrations/supabase/client"; // Import supabase client
+import { supabase } from "@/integrations/supabase/client";
 
 interface VideoGridProps {
   userId: string;
-  roomId: string; // Now dynamic
+  tag: string; // Changed from roomId to tag
 }
 
-const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
+const VideoGrid = ({ userId, tag }: VideoGridProps) => {
   // Start with video disabled by default
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
@@ -20,7 +20,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const webrtcManager = useRef<WebRTCManager | null>(null);
 
   useEffect(() => {
-    // Cleanup previous manager if room ID changes
+    // Cleanup previous manager if tag changes
     if (webrtcManager.current) {
       webrtcManager.current.cleanup();
       webrtcManager.current = null;
@@ -62,10 +62,8 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
           () => { /* onPeerLeft handler */ }
         );
 
-        // Initialize signaling only
-        await webrtcManager.current.initialize(roomId);
-        
-        // Note: We do not call toggleVideo(true) here. Video is off by default.
+        // Initialize signaling using the tag as the room identifier
+        await webrtcManager.current.initialize(tag);
         
       } catch (error) {
         console.error("Error setting up WebRTC signaling:", error);
@@ -73,7 +71,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       }
     };
 
-    if (userId && roomId) {
+    if (userId && tag) {
       setup();
     }
     
@@ -82,7 +80,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         webrtcManager.current.cleanup();
       }
     };
-  }, [userId, roomId]); // Dependency on roomId ensures re-initialization when switching rooms
+  }, [userId, tag]); // Dependency on tag ensures re-initialization when switching focus groups
 
   const toggleVideo = async () => {
     const newVideoState = !isVideoEnabled;

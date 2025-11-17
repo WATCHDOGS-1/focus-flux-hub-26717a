@@ -15,9 +15,10 @@ type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"] & {
 
 interface GlobalChatPanelProps {
   userId: string;
+  tag: string; // New prop: the current focus tag
 }
 
-const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
+const GlobalChatPanel = ({ userId, tag }: GlobalChatPanelProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -36,6 +37,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
         *,
         profiles (username)
       `)
+      .eq("tag", tag) // Filter by tag
       .order("created_at", { ascending: true })
       .limit(100);
 
@@ -86,16 +88,18 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
   };
 
   useEffect(() => {
+    if (!tag) return;
     loadMessages();
 
     const channel = supabase
-      .channel("global_chat")
+      .channel(`chat:${tag}`) // Channel name scoped by tag
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "chat_messages",
+          filter: `tag=eq.${tag}`, // Filter real-time events by tag
         },
         (payload) => {
           const newMsgRow = payload.new as Database["public"]["Tables"]["chat_messages"]["Row"];
@@ -107,7 +111,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, tag]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -121,6 +125,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
       user_id: userId,
       message: messageContent,
       created_at: new Date().toISOString(),
+      tag: tag,
       profiles: { username: "You" },
     };
     // Filter out any previous optimistic message before adding the new one
@@ -130,7 +135,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
 
     const { error } = await supabase
       .from("chat_messages")
-      .insert({ user_id: userId, message: messageContent });
+      .insert({ user_id: userId, message: messageContent, tag: tag }); // Insert tag
 
     if (error) {
       toast.error("Failed to send message");
@@ -145,7 +150,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
     <div className="h-full flex flex-col">
       <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
         <MessageSquare className="w-5 h-5 text-primary" />
-        Global Chat
+        Chat: <span className="text-accent">#{tag}</span>
       </h3>
 
       <div className="flex-1 space-y-3 overflow-y-auto mb-4 pr-2">
@@ -183,7 +188,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-          placeholder="Type a message..."
+          placeholder={`Message #${tag}...`}
           className="flex-1"
         />
         <Button size="icon" onClick={sendMessage} className="dopamine-click">
