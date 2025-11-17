@@ -271,6 +271,9 @@ export type Database = {
           profile_photo_url: string | null
           discord_user_id: string | null
           interests: Json | null // Added interests
+          twitter_handle: string | null // New field
+          instagram_handle: string | null // New field
+          github_handle: string | null // New field
         }
         Insert: {
           id?: string
@@ -278,6 +281,9 @@ export type Database = {
           profile_photo_url?: string | null
           discord_user_id?: string | null
           interests?: Json | null // Added interests
+          twitter_handle?: string | null // New field
+          instagram_handle?: string | null // New field
+          github_handle?: string | null // New field
         }
         Update: {
           id?: string
@@ -285,6 +291,9 @@ export type Database = {
           profile_photo_url?: string | null
           discord_user_id?: string | null
           interests?: Json | null // Added interests
+          twitter_handle?: string | null // New field
+          instagram_handle?: string | null // New field
+          github_handle?: string | null // New field
         }
         Relationships: []
       }

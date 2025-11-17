@@ -6,7 +6,6 @@ import SocialSidebar from "@/components/SocialSidebar";
 import TimeTracker from "@/components/TimeTracker";
 import SessionTimer from "@/components/SessionTimer";
 import Leaderboard from "@/components/Leaderboard";
-import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace"; // Import the new combined workspace
@@ -150,7 +149,6 @@ const FocusRoom = () => {
       case "social": return <SocialSidebar userId={userId!} onProfileClick={handleProfileClick} />;
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <SessionTimer />;
-      case "profile": return <ProfileMenu />;
       default: return null;
     }
   };
@@ -161,7 +159,6 @@ const FocusRoom = () => {
       "social": "Direct Messages",
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
-      "profile": "Profile Settings",
     };
     return titles[panel] || "";
   };
@@ -192,7 +189,7 @@ const FocusRoom = () => {
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users/> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy/> Leaderboard</Button>
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer/> Timer</Button>
-            <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User/> Profile</Button>
+            <Button onClick={() => navigate("/profile")} className="w-full justify-start gap-2"><User/> Profile Settings</Button>
             <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText/> Notes & Tasks</Button>
             <ThemeToggle />
             <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut/> Leave Room</Button>
@@ -242,7 +239,7 @@ const FocusRoom = () => {
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer"><Timer className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings"><User className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title="Profile Settings"><User className="h-5 w-5" /></Button>
                   </>
                 )}
                 <ThemeToggle />
