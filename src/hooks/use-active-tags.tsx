@@ -9,7 +9,6 @@ export interface ActiveTag {
 
 /**
  * Fetches the top 10 active focus tags from the database.
- * This simulates calling a Supabase RPC function (get_active_tags).
  */
 export function useActiveTags() {
   const [activeTags, setActiveTags] = useState<ActiveTag[]>([]);
@@ -18,10 +17,8 @@ export function useActiveTags() {
   const fetchTags = async () => {
     setIsLoading(true);
     
-    // NOTE: This query simulates the RPC function:
-    // SELECT tag, COUNT(DISTINCT user_id) as active_users FROM focus_sessions WHERE end_time IS NULL AND tag IS NOT NULL GROUP BY tag ORDER BY active_users DESC LIMIT 10;
-    
-    const { data, error } = await supabase
+    // Query focus_sessions for currently active sessions (end_time IS NULL)
+    const { data: sessions, error } = await supabase
       .from("focus_sessions")
       .select("tag, user_id")
       .is("end_time", null)
@@ -34,9 +31,9 @@ export function useActiveTags() {
       return;
     }
 
-    // Aggregate results manually in client-side for simplicity, mimicking the RPC output
+    // Aggregate results: count unique users per tag
     const tagCounts: { [key: string]: Set<string> } = {};
-    data.forEach(session => {
+    sessions.forEach(session => {
       if (session.tag) {
         if (!tagCounts[session.tag]) {
           tagCounts[session.tag] = new Set();
@@ -50,6 +47,7 @@ export function useActiveTags() {
         tag,
         active_users: userIds.size,
       }))
+      .filter(tag => tag.active_users > 0) // Explicitly filter out tags with 0 users (shouldn't happen if query is correct, but adds safety)
       .sort((a, b) => b.active_users - a.active_users)
       .slice(0, 10);
 
@@ -61,7 +59,8 @@ export function useActiveTags() {
     fetchTags();
     
     // Set up a simple polling mechanism for real-time feel on the explore page
-    const interval = setInterval(fetchTags, 15000); // Refresh every 15 seconds
+    // Reduced polling interval to 10 seconds for faster cleanup detection
+    const interval = setInterval(fetchTags, 10000); 
 
     return () => clearInterval(interval);
   }, []);
