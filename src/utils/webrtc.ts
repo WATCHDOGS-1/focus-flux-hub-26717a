@@ -32,14 +32,8 @@ export class WebRTCManager {
     this.roomChannel = supabase.channel(`room:${roomId}`);
 
     this.roomChannel
-      .on('presence', { event: 'join' }, ({ newPresences }: any) => {
-        console.log('New peer joined:', newPresences);
-        // FIX: When a new peer joins, existing peers must initiate the connection
-        newPresences.forEach((presence: any) => {
-          if (presence.userId !== this.userId) {
-            this.createPeerConnection(presence.userId, true);
-          }
-        });
+      .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
+        console.log('New peer joined:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
         console.log('Peer left:', key);
@@ -53,7 +47,6 @@ export class WebRTCManager {
         for (const id in presences) {
           const presence = presences[id][0];
           if (presence.userId !== this.userId) {
-            // Initiate connection for peers already present when we joined
             this.createPeerConnection(presence.userId, true);
           }
         }

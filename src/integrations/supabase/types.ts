@@ -20,21 +20,18 @@ export type Database = {
           user_id: string
           message: string
           created_at: string
-          tag: string // New: Scopes the chat to a focus group
         }
         Insert: {
           id?: string
           user_id: string
           message: string
           created_at?: string
-          tag: string // New
         }
         Update: {
           id?: string
           user_id?: string
           message?: string
           created_at?: string
-          tag?: string // New
         }
         Relationships: [
           {
@@ -164,7 +161,7 @@ export type Database = {
           start_time: string
           end_time: string | null
           duration_minutes: number | null
-          tag: string | null
+          tag: string | null // Added tag column
         }
         Insert: {
           id?: string
@@ -172,7 +169,7 @@ export type Database = {
           start_time: string
           end_time?: string | null
           duration_minutes?: number | null
-          tag?: string | null
+          tag?: string | null // Added tag column
         }
         Update: {
           id?: string
@@ -180,7 +177,7 @@ export type Database = {
           start_time?: string
           end_time?: string | null
           duration_minutes?: number | null
-          tag?: string | null
+          tag?: string | null // Added tag column
         }
         Relationships: [
           {
@@ -267,68 +264,27 @@ export type Database = {
           }
         ]
       }
-      projects: { // New table for structured focus tags
-        Row: {
-          id: string
-          user_id: string
-          name: string
-          description: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name: string
-          description?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          description?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "projects_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       profiles: {
         Row: {
           id: string
           username: string
           profile_photo_url: string | null
           discord_user_id: string | null
-          interests: Json | null
-          twitter_handle: string | null
-          instagram_handle: string | null
-          github_handle: string | null
+          interests: Json | null // Added interests
         }
         Insert: {
           id?: string
           username: string
           profile_photo_url?: string | null
           discord_user_id?: string | null
-          interests?: Json | null
-          twitter_handle?: string | null
-          instagram_handle?: string | null
-          github_handle?: string | null
+          interests?: Json | null // Added interests
         }
         Update: {
           id?: string
           username?: string
           profile_photo_url?: string | null
           discord_user_id?: string | null
-          interests?: Json | null
-          twitter_handle?: string | null
-          instagram_handle?: string | null
-          github_handle?: string | null
+          interests?: Json | null // Added interests
         }
         Relationships: []
       }
@@ -354,38 +310,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_levels_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      user_live_status: { // New table for real-time accountability
-        Row: {
-          user_id: string
-          status: Database["public"]["Enums"]["live_status"]
-          current_tag: string | null
-          session_ends_at: string | null
-          last_updated: string
-        }
-        Insert: {
-          user_id: string
-          status: Database["public"]["Enums"]["live_status"]
-          current_tag?: string | null
-          session_ends_at?: string | null
-          last_updated?: string
-        }
-        Update: {
-          user_id?: string
-          status?: Database["public"]["Enums"]["live_status"]
-          current_tag?: string | null
-          session_ends_at?: string | null
-          last_updated?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_live_status_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
@@ -499,7 +423,6 @@ export type Database = {
     }
     Enums: {
       friend_request_status: "pending" | "accepted" | "rejected"
-      live_status: "focusing" | "break" | "offline" // New enum
     }
     CompositeTypes: {
       [_ in never]: never
@@ -628,7 +551,6 @@ export const Constants = {
   public: {
     Enums: {
       friend_request_status: ["pending", "accepted", "rejected"] as const,
-      live_status: ["focusing", "break", "offline"] as const,
     },
   },
 } as const

@@ -6,9 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/use-auth";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
-import ExploreRooms from "./pages/ExploreRooms";
+import ExploreRooms from "./pages/ExploreRooms"; // Import new page
 import FocusRoom from "./pages/FocusRoom";
-import ProfilePage from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 
@@ -25,9 +24,8 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/explore" element={<ExploreRooms />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/focus/:tag" element={<FocusRoom />} /> {/* Updated to use dynamic tag */}
+            <Route path="/explore" element={<ExploreRooms />} /> {/* New Explore Route */}
+            <Route path="/focus-room/:roomId" element={<FocusRoom />} /> {/* Dynamic Room Route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
