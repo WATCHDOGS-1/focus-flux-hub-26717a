@@ -1,27 +1,28 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom"; // Import useParams
+import { useNavigate, useParams } from "react-router-dom";
 import VideoGrid from "@/components/VideoGrid";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import SocialSidebar from "@/components/SocialSidebar";
 import TimeTracker from "@/components/TimeTracker";
-import SessionTimer from "@/components/SessionTimer";
+import FocusTimer from "@/components/FocusTimer"; // Use the new centralized timer UI
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace"; // Import the new combined workspace
+import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
-import UserProfileModal from "@/components/UserProfileModal"; // Import the new modal
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu } from "lucide-react";
+import AmbientSoundControl from "@/components/AmbientSoundControl"; // Import new control
+import UserProfileModal from "@/components/UserProfileModal";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { endFocusSession } from "@/utils/session-management";
-import { runAIFocusCoach } from "@/utils/ai-coach"; // Import AI Coach
-import { useUserStats } from "@/hooks/use-user-stats"; // Import useUserStats to get current stats
+import { useUserStats } from "@/hooks/use-user-stats";
+import { useFocusSession } from "@/hooks/use-focus-session"; // Import centralized hook
+import { useAmbientSound } from "@/hooks/use-ambient-sound"; // Import ambient sound hook
 import {
   Drawer,
   DrawerContent,
@@ -30,25 +31,32 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PREDEFINED_ROOMS } from "@/utils/constants"; // Import room constants
+import { PREDEFINED_ROOMS } from "@/utils/constants";
 
 const FocusRoom = () => {
   const navigate = useNavigate();
-  const { roomId } = useParams<{ roomId: string }>(); // Get dynamic room ID
-  const { userId, isAuthenticated, isLoading: isAuthLoading, profile } = useAuth();
-  const { stats, levels, refetch: refetchStats } = useUserStats(); // Use user stats hook
+  const { roomId } = useParams<{ roomId: string }>();
+  const { userId, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const isMobile = useIsMobile();
+  
+  const { 
+    isActive, 
+    sessionStartTime, 
+    focusTag, 
+    setFocusTag, 
+    endCurrentSession,
+    currentMode,
+    startNewSession,
+  } = useFocusSession(); // Use the centralized hook
+
+  const { setSound } = useAmbientSound(); // Use ambient sound hook
   
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
-  const [focusTag, setFocusTag] = useState("");
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [showNotesWorkspace, setShowNotesWorkspace] = useState(false);
   const [roomTheme, setRoomTheme] = useState("default");
-  const sessionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
+  
   // --- Profile Modal State and Handler ---
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
   
@@ -66,18 +74,10 @@ const FocusRoom = () => {
     if (!isAuthenticated) {
       navigate("/auth", { replace: true });
     } else if (!roomId || !currentRoom) {
-      // If room ID is missing or invalid, redirect to explore page
       toast.error("Invalid room selected.");
       navigate("/explore", { replace: true });
-    } else if (userId && !sessionId) {
-      startSession(userId);
     }
-    return () => {
-      if (sessionIntervalRef.current) {
-        clearInterval(sessionIntervalRef.current);
-      }
-    };
-  }, [isAuthLoading, isAuthenticated, userId, navigate, sessionId, roomId, currentRoom]);
+  }, [isAuthLoading, isAuthenticated, navigate, roomId, currentRoom]);
 
   useEffect(() => {
     document.body.className = roomTheme;
@@ -86,47 +86,18 @@ const FocusRoom = () => {
     };
   }, [roomTheme]);
 
-  const startSession = async (uid: string) => {
-    const { data, error } = await supabase
-      .from("focus_sessions")
-      .insert({ user_id: uid, start_time: new Date().toISOString(), tag: focusTag || null })
-      .select()
-      .single();
-    if (!error && data) {
-      setSessionId(data.id);
-      setSessionStartTime(Date.now());
-    } else if (error) {
-      console.error("Error starting session:", error);
-      toast.error("Failed to start focus session.");
-    }
-  };
-
   const leaveRoom = async () => {
-    if (!sessionId || !userId) {
-      navigate("/explore");
-      return;
+    if (isActive) {
+      await endCurrentSession(); // End and log the session before leaving
     }
-    
-    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
-    
-    toast.promise(leavePromise, {
-      loading: "Saving your session...",
-      success: (result) => {
-        // Run AI Coach after successful session save
-        runAIFocusCoach(stats, levels, result.durationMinutes);
-        refetchStats(); // Refresh stats after session save
-        navigate("/explore"); // Redirect to explore page
-        return result.message;
-      },
-      error: (message) => message,
-    });
+    navigate("/explore");
   };
 
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false);
     if (activePanel !== panel) setShowNotesWorkspace(false);
-    setIsMobileMenuOpen(false); // Close mobile menu when a panel is selected
+    setIsMobileMenuOpen(false);
   };
 
   const toggleFocusMode = () => {
@@ -149,8 +120,9 @@ const FocusRoom = () => {
       case "global-chat": return <GlobalChatPanel userId={userId!} />;
       case "social": return <SocialSidebar userId={userId!} onProfileClick={handleProfileClick} />;
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
-      case "pomodoro": return <SessionTimer />;
+      case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
+      case "ambient-sound": return <AmbientSoundControl />;
       default: return null;
     }
   };
@@ -162,6 +134,7 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
+      "ambient-sound": "Ambient Sound",
     };
     return titles[panel] || "";
   };
@@ -188,6 +161,7 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
+            <Button onClick={() => togglePanel("ambient-sound")} className="w-full justify-start gap-2"><Volume2/> Ambient Sound</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare/> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users/> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy/> Leaderboard</Button>
@@ -232,6 +206,7 @@ const FocusRoom = () => {
             ) : (
               <>
                 <RoomThemeSelector onThemeChange={setRoomTheme} />
+                <Button variant="ghost" size="icon" onClick={() => togglePanel("ambient-sound")} title="Ambient Sound"><Volume2 className="h-5 w-5" /></Button>
                 <Button variant="ghost" size="icon" onClick={toggleFocusMode} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
                   {isFocusMode ? <Maximize2 className="h-5 w-5 text-destructive" /> : <Minimize2 className="h-5 w-5" />}
                 </Button>
@@ -246,7 +221,6 @@ const FocusRoom = () => {
                   </>
                 )}
                 <ThemeToggle />
-                {/* Leave Room button is always visible now */}
                 <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
               </>
             )}
@@ -257,17 +231,39 @@ const FocusRoom = () => {
       <main className="flex-1 overflow-y-auto">
         <div className="flex h-full">
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
-            {!isFocusMode && (
-              <div className="glass-card p-3 rounded-xl flex items-center gap-3 hover-lift">
-                <Tag className="w-5 h-5 text-primary" />
-                <Input placeholder="What are you focusing on right now?" value={focusTag} onChange={(e) => setFocusTag(e.target.value)} className="flex-1 border-none bg-transparent focus-visible:ring-0" />
+            {/* Session Commitment UI (Visible only when not active) */}
+            {!isActive && (
+              <div className="glass-card p-3 rounded-xl flex flex-col sm:flex-row items-center gap-3 hover-lift">
+                <Tag className="w-5 h-5 text-primary flex-shrink-0" />
+                <Input 
+                  placeholder="What are you committing to focus on right now? (e.g., 'Writing thesis for 50 min')" 
+                  value={focusTag} 
+                  onChange={(e) => setFocusTag(e.target.value)} 
+                  className="flex-1 border-none bg-transparent focus-visible:ring-0" 
+                />
+                <Button 
+                  onClick={startNewSession} 
+                  disabled={!focusTag.trim()}
+                  className="dopamine-click flex-shrink-0"
+                >
+                  Commit & Start {currentMode.name.split('(')[0].trim()}
+                </Button>
               </div>
             )}
+            
+            {/* Display current commitment when active */}
+            {isActive && (
+              <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-primary/10 border-primary/50">
+                <Tag className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="text-sm font-medium truncate">
+                  Current Commitment: {focusTag}
+                </span>
+              </div>
+            )}
+
             <div className="flex-1 min-h-[400px]">
-              {/* Pass the dynamic roomId to VideoGrid */}
               <VideoGrid userId={userId} roomId={roomId} />
             </div>
-            {/* Use the combined workspace here */}
             {showNotesWorkspace && <div className="mt-4"><NotesAndTasksWorkspace /></div>}
           </div>
           {activePanel && !isFocusMode && !isMobile && (
