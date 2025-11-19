@@ -2,15 +2,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-const XP_PER_MINUTE = 1;
-const DAILY_STREAK_MULTIPLIER = 1.1; // 10% bonus for maintaining a streak
+const XP_PER_MINUTE = 10; // Increased from 1 to 10
+const DAILY_STREAK_MULTIPLIER = 1.2; // 20% bonus for maintaining a streak
 
 // Simple XP to Level mapping (can be expanded later)
 const LEVEL_THRESHOLDS = [
-  { level: 1, xp: 0, title: "Novice Monk" },
-  { level: 2, xp: 100, title: "Focused Apprentice" },
-  { level: 3, xp: 300, title: "Time Bender" },
-  { level: 4, xp: 600, title: "Chrono Emperor" },
+  { level: 1, xp: 0, title: "Novice" },
+  { level: 2, xp: 500, title: "Apprentice" },
+  { level: 3, xp: 1500, title: "Adept" },
+  { level: 4, xp: 3000, title: "Expert" },
+  { level: 5, xp: 5000, title: "Master" },
+  { level: 6, xp: 8000, title: "Grandmaster" },
+  { level: 7, xp: 12000, title: "Legend" },
+  { level: 8, xp: 20000, title: "Ascended" },
 ];
 
 const getTitleByXP = (xp: number) => {
@@ -61,22 +65,29 @@ export const endFocusSession = async (
     .eq("id", sessionId);
   if (sessionError) throw new Error("Failed to save session.");
 
-  // --- 2. Fetch Current Stats & Levels ---
+  // --- 2. Fetch Current Stats & Levels & Profile (for Class) ---
   const { data: statsData } = await supabase
     .from("user_stats")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
-  
+
   const { data: levelsData } = await supabase
     .from("user_levels")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
 
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("interests")
+    .eq("id", userId)
+    .single();
+
   // Initialize stats if they don't exist
   const currentStats = statsData || { user_id: userId, longest_streak: 0, longest_session_minutes: 0, total_focused_minutes: 0, last_focused_date: null };
   const currentLevels = levelsData || { user_id: userId, level: 1, total_xp: 0, title: LEVEL_THRESHOLDS[0].title };
+  const userClass = (profileData?.interests as any)?.focus_class || "None";
 
   // --- 3. Streak Calculation ---
   let newStreak = currentStats.longest_streak;
@@ -102,10 +113,27 @@ export const endFocusSession = async (
     newStreak = 1;
   }
 
-  // --- 4. XP Calculation ---
+  // --- 4. XP Calculation with Class Bonuses ---
   let xpEarned = minutes * XP_PER_MINUTE;
-  xpEarned = Math.floor(xpEarned * streakMultiplier);
-  
+
+  // Apply Streak Multiplier
+  if (newStreak > 1) {
+    xpEarned = Math.floor(xpEarned * streakMultiplier);
+  }
+
+  // Apply Class Multipliers
+  let bonusDescription = "";
+  if (userClass === "Monk" && minutes >= 45) {
+    xpEarned = Math.floor(xpEarned * 1.5); // 50% bonus for long sessions
+    bonusDescription = " (Monk Bonus!)";
+  } else if (userClass === "Sprinter" && minutes < 30) {
+    xpEarned = Math.floor(xpEarned * 1.2); // 20% bonus for short sessions
+    bonusDescription = " (Sprinter Bonus!)";
+  } else if (userClass === "Scholar" && newStreak >= 3) {
+    xpEarned = Math.floor(xpEarned * 1.3); // 30% bonus for streaks > 3
+    bonusDescription = " (Scholar Bonus!)";
+  }
+
   const newTotalXP = currentLevels.total_xp + xpEarned;
   const newTitle = getTitleByXP(newTotalXP);
   const newLevel = LEVEL_THRESHOLDS.find(t => t.title === newTitle)?.level || currentLevels.level;
@@ -158,5 +186,5 @@ export const endFocusSession = async (
       .insert({ user_id: userId, week_start: weekStart.toISOString(), total_minutes: minutes });
   }
 
-  return { message: `Session saved! You focused for ${minutes} minutes and earned ${xpEarned} XP. Current streak: ${newStreak} days.`, durationMinutes: minutes };
+  return { message: `Session saved! +${xpEarned} XP${bonusDescription}. Streak: ${newStreak} days.`, durationMinutes: minutes };
 };

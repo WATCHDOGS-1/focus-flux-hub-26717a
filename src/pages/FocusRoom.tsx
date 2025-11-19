@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import VideoGrid from "@/components/VideoGrid";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import SocialSidebar from "@/components/SocialSidebar";
@@ -13,7 +14,9 @@ import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import AmbientSoundControl from "@/components/AmbientSoundControl"; // Import new control
 import UserProfileModal from "@/components/UserProfileModal";
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2 } from "lucide-react";
+import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
+import SquadSystem from "@/components/SquadSystem"; // Import SquadSystem
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2, Sparkles, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,28 +41,29 @@ const FocusRoom = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const { userId, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const isMobile = useIsMobile();
-  
-  const { 
-    isActive, 
-    sessionStartTime, 
-    focusTag, 
-    setFocusTag, 
+
+  const {
+    isActive,
+    sessionStartTime,
+    focusTag,
+    setFocusTag,
     endCurrentSession,
     currentMode,
     startNewSession,
   } = useFocusSession(); // Use the centralized hook
 
   const { setSound } = useAmbientSound(); // Use ambient sound hook
-  
+
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false); // New Zen Mode state
   const [showNotesWorkspace, setShowNotesWorkspace] = useState(false);
   const [roomTheme, setRoomTheme] = useState("default");
-  
+
   // --- Profile Modal State and Handler ---
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
-  
+
   const handleProfileClick = (id: string) => {
     setTargetUserId(id);
   };
@@ -107,7 +111,7 @@ const FocusRoom = () => {
       setShowNotesWorkspace(false);
     }
   };
-  
+
   const toggleNotesWorkspace = () => {
     setShowNotesWorkspace(!showNotesWorkspace);
     if (!showNotesWorkspace) setActivePanel(null);
@@ -123,6 +127,7 @@ const FocusRoom = () => {
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
       case "ambient-sound": return <AmbientSoundControl />;
+      case "squad": return <SquadSystem isFocusing={isActive} />;
       default: return null;
     }
   };
@@ -135,6 +140,7 @@ const FocusRoom = () => {
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
       "ambient-sound": "Ambient Sound",
+      "squad": "Squad Mode",
     };
     return titles[panel] || "";
   };
@@ -146,7 +152,7 @@ const FocusRoom = () => {
       </div>
     );
   }
-  
+
   const renderMobileMenu = () => (
     <Drawer open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
       <DrawerTrigger asChild>
@@ -161,15 +167,16 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={() => togglePanel("ambient-sound")} className="w-full justify-start gap-2"><Volume2/> Ambient Sound</Button>
-            <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare/> Global Chat</Button>
-            <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users/> Social</Button>
-            <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy/> Leaderboard</Button>
-            <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer/> Timer</Button>
-            <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User/> Profile</Button>
-            <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText/> Notes & Tasks</Button>
+            <Button onClick={() => togglePanel("ambient-sound")} className="w-full justify-start gap-2"><Volume2 /> Ambient Sound</Button>
+            <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
+            <Button onClick={() => togglePanel("squad")} className="w-full justify-start gap-2"><Shield /> Squad Mode</Button>
+            <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
+            <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
+            <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer /> Timer</Button>
+            <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User /> Profile</Button>
+            <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes & Tasks</Button>
             <ThemeToggle />
-            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut/> Leave Room</Button>
+            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut /> Leave Room</Button>
           </div>
         </ScrollArea>
       </DrawerContent>
@@ -179,13 +186,27 @@ const FocusRoom = () => {
   return (
     <div className={`min-h-screen flex flex-col bg-background relative overflow-hidden transition-colors duration-500`}>
       <EncouragementToasts />
-      
+
+      {/* Zen Mode HUD */}
+      <AnimatePresence>
+        {isZenMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50"
+          >
+            <FocusHUD onExitZenMode={() => setIsZenMode(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Profile Modal */}
       {targetUserId && (
-        <UserProfileModal 
-          userId={targetUserId} 
+        <UserProfileModal
+          userId={targetUserId}
           currentUserId={userId}
-          onClose={() => setTargetUserId(null)} 
+          onClose={() => setTargetUserId(null)}
         />
       )}
 
@@ -213,6 +234,7 @@ const FocusRoom = () => {
                 {!isFocusMode && (
                   <>
                     <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes & Tasks"><NotebookText className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("squad")} title="Squad Mode"><Shield className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
@@ -235,14 +257,14 @@ const FocusRoom = () => {
             {!isActive && (
               <div className="glass-card p-3 rounded-xl flex flex-col sm:flex-row items-center gap-3 hover-lift">
                 <Tag className="w-5 h-5 text-primary flex-shrink-0" />
-                <Input 
-                  placeholder="What are you committing to focus on right now? (e.g., 'Writing thesis for 50 min')" 
-                  value={focusTag} 
-                  onChange={(e) => setFocusTag(e.target.value)} 
-                  className="flex-1 border-none bg-transparent focus-visible:ring-0" 
+                <Input
+                  placeholder="What are you committing to focus on right now? (e.g., 'Writing thesis for 50 min')"
+                  value={focusTag}
+                  onChange={(e) => setFocusTag(e.target.value)}
+                  className="flex-1 border-none bg-transparent focus-visible:ring-0"
                 />
-                <Button 
-                  onClick={startNewSession} 
+                <Button
+                  onClick={startNewSession}
                   disabled={!focusTag.trim()}
                   className="dopamine-click flex-shrink-0"
                 >
@@ -250,7 +272,7 @@ const FocusRoom = () => {
                 </Button>
               </div>
             )}
-            
+
             {/* Display current commitment when active */}
             {isActive && (
               <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-primary/10 border-primary/50">
@@ -273,7 +295,7 @@ const FocusRoom = () => {
           )}
         </div>
       </main>
-        
+
       {isMobile && (
         <Drawer open={!!activePanel && !isFocusMode} onOpenChange={(open) => !open && setActivePanel(null)}>
           <DrawerContent className="h-[80vh] glass-card">

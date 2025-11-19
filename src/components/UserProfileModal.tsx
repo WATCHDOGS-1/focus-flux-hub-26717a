@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { sendFriendRequest } from "@/utils/friends";
 import { getOrCreateConversation } from "@/utils/dm";
+import { Progress } from "@/components/ui/progress";
+import { FOCUS_CLASSES, FocusClass } from "@/hooks/useGamification";
+import { getLevelThresholds } from "@/utils/session-management";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
@@ -31,7 +34,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
 
     const fetchData = async () => {
       setIsLoading(true);
-      
+
       // 1. Fetch Profile (Requires RLS on profiles to allow friends to read basic info)
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -54,7 +57,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
-      
+
       if (statsError && statsError.code !== 'PGRST116') {
         console.error("Error fetching user stats:", statsError);
       }
@@ -66,7 +69,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
-      
+
       if (levelsError && levelsError.code !== 'PGRST116') {
         console.error("Error fetching user levels:", levelsError);
       }
@@ -119,6 +122,27 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
     }
   };
 
+
+
+  const handleClassSelect = async (classId: FocusClass) => {
+    if (userId !== currentUserId) return;
+
+    // Optimistic update
+    const newInterests = { ...((profileData?.interests as any) || {}), focus_class: classId };
+    setProfileData({ ...profileData!, interests: newInterests });
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ interests: newInterests })
+      .eq("id", userId);
+
+    if (error) {
+      toast.error("Failed to update class.");
+    } else {
+      toast.success(`Class updated to ${FOCUS_CLASSES.find(c => c.id === classId)?.name}!`);
+    }
+  };
+
   const renderActionButtons = () => {
     if (userId === currentUserId) {
       return <Badge variant="secondary">This is You</Badge>;
@@ -137,7 +161,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
       case 'pending_sent':
         return <Button variant="outline" disabled>Request Sent <Clock className="w-4 h-4 ml-2" /></Button>;
       case 'pending_received':
-        return <Button variant="warning" disabled>Request Received (Check Social Panel)</Button>;
+        return <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" disabled>Request Received (Check Social Panel)</Button>;
       case 'not_friend':
       default:
         return (
@@ -148,14 +172,75 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
     }
   };
 
-  const renderStats = () => (
-    <div className="grid grid-cols-2 gap-4">
-      <StatCard icon={Flame} label="Longest Streak" value={`${statsData?.longest_streak || 0} days`} />
-      <StatCard icon={Clock} label="Longest Session" value={`${statsData?.longest_session_minutes || 0} min`} />
-      <StatCard icon={Zap} label="Total XP" value={`${levelsData?.total_xp || 0} XP`} />
-      <StatCard icon={Clock} label="Total Focused" value={`${statsData?.total_focused_minutes || 0} min`} />
-    </div>
-  );
+  const renderStats = () => {
+    const thresholds = getLevelThresholds();
+    const currentXP = levelsData?.total_xp || 0;
+    const currentLevel = levelsData?.level || 1;
+    const nextLevel = thresholds.find(t => t.level === currentLevel + 1);
+    const prevLevelXP = thresholds.find(t => t.level === currentLevel)?.xp || 0;
+    const nextLevelXP = nextLevel?.xp || (prevLevelXP + 1000); // Fallback
+    const progressPercent = Math.min(100, Math.max(0, ((currentXP - prevLevelXP) / (nextLevelXP - prevLevelXP)) * 100));
+    const userClassId = (profileData?.interests as any)?.focus_class as FocusClass | undefined;
+    const userClass = FOCUS_CLASSES.find(c => c.id === userClassId);
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <StatCard icon={Flame} label="Longest Streak" value={`${statsData?.longest_streak || 0} days`} />
+          <StatCard icon={Clock} label="Longest Session" value={`${statsData?.longest_session_minutes || 0} min`} />
+          <StatCard icon={Zap} label="Total XP" value={`${levelsData?.total_xp || 0} XP`} />
+          <StatCard icon={Clock} label="Total Focused" value={`${statsData?.total_focused_minutes || 0} min`} />
+        </div>
+
+        {/* XP Progress */}
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Lvl {currentLevel}</span>
+            <span>{Math.floor(progressPercent)}% to Lvl {currentLevel + 1}</span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+        </div>
+
+        {/* Class Selection (Only for own profile or if class is set) */}
+        {(userId === currentUserId || userClass) && (
+          <div className="space-y-2 pt-2">
+            <h4 className="text-sm font-semibold flex items-center gap-2">
+              Focus Class {userClass && <Badge variant="outline">{userClass.name}</Badge>}
+            </h4>
+
+            {userId === currentUserId ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {FOCUS_CLASSES.map((cls) => (
+                  <div
+                    key={cls.id}
+                    onClick={() => handleClassSelect(cls.id as FocusClass)}
+                    className={`
+                      cursor-pointer rounded-lg p-2 border transition-all hover:bg-accent/50
+                      ${userClassId === cls.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"}
+                    `}
+                  >
+                    <div className="text-2xl mb-1">{cls.icon}</div>
+                    <div className="font-bold text-xs">{cls.name}</div>
+                    <div className="text-[10px] text-muted-foreground leading-tight mt-1">{cls.description}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              userClass && (
+                <div className="glass-card p-3 rounded-lg flex items-center gap-3">
+                  <div className="text-3xl">{userClass.icon}</div>
+                  <div>
+                    <div className="font-bold text-sm">{userClass.name}</div>
+                    <div className="text-xs text-muted-foreground">{userClass.description}</div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderInterests = () => {
     const interests = Array.isArray(profileData?.interests) ? profileData.interests as string[] : [];
@@ -181,7 +266,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
         <DialogHeader>
           <DialogTitle>User Profile</DialogTitle>
         </DialogHeader>
-        
+
         {isLoading ? (
           <div className="flex flex-col items-center py-10">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -206,9 +291,9 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
             </div>
 
             {renderStats()}
-            
+
             <div className="border-t border-border pt-4">
-                {renderInterests()}
+              {renderInterests()}
             </div>
           </div>
         )}
@@ -218,17 +303,17 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
 };
 
 interface StatCardProps {
-    icon: React.ElementType;
-    label: string;
-    value: string;
+  icon: React.ElementType;
+  label: string;
+  value: string;
 }
 
 const StatCard = ({ icon: Icon, label, value }: StatCardProps) => (
-    <div className="glass-card p-3 rounded-lg flex flex-col items-center text-center">
-        <Icon className="w-5 h-5 text-primary mb-1" />
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-lg font-bold">{value}</p>
-    </div>
+  <div className="glass-card p-3 rounded-lg flex flex-col items-center text-center">
+    <Icon className="w-5 h-5 text-primary mb-1" />
+    <p className="text-xs text-muted-foreground">{label}</p>
+    <p className="text-lg font-bold">{value}</p>
+  </div>
 );
 
 export default UserProfileModal;
