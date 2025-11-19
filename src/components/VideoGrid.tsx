@@ -64,9 +64,9 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
 
         // Initialize signaling only
         await webrtcManager.current.initialize(roomId);
-        
+
         // Note: We do not call toggleVideo(true) here. Video is off by default.
-        
+
       } catch (error) {
         console.error("Error setting up WebRTC signaling:", error);
         toast.error("Failed to connect to the focus room.");
@@ -76,7 +76,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     if (userId && roomId) {
       setup();
     }
-    
+
     return () => {
       if (webrtcManager.current) {
         webrtcManager.current.cleanup();
@@ -128,7 +128,13 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     <div className="h-full flex flex-col gap-4">
       {/* Controls */}
       <div className="glass-card p-4 rounded-xl space-y-4 hover-lift">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-4 w-full">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground font-semibold">
+              Connected: {remoteStreams.size + 1}
+            </span>
+          </div>
+
           <Button
             variant={isVideoEnabled ? "default" : "outline"}
             onClick={toggleVideo}
@@ -137,12 +143,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
             Video
           </Button>
-
-          <div className="flex-1 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground font-semibold">
-              Connected: {remoteStreams.size + 1}
-            </span>
-          </div>
         </div>
       </div>
 

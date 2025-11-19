@@ -156,73 +156,120 @@ const SquadSystem = ({ isFocusing }: SquadSystemProps) => {
 
     if (!squadId) {
         return (
-            <Card className="glass-card border-primary/20">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-primary" /> Squad Mode
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        Join a squad to boost your XP multiplier. If one person breaks focus, everyone loses the bonus!
+            <div className="glass-card border-primary/20 p-6 rounded-2xl hover-glow group">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
+                        <Shield className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-xl font-heading font-bold text-white">Squad Mode</h2>
+                </div>
+
+                <div className="space-y-6">
+                    <p className="text-sm text-white/60 leading-relaxed">
+                        Join a squad to boost your XP multiplier. <span className="text-red-400 font-bold">Warning:</span> If one person breaks focus, everyone loses the bonus!
                     </p>
-                    <div className="flex gap-2">
-                        <Button onClick={createSquad} className="flex-1 dopamine-click">Create Squad</Button>
+
+                    <div className="space-y-3">
+                        <Button onClick={createSquad} className="w-full dopamine-click bg-primary hover:bg-primary/80 text-white font-bold py-6 shadow-[0_0_20px_rgba(124,58,237,0.3)]">
+                            INITIATE NEW SQUAD
+                        </Button>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-white/10" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-black/40 px-2 text-white/40 font-mono">Or join existing</span>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="ENTER SQUAD ID"
+                                value={joinInput}
+                                onChange={(e) => setJoinInput(e.target.value)}
+                                className="bg-black/20 border-white/10 text-white font-mono placeholder:text-white/20 focus-visible:ring-primary/50"
+                            />
+                            <Button variant="secondary" onClick={joinSquad} className="font-bold hover:bg-white/20">JOIN</Button>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Input
-                            placeholder="Enter Squad ID"
-                            value={joinInput}
-                            onChange={(e) => setJoinInput(e.target.value)}
-                        />
-                        <Button variant="secondary" onClick={joinSquad}>Join</Button>
-                    </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         );
     }
 
     return (
-        <Card className="glass-card border-primary/50 shadow-glow-sm">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="w-5 h-5 text-primary" /> Squad: {squadId}
-                </CardTitle>
+        <div className="glass-card border-primary/50 shadow-[0_0_30px_rgba(124,58,237,0.15)] p-6 rounded-2xl relative overflow-hidden">
+            {/* Background Pulse */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-6 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                        <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-white/40 font-mono uppercase tracking-wider">Squad ID</p>
+                        <h2 className="text-xl font-mono font-bold text-white tracking-widest">{squadId}</h2>
+                    </div>
+                </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={copySquadId} title="Copy ID">
+                    <Button variant="ghost" size="icon" onClick={copySquadId} title="Copy ID" className="hover:bg-white/10 text-white/60 hover:text-white">
                         <Copy className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={leaveSquad} className="text-destructive hover:text-destructive">
-                        Leave
+                    <Button variant="ghost" size="sm" onClick={leaveSquad} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                        LEAVE
                     </Button>
                 </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </div>
+
+            <div className="space-y-6 relative z-10">
                 {/* Multiplier Status */}
                 <div className={cn(
-                    "p-3 rounded-lg flex items-center justify-between transition-colors",
-                    squadMultiplier > 1.0 ? "bg-green-500/20 border border-green-500/50" : "bg-yellow-500/10 border border-yellow-500/30"
+                    "p-4 rounded-xl flex items-center justify-between transition-all duration-500 border",
+                    squadMultiplier > 1.0
+                        ? "bg-green-500/10 border-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+                        : "bg-yellow-500/10 border-yellow-500/20"
                 )}>
-                    <div className="flex items-center gap-2">
-                        <Zap className={cn("w-5 h-5", squadMultiplier > 1.0 ? "text-green-400" : "text-yellow-400")} />
-                        <span className="font-bold">Squad Bonus</span>
+                    <div className="flex items-center gap-3">
+                        <div className={cn(
+                            "p-2 rounded-full",
+                            squadMultiplier > 1.0 ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"
+                        )}>
+                            <Zap className="w-5 h-5" />
+                        </div>
+                        <span className={cn(
+                            "font-bold uppercase tracking-wide text-sm",
+                            squadMultiplier > 1.0 ? "text-green-400" : "text-yellow-400"
+                        )}>
+                            Squad Bonus
+                        </span>
                     </div>
-                    <span className="text-xl font-mono font-bold">{squadMultiplier.toFixed(1)}x</span>
+                    <span className={cn(
+                        "text-3xl font-mono font-bold",
+                        squadMultiplier > 1.0 ? "text-green-400 text-glow" : "text-yellow-400"
+                    )}>
+                        {squadMultiplier.toFixed(1)}x
+                    </span>
                 </div>
 
                 {/* Members List */}
-                <div className="space-y-2">
+                <div className="space-y-3">
+                    <p className="text-xs font-mono text-white/40 uppercase tracking-wider pl-1">Operatives Online</p>
                     {members.map((member) => (
-                        <div key={member.user_id} className="flex items-center justify-between text-sm p-2 rounded bg-background/50">
-                            <div className="flex items-center gap-2">
-                                <div className={cn("w-2 h-2 rounded-full",
-                                    member.status === 'focusing' ? "bg-green-500 animate-pulse" : "bg-red-500"
-                                )} />
-                                <span>{member.username}</span>
-                                {member.user_id === userId && <Badge variant="secondary" className="text-[10px] h-4">You</Badge>}
+                        <div key={member.user_id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <div className={cn("w-2.5 h-2.5 rounded-full",
+                                        member.status === 'focusing' ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-red-500"
+                                    )} />
+                                    {member.status === 'focusing' && <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-500 animate-ping opacity-75" />}
+                                </div>
+                                <span className="font-medium text-white/90">{member.username}</span>
+                                {member.user_id === userId && <Badge variant="outline" className="text-[10px] h-5 border-primary/50 text-primary bg-primary/10">YOU</Badge>}
                             </div>
-                            <span className={cn("text-xs font-medium",
-                                member.status === 'focusing' ? "text-green-400" : "text-red-400"
+                            <span className={cn("text-xs font-bold font-mono px-2 py-1 rounded",
+                                member.status === 'focusing' ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
                             )}>
                                 {member.status.toUpperCase()}
                             </span>
@@ -231,12 +278,13 @@ const SquadSystem = ({ isFocusing }: SquadSystemProps) => {
                 </div>
 
                 {members.length < 2 && (
-                    <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> Invite friends to activate bonus!
+                    <div className="text-xs text-center text-white/40 flex items-center justify-center gap-2 bg-white/5 p-2 rounded-lg border border-dashed border-white/10">
+                        <AlertTriangle className="w-3 h-3 text-yellow-500" />
+                        <span>Invite friends to activate bonus protocols!</span>
                     </div>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 };
 
