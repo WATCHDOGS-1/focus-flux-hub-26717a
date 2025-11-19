@@ -16,7 +16,7 @@ import AmbientSoundControl from "@/components/AmbientSoundControl"; // Import ne
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import SquadSystem from "@/components/SquadSystem"; // Import SquadSystem
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2, Sparkles, Shield, Play, Pause, StopCircle } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2, Sparkles, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,8 +50,6 @@ const FocusRoom = () => {
     endCurrentSession,
     currentMode,
     startNewSession,
-    timeLeft,
-    toggleTimer,
   } = useFocusSession(); // Use the centralized hook
 
   const { setSound } = useAmbientSound(); // Use ambient sound hook
@@ -277,41 +275,11 @@ const FocusRoom = () => {
 
             {/* Display current commitment when active */}
             {isActive && (
-              <div className="glass-card p-6 rounded-xl flex flex-col items-center justify-center gap-4 bg-primary/5 border-primary/20 animate-in fade-in zoom-in duration-300">
-                <div className="flex items-center gap-2 text-primary/80">
-                  <Tag className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-widest font-semibold">Current Focus</span>
-                </div>
-
-                <h2 className="text-2xl md:text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
-                  {focusTag}
-                </h2>
-
-                <div className="flex items-center gap-6 mt-2">
-                  <div className="text-4xl font-mono font-bold tabular-nums tracking-tight">
-                    {Math.floor(timeLeft / 60).toString().padStart(2, "0")}:
-                    {(timeLeft % 60).toString().padStart(2, "0")}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full w-10 h-10 border-primary/30 hover:bg-primary/10 hover:text-primary"
-                      onClick={toggleTimer}
-                    >
-                      {isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full w-10 h-10 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={endCurrentSession}
-                    >
-                      <StopCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-primary/10 border-primary/50">
+                <Tag className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="text-sm font-medium truncate">
+                  Current Commitment: {focusTag}
+                </span>
               </div>
             )}
 

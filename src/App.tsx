@@ -10,8 +10,6 @@ import ExploreRooms from "./pages/ExploreRooms"; // Import new page
 import FocusRoom from "./pages/FocusRoom";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
-import SocialDashboard from "./pages/SocialDashboard";
-import SquadsPage from "./pages/SquadsPage";
 
 const queryClient = new QueryClient();
 
@@ -22,19 +20,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <div className="dark min-h-screen bg-background text-foreground bg-noise font-sans selection:bg-primary selection:text-primary-foreground">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/dashboard" element={<SocialDashboard />} />
-              <Route path="/squads" element={<SquadsPage />} />
-              <Route path="/explore" element={<ExploreRooms />} /> {/* New Explore Route */}
-              <Route path="/focus-room/:roomId" element={<FocusRoom />} /> {/* Dynamic Room Route */}
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/explore" element={<ExploreRooms />} /> {/* New Explore Route */}
+            <Route path="/focus-room/:roomId" element={<FocusRoom />} /> {/* Dynamic Room Route */}
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
