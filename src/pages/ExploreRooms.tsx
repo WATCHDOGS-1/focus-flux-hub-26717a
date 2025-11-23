@@ -4,7 +4,7 @@ import { PREDEFINED_ROOMS } from "@/utils/constants";
 import { useRoomPresence } from "@/hooks/use-room-presence";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Video, Zap, Search } from "lucide-react";
+import { Users, Video, Zap, Search, Shield } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -19,21 +19,31 @@ const ExploreRooms = () => {
     navigate(`/focus-room/${roomId}`);
   };
 
-  const filteredRooms = PREDEFINED_ROOMS.filter(room => 
+  const filteredRooms = PREDEFINED_ROOMS.filter(room =>
     room.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="container mx-auto px-4 py-12 min-h-screen">
       <AnimatedSection>
-        <h1 className="text-4xl font-bold text-center mb-4">
-          Explore Focus Rooms
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-4xl font-bold">
+            Explore Focus Rooms
+          </h1>
+          <Button
+            onClick={() => navigate("/social")}
+            className="dopamine-click flex items-center gap-2"
+            variant="outline"
+          >
+            <Shield className="w-4 h-4" />
+            Social Dashboard
+          </Button>
+        </div>
         <p className="text-xl text-muted-foreground text-center max-w-3xl mx-auto mb-8">
           Join a virtual study room to co-work with peers. Each room supports up to 10 users via P2P video.
         </p>
       </AnimatedSection>
-      
+
       {/* Focus Partner Matching / Search Input */}
       <AnimatedSection delay={0.1} className="max-w-xl mx-auto mb-12">
         <Input

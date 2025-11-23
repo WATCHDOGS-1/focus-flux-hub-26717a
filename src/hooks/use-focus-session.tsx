@@ -35,7 +35,7 @@ interface UseFocusSessionResult {
 export function useFocusSession(): UseFocusSessionResult {
   const { userId } = useAuth();
   const { stats, levels, refetch: refetchStats } = useUserStats();
-  
+
   const [currentMode, setCurrentMode] = useState(SESSION_MODES[0]);
   const [timeLeft, setTimeLeft] = useState(currentMode.work);
   const [isActive, setIsActive] = useState(false);
@@ -43,7 +43,7 @@ export function useFocusSession(): UseFocusSessionResult {
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [focusTag, setFocusTag] = useState("");
-  
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load mode from local storage on mount
@@ -72,12 +72,12 @@ export function useFocusSession(): UseFocusSessionResult {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    
+
     setIsActive(false);
     setSessionId(null);
-    
+
     const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
-    
+
     toast.promise(leavePromise, {
       loading: "Saving your session...",
       success: (result) => {
@@ -90,25 +90,25 @@ export function useFocusSession(): UseFocusSessionResult {
         return "Failed to save session. Check console for details.";
       },
     });
-    
+
     setSessionStartTime(0);
   }, [userId, sessionId, sessionStartTime, focusTag, stats, levels, refetchStats]);
 
   const startNewSession = useCallback(async () => {
     if (!userId) return;
-    
+
     // Start Supabase session logging
     const { data, error } = await supabase
       .from("focus_sessions")
       .insert({ user_id: userId, start_time: new Date().toISOString(), tag: focusTag || null })
       .select("id")
       .single();
-      
+
     if (!error && data) {
       setSessionId(data.id);
       setSessionStartTime(Date.now());
       setIsActive(true);
-      toast.info(`Focus session started: ${currentMode.name}`);
+      toast.success(`Focus session started: ${currentMode.name}`);
     } else {
       console.error("Error starting session:", error);
       toast.error("Failed to start focus session.");
@@ -134,7 +134,7 @@ export function useFocusSession(): UseFocusSessionResult {
       } else {
         // Work phase ended
         endCurrentSession(); // Log the completed work session
-        
+
         if (currentMode.break > 0) {
           toast.success("Great work! Time for a break!");
           setIsBreak(true);
@@ -157,7 +157,7 @@ export function useFocusSession(): UseFocusSessionResult {
   const toggleTimer = () => {
     const newState = !isActive;
     setIsActive(newState);
-    
+
     if (newState && sessionStartTime === 0) {
       // If starting from a fresh state (sessionStartTime is 0), initiate logging
       startNewSession();
@@ -172,7 +172,7 @@ export function useFocusSession(): UseFocusSessionResult {
       // If resetting a work session, log the partial session
       endCurrentSession();
     }
-    
+
     setIsActive(false);
     setIsBreak(false);
     setTimeLeft(currentMode.work);
@@ -191,7 +191,7 @@ export function useFocusSession(): UseFocusSessionResult {
     setCurrentMode(customMode);
     toast.success("Custom session created!");
   };
-  
+
   const currentDuration = isBreak ? currentMode.break : currentMode.work;
   const progress = currentDuration > 0 ? ((currentDuration - timeLeft) / currentDuration) * 100 : 0;
 

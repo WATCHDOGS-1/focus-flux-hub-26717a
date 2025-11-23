@@ -15,8 +15,7 @@ import RoomThemeSelector from "@/components/RoomThemeSelector";
 import AmbientSoundControl from "@/components/AmbientSoundControl"; // Import new control
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
-import SquadSystem from "@/components/SquadSystem"; // Import SquadSystem
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2, Sparkles, Shield } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,7 +126,6 @@ const FocusRoom = () => {
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
       case "ambient-sound": return <AmbientSoundControl />;
-      case "squad": return <SquadSystem isFocusing={isActive} />;
       default: return null;
     }
   };
@@ -140,7 +138,6 @@ const FocusRoom = () => {
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
       "ambient-sound": "Ambient Sound",
-      "squad": "Squad Mode",
     };
     return titles[panel] || "";
   };
@@ -169,7 +166,6 @@ const FocusRoom = () => {
             <RoomThemeSelector onThemeChange={setRoomTheme} />
             <Button onClick={() => togglePanel("ambient-sound")} className="w-full justify-start gap-2"><Volume2 /> Ambient Sound</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
-            <Button onClick={() => togglePanel("squad")} className="w-full justify-start gap-2"><Shield /> Squad Mode</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer /> Timer</Button>
@@ -234,7 +230,6 @@ const FocusRoom = () => {
                 {!isFocusMode && (
                   <>
                     <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes & Tasks"><NotebookText className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("squad")} title="Squad Mode"><Shield className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
@@ -253,32 +248,12 @@ const FocusRoom = () => {
       <main className="flex-1 overflow-y-auto">
         <div className="flex h-full">
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
-            {/* Session Commitment UI (Visible only when not active) */}
-            {!isActive && (
-              <div className="glass-card p-3 rounded-xl flex flex-col sm:flex-row items-center gap-3 hover-lift">
-                <Tag className="w-5 h-5 text-primary flex-shrink-0" />
-                <Input
-                  placeholder="What are you committing to focus on right now? (e.g., 'Writing thesis for 50 min')"
-                  value={focusTag}
-                  onChange={(e) => setFocusTag(e.target.value)}
-                  className="flex-1 border-none bg-transparent focus-visible:ring-0"
-                />
-                <Button
-                  onClick={startNewSession}
-                  disabled={!focusTag.trim()}
-                  className="dopamine-click flex-shrink-0"
-                >
-                  Commit & Start {currentMode.name.split('(')[0].trim()}
-                </Button>
-              </div>
-            )}
-
-            {/* Display current commitment when active */}
-            {isActive && (
+            {/* Optional Focus Tag (when active) */}
+            {isActive && focusTag && (
               <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-primary/10 border-primary/50">
                 <Tag className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="text-sm font-medium truncate">
-                  Current Commitment: {focusTag}
+                  Focus: {focusTag}
                 </span>
               </div>
             )}
