@@ -82,6 +82,13 @@ const FocusRoom = () => {
     }
   }, [isAuthLoading, isAuthenticated, navigate, roomId, currentRoom]);
 
+  // Auto-start timer when joining room
+  useEffect(() => {
+    if (userId && !isActive && sessionStartTime === 0) {
+      startNewSession();
+    }
+  }, [userId, isActive, sessionStartTime, startNewSession]);
+
   useEffect(() => {
     document.body.className = roomTheme;
     return () => {
