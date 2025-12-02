@@ -106,8 +106,9 @@ const ProfileMenu = () => {
       .eq("id", userId);
 
     if (profileError) {
-      console.error("Error saving profile (username/interests):", profileError);
-      toast.error(`Failed to save profile: ${profileError.message}`);
+      const errorMsg = `Failed to save profile (username/interests): ${profileError.message}`;
+      console.error(errorMsg, profileError);
+      toast.error(errorMsg); // Display detailed error
       allSuccess = false;
     } else {
       await refreshProfile(); // Update global context immediately
@@ -120,8 +121,9 @@ const ProfileMenu = () => {
       .upsert({ user_id: userId, target_minutes: dailyGoal, date: today }, { onConflict: 'user_id,date' });
 
     if (dailyError) {
-      console.error("Error saving daily goal:", dailyError);
-      toast.error(`Failed to save daily goal: ${dailyError.message}`);
+      const errorMsg = `Failed to save daily goal: ${dailyError.message}`;
+      console.error(errorMsg, dailyError);
+      toast.error(errorMsg); // Display detailed error
       allSuccess = false;
     }
 
@@ -135,8 +137,9 @@ const ProfileMenu = () => {
       .upsert({ user_id: userId, target_minutes: weeklyGoal, week_start: weekStart.toISOString() }, { onConflict: 'user_id,week_start' });
 
     if (weeklyError) {
-      console.error("Error saving weekly goal:", weeklyError);
-      toast.error(`Failed to save weekly goal: ${weeklyError.message}`);
+      const errorMsg = `Failed to save weekly goal: ${weeklyError.message}`;
+      console.error(errorMsg, weeklyError);
+      toast.error(errorMsg); // Display detailed error
       allSuccess = false;
     }
 

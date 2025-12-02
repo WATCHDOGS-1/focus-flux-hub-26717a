@@ -7,10 +7,11 @@ type FriendRequestStatus = Database["public"]["Enums"]["friend_request_status"];
 /**
  * Sends a friend request from the current user to the target user.
  */
-export const sendFriendRequest = async (senderId: string, receiverId: string) => {
+export const sendFriendRequest = async (senderId: string, receiverId: string): Promise<{ success: boolean, error: string | null }> => {
   if (senderId === receiverId) {
-    toast.error("You cannot send a friend request to yourself.");
-    return false;
+    const errorMsg = "You cannot send a friend request to yourself.";
+    toast.error(errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   // Check if a request already exists (pending, accepted, or rejected)
@@ -21,15 +22,16 @@ export const sendFriendRequest = async (senderId: string, receiverId: string) =>
     .maybeSingle();
 
   if (fetchError) {
-    console.error("Error checking existing request:", fetchError);
+    const errorMsg = `Failed to check friend status: ${fetchError.message}`;
+    console.error(errorMsg, fetchError);
     toast.error("Failed to check friend status.");
-    return false;
+    return { success: false, error: errorMsg };
   }
 
   if (existingRequest) {
     if (existingRequest.status === 'pending') {
       toast.info("Friend request already pending.");
-      return false;
+      return { success: false, error: "Friend request already pending." };
     }
     // If accepted, they are already friends. If rejected, we allow resending by upserting/inserting.
   }
@@ -41,19 +43,20 @@ export const sendFriendRequest = async (senderId: string, receiverId: string) =>
     .single();
 
   if (insertError) {
-    console.error("Error sending friend request:", insertError);
-    toast.error("Failed to send friend request.");
-    return false;
+    const errorMsg = `Failed to send friend request: ${insertError.message}`;
+    console.error(errorMsg, insertError);
+    toast.error(errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   toast.success("Friend request sent!");
-  return true;
+  return { success: true, error: null };
 };
 
 /**
  * Accepts a pending friend request and creates a friendship record.
  */
-export const acceptFriendRequest = async (requestId: string, senderId: string, receiverId: string) => {
+export const acceptFriendRequest = async (requestId: string, senderId: string, receiverId: string): Promise<{ success: boolean, error: string | null }> => {
   // 1. Update the request status to 'accepted'
   const { error: updateError } = await supabase
     .from("friend_requests")
@@ -61,9 +64,10 @@ export const acceptFriendRequest = async (requestId: string, senderId: string, r
     .eq("id", requestId);
 
   if (updateError) {
-    console.error("Error accepting request:", updateError);
-    toast.error("Failed to accept request.");
-    return false;
+    const errorMsg = `Failed to accept request: ${updateError.message}`;
+    console.error(errorMsg, updateError);
+    toast.error(errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   // 2. Create the friendship record (the trigger handles normalization)
@@ -72,49 +76,52 @@ export const acceptFriendRequest = async (requestId: string, senderId: string, r
     .insert({ user1_id: senderId, user2_id: receiverId });
 
   if (friendshipError) {
-    console.error("Error creating friendship:", friendshipError);
-    toast.error("Failed to establish friendship.");
-    return false;
+    const errorMsg = `Failed to establish friendship: ${friendshipError.message}`;
+    console.error(errorMsg, friendshipError);
+    toast.error(errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   toast.success("Friend request accepted! 🎉");
-  return true;
+  return { success: true, error: null };
 };
 
 /**
  * Rejects a pending friend request.
  */
-export const rejectFriendRequest = async (requestId: string) => {
+export const rejectFriendRequest = async (requestId: string): Promise<{ success: boolean, error: string | null }> => {
   const { error } = await supabase
     .from("friend_requests")
     .update({ status: 'rejected' })
     .eq("id", requestId);
 
   if (error) {
-    console.error("Error rejecting request:", error);
-    toast.error("Failed to reject request.");
-    return false;
+    const errorMsg = `Failed to reject request: ${error.message}`;
+    console.error(errorMsg, error);
+    toast.error(errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   toast.info("Friend request rejected.");
-  return true;
+  return { success: true, error: null };
 };
 
 /**
  * Removes an existing friendship.
  */
-export const removeFriendship = async (friendshipId: string) => {
+export const removeFriendship = async (friendshipId: string): Promise<{ success: boolean, error: string | null }> => {
   const { error } = await supabase
     .from("friendships")
     .delete()
     .eq("id", friendshipId);
 
   if (error) {
-    console.error("Error removing friendship:", error);
-    toast.error("Failed to remove friend.");
-    return false;
+    const errorMsg = `Failed to remove friend: ${error.message}`;
+    console.error(errorMsg, error);
+    toast.error(errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   toast.info("Friend removed.");
-  return true;
+  return { success: true, error: null };
 };

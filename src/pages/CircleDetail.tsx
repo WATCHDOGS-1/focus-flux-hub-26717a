@@ -71,7 +71,7 @@ const CircleDetail = () => {
     const { data: circleData, error: circleError } = await supabase.from("circles").select("*").eq("id", circleId).single();
     if (circleError || !circleData) {
       console.error("Error loading circle details:", circleError);
-      toast.error("Failed to load circle details.");
+      toast.error(`Failed to load circle details: ${circleError?.message || 'Unknown error'}`);
       navigate("/social");
       return;
     }
@@ -107,8 +107,9 @@ const CircleDetail = () => {
     if (!userId || !circleId) return;
     const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
     if (error) {
-      console.error("Error joining circle:", error); // DEBUG LOG
-      toast.error("Failed to join circle.");
+      const errorMsg = `Failed to join circle: ${error.message}`;
+      console.error(errorMsg, error);
+      toast.error(errorMsg); // Display detailed error
     } else {
       toast.success("Joined circle!");
       loadCircleData();
@@ -119,7 +120,9 @@ const CircleDetail = () => {
     if (!userId || !circleId) return;
     const { error } = await supabase.from("circle_members").delete().match({ circle_id: circleId, user_id: userId });
     if (error) {
-      toast.error("Failed to leave circle.");
+      const errorMsg = `Failed to leave circle: ${error.message}`;
+      console.error(errorMsg, error);
+      toast.error(errorMsg); // Display detailed error
     } else {
       toast.info("You have left the circle.");
       setIsMember(false);
@@ -132,7 +135,9 @@ const CircleDetail = () => {
     // Deleting the circle cascades to members and messages
     const { error } = await supabase.from("circles").delete().eq("id", circleId);
     if (error) {
-      toast.error("Failed to delete circle.");
+      const errorMsg = `Failed to delete circle: ${error.message}`;
+      console.error(errorMsg, error);
+      toast.error(errorMsg); // Display detailed error
     } else {
       toast.success("Circle deleted.");
       navigate("/social");
@@ -158,8 +163,9 @@ const CircleDetail = () => {
 
     const { error } = await supabase.from("circle_messages").insert({ circle_id: circleId, user_id: userId, content });
     if (error) {
-      console.error("Error sending circle message:", error); // DEBUG LOG
-      toast.error("Failed to send message.");
+      const errorMsg = `Failed to send message: ${error.message}`;
+      console.error(errorMsg, error);
+      toast.error(errorMsg); // Display detailed error
       setNewMessage(content);
       setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id)); // Revert optimistic update
     }

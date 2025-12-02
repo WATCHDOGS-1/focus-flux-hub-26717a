@@ -97,8 +97,9 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
       });
 
     if (error) {
-      toast.error("Failed to send message");
-      console.error("Error sending DM message:", error);
+      const errorMsg = `Failed to send message: ${error.message}`;
+      toast.error(errorMsg); // Display detailed error
+      console.error(errorMsg, error);
       // Optionally, remove the optimistic message if sending failed
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     }

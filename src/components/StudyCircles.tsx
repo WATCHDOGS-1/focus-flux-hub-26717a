@@ -80,8 +80,9 @@ const StudyCircles = () => {
       .single();
 
     if (circleError) {
-      console.error("Error creating circle:", circleError);
-      toast.error("Failed to create circle.");
+      const errorMsg = `Failed to create circle: ${circleError.message}`;
+      console.error(errorMsg, circleError);
+      toast.error(errorMsg); // Display detailed error
       return;
     } 
     
@@ -92,8 +93,9 @@ const StudyCircles = () => {
         .insert({ circle_id: circleData.id, user_id: userId, role: 'owner' });
         
       if (memberError) {
-        console.error("Error adding owner to circle_members:", memberError);
-        toast.error("Failed to add you as a member (RLS issue?).");
+        const errorMsg = `Failed to add you as a member: ${memberError.message}`;
+        console.error(errorMsg, memberError);
+        toast.error(errorMsg); // Display detailed error
         // Optionally delete the circle if membership fails
         await supabase.from("circles").delete().eq("id", circleData.id);
         return;

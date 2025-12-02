@@ -133,8 +133,9 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
       .insert({ user_id: userId, message: messageContent });
 
     if (error) {
-      toast.error("Failed to send message");
-      console.error("Error sending message:", error);
+      const errorMsg = `Failed to send message: ${error.message}`;
+      toast.error(errorMsg); // Display detailed error
+      console.error(errorMsg, error);
       // Remove the optimistic message if sending failed
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     }

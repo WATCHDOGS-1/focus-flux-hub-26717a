@@ -5,9 +5,9 @@ import { toast } from "sonner";
  * Finds an existing conversation between two users or creates a new one.
  * @param currentUserId The ID of the current user.
  * @param targetUserId The ID of the user to chat with.
- * @returns The conversation ID.
+ * @returns The conversation ID or null, and an error message if failed.
  */
-export const getOrCreateConversation = async (currentUserId: string, targetUserId: string): Promise<string | null> => {
+export const getOrCreateConversation = async (currentUserId: string, targetUserId: string): Promise<{ conversationId: string | null, error: string | null }> => {
   // Ensure user IDs are ordered consistently for the unique constraint check
   const user1_id = currentUserId < targetUserId ? currentUserId : targetUserId;
   const user2_id = currentUserId < targetUserId ? targetUserId : currentUserId;
@@ -21,13 +21,14 @@ export const getOrCreateConversation = async (currentUserId: string, targetUserI
     .maybeSingle();
 
   if (fetchError) {
-    console.error("Error fetching conversation:", fetchError);
+    const errorMsg = `Failed to load conversation: ${fetchError.message}`;
+    console.error(errorMsg, fetchError);
     toast.error("Failed to load conversation.");
-    return null;
+    return { conversationId: null, error: errorMsg };
   }
 
   if (existing) {
-    return existing.id;
+    return { conversationId: existing.id, error: null };
   }
 
   // 2. Create new conversation
@@ -38,10 +39,11 @@ export const getOrCreateConversation = async (currentUserId: string, targetUserI
     .single();
 
   if (insertError) {
-    console.error("Error creating conversation:", insertError);
+    const errorMsg = `Failed to start new conversation: ${insertError.message}`;
+    console.error(errorMsg, insertError);
     toast.error("Failed to start new conversation.");
-    return null;
+    return { conversationId: null, error: errorMsg };
   }
 
-  return newConv.id;
+  return { conversationId: newConv.id, error: null };
 };
