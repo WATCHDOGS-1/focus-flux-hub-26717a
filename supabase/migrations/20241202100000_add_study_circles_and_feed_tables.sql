@@ -33,9 +33,9 @@ ALTER TABLE public.circle_members ENABLE ROW LEVEL SECURITY;
 -- Members can view their own circle memberships
 DROP POLICY IF EXISTS "Members can view their circle memberships" ON public.circle_members;
 CREATE POLICY "Members can view their circle memberships" ON public.circle_members FOR SELECT USING (auth.uid() = user_id);
--- Authenticated users can join circles (insert)
+-- Authenticated users can join circles (insert) - MUST check that the user_id being inserted is the current user
 DROP POLICY IF EXISTS "Authenticated users can join circles" ON public.circle_members;
-CREATE POLICY "Authenticated users can join circles" ON public.circle_members FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can join circles" ON public.circle_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 -- Members can leave circles (delete)
 DROP POLICY IF EXISTS "Members can leave circles" ON public.circle_members;
 CREATE POLICY "Members can leave circles" ON public.circle_members FOR DELETE USING (auth.uid() = user_id);
