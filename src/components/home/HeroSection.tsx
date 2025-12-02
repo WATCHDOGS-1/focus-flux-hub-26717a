@@ -75,6 +75,14 @@ const HeroSection = () => {
             >
               Explore Rooms
             </Button>
+            <Button
+              onClick={() => navigate("/social")}
+              size="lg"
+              variant="outline"
+              className="text-lg px-8 py-6 rounded-xl dopamine-click font-semibold"
+            >
+              View Social Dashboard
+            </Button>
           </motion.div>
         </motion.div>
 
