@@ -6,7 +6,7 @@ EXCEPTION
 END $$;
 
 -- 1. Circles Table
-CREATE TABLE public.circles (
+CREATE TABLE IF NOT EXISTS public.circles (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     description text,
@@ -19,7 +19,7 @@ CREATE POLICY "Allow all authenticated users to view circles" ON public.circles 
 CREATE POLICY "Allow owners to insert, update, delete" ON public.circles FOR ALL USING (auth.uid() = owner_id);
 
 -- 2. Circle Members Table
-CREATE TABLE public.circle_members (
+CREATE TABLE IF NOT EXISTS public.circle_members (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     circle_id uuid NOT NULL REFERENCES public.circles(id) ON DELETE CASCADE,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -34,7 +34,7 @@ CREATE POLICY "Authenticated users can join circles" ON public.circle_members FO
 CREATE POLICY "Members can leave circles" ON public.circle_members FOR DELETE USING (auth.uid() = user_id);
 
 -- 3. Circle Messages Table
-CREATE TABLE public.circle_messages (
+CREATE TABLE IF NOT EXISTS public.circle_messages (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     circle_id uuid NOT NULL REFERENCES public.circles(id) ON DELETE CASCADE,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -47,7 +47,7 @@ CREATE POLICY "Members can view circle messages" ON public.circle_messages FOR S
 CREATE POLICY "Members can insert circle messages" ON public.circle_messages FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.circle_members WHERE circle_id = circle_messages.circle_id AND user_id = auth.uid()));
 
 -- 4. Focus Feed Items Table
-CREATE TABLE public.feed_items (
+CREATE TABLE IF NOT EXISTS public.feed_items (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     type public.feed_item_type NOT NULL,
@@ -60,7 +60,7 @@ CREATE POLICY "Feed is public read" ON public.feed_items FOR SELECT USING (true)
 CREATE POLICY "Allow authenticated insert for testing" ON public.feed_items FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
 -- 5. Feed Applauds Table
-CREATE TABLE public.feed_applauds (
+CREATE TABLE IF NOT EXISTS public.feed_applauds (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     feed_item_id uuid NOT NULL REFERENCES public.feed_items(id) ON DELETE CASCADE,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
