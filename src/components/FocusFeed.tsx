@@ -74,22 +74,6 @@ const FocusFeed = () => {
 
     let isApplauding = !existing;
 
-    if (existing) {
-      // Un-applaud
-      const { error } = await supabase.from("feed_applauds").delete().eq("id", existing.id);
-      if (error) {
-        toast.error(`Failed to remove applaud: ${error.message}`);
-        return;
-      }
-    } else {
-      // Applaud
-      const { error } = await supabase.from("feed_applauds").insert({ feed_item_id: feedItemId, user_id: userId });
-      if (error) {
-        toast.error(`Failed to applaud: ${error.message}`);
-        return;
-      }
-    }
-
     // 2. Optimistic UI update
     setFeedItems(prevItems => prevItems.map(item => {
         if (item.id === feedItemId) {
@@ -104,8 +88,29 @@ const FocusFeed = () => {
         }
         return item;
     }));
+
+    // 3. Perform DB operation
+    if (existing) {
+      // Un-applaud
+      const { error } = await supabase.from("feed_applauds").delete().eq("id", existing.id);
+      if (error) {
+        toast.error(`Failed to remove applaud: ${error.message}`);
+        // Revert optimistic update if DB fails (optional, but good practice)
+        loadFeed(); 
+        return;
+      }
+    } else {
+      // Applaud
+      const { error } = await supabase.from("feed_applauds").insert({ feed_item_id: feedItemId, user_id: userId });
+      if (error) {
+        toast.error(`Failed to applaud: ${error.message}`);
+        // Revert optimistic update if DB fails
+        loadFeed(); 
+        return;
+      }
+    }
     
-    // 3. Trigger full reload after a short delay to ensure consistency via Realtime/DB fetch
+    // 4. Trigger full reload after a short delay to ensure consistency via Realtime/DB fetch
     setTimeout(loadFeed, 500);
   };
 
