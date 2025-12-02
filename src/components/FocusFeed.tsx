@@ -64,7 +64,7 @@ const FocusFeed = () => {
   const handleApplaud = async (feedItemId: string) => {
     if (!userId) return;
 
-    // Check if user has already applauded
+    // 1. Check if user has already applauded (DB check)
     const { data: existing } = await supabase
       .from("feed_applauds")
       .select("id")
@@ -72,16 +72,41 @@ const FocusFeed = () => {
       .eq("user_id", userId)
       .maybeSingle();
 
+    let isApplauding = !existing;
+
     if (existing) {
       // Un-applaud
       const { error } = await supabase.from("feed_applauds").delete().eq("id", existing.id);
-      if (error) toast.error(`Failed to remove applaud: ${error.message}`);
+      if (error) {
+        toast.error(`Failed to remove applaud: ${error.message}`);
+        return;
+      }
     } else {
       // Applaud
       const { error } = await supabase.from("feed_applauds").insert({ feed_item_id: feedItemId, user_id: userId });
-      if (error) toast.error(`Failed to applaud: ${error.message}`);
+      if (error) {
+        toast.error(`Failed to applaud: ${error.message}`);
+        return;
+      }
     }
-    // The realtime listener will trigger a reload.
+
+    // 2. Optimistic UI update
+    setFeedItems(prevItems => prevItems.map(item => {
+        if (item.id === feedItemId) {
+            const currentCount = item.feed_applauds[0]?.count || 0;
+            const newCount = isApplauding ? currentCount + 1 : Math.max(0, currentCount - 1);
+            
+            // Update the count optimistically
+            return {
+                ...item,
+                feed_applauds: [{ count: newCount }],
+            };
+        }
+        return item;
+    }));
+    
+    // 3. Trigger full reload after a short delay to ensure consistency via Realtime/DB fetch
+    setTimeout(loadFeed, 500);
   };
 
   const renderFeedItem = (item: FeedItem) => {
