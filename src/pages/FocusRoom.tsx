@@ -5,7 +5,7 @@ import VideoGrid from "@/components/VideoGrid";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import SocialSidebar from "@/components/SocialSidebar";
 import TimeTracker from "@/components/TimeTracker";
-import FocusTimer from "@/components/FocusTimer"; // Use the new centralized timer UI
+import FocusTimer from "@/components/FocusTimer";
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
@@ -13,16 +13,21 @@ import ThemeToggle from "@/components/ThemeToggle";
 import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
-import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles } from "lucide-react";
+import FocusHUD from "@/components/FocusHUD";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Video, VideoOff, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useUserStats } from "@/hooks/use-user-stats";
-import { useFocusSession } from "@/hooks/use-focus-session"; // Import centralized hook
+import { useFocusSession } from "@/hooks/use-focus-session";
 import {
   Drawer,
   DrawerContent,
@@ -32,6 +37,12 @@ import {
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PREDEFINED_ROOMS } from "@/utils/constants";
+import { WebRTCManager } from "@/utils/webrtc";
+
+interface MediaDevice {
+  deviceId: string;
+  label: string;
+}
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -45,16 +56,22 @@ const FocusRoom = () => {
     focusTag,
     setFocusTag,
     endCurrentSession,
-    currentMode,
     startNewSession,
-  } = useFocusSession(); // Use the centralized hook
+  } = useFocusSession();
+
+  const webrtcManagerRef = useRef<WebRTCManager | null>(null);
 
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isZenMode, setIsZenMode] = useState(false); // New Zen Mode state
+  const [isZenMode, setIsZenMode] = useState(false);
   const [showNotesWorkspace, setShowNotesWorkspace] = useState(false);
   const [roomTheme, setRoomTheme] = useState("default");
+  
+  // Video States
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [availableDevices, setAvailableDevices] = useState<MediaDevice[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
 
   // --- Profile Modal State and Handler ---
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
@@ -68,6 +85,37 @@ const FocusRoom = () => {
   const currentRoom = PREDEFINED_ROOMS.find(r => r.id === roomId);
   const roomName = currentRoom?.name || "Focus Room";
 
+  // --- Device Detection ---
+  const detectDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices
+        .filter(device => device.kind === 'videoinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Camera ${device.deviceId.slice(0, 4)}`,
+        }));
+      
+      setAvailableDevices(videoDevices);
+      if (videoDevices.length > 0 && !selectedDeviceId) {
+        setSelectedDeviceId(videoDevices[0].deviceId);
+      }
+    } catch (error) {
+      console.error("Error detecting media devices:", error);
+      toast.error("Failed to access media devices. Check permissions.");
+    }
+  };
+
+  useEffect(() => {
+    detectDevices();
+    // Listen for device changes (e.g., plugging in a new camera)
+    navigator.mediaDevices.addEventListener('devicechange', detectDevices);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', detectDevices);
+    };
+  }, []);
+
+  // --- Auth and Room Validation ---
   useEffect(() => {
     if (isAuthLoading) return;
     if (!isAuthenticated) {
@@ -112,6 +160,27 @@ const FocusRoom = () => {
       setActivePanel(null);
       setShowNotesWorkspace(false);
     }
+  };
+
+  const toggleZenMode = () => {
+    setIsZenMode(!isZenMode);
+    if (!isZenMode) {
+      setIsFocusMode(false); // Exit focus mode when exiting zen mode
+    }
+  };
+
+  const toggleVideo = async () => {
+    if (!selectedDeviceId) {
+      toast.error("No camera device selected or available.");
+      return;
+    }
+    
+    const newState = !isVideoEnabled;
+    setIsVideoEnabled(newState);
+    
+    // The actual stream manipulation is handled by VideoGrid's useEffect
+    // which watches isVideoEnabled and selectedDeviceId.
+    toast.info(newState ? "Video enabled." : "Video disabled.");
   };
 
   const toggleNotesWorkspace = () => {
@@ -179,6 +248,43 @@ const FocusRoom = () => {
     </Drawer>
   );
 
+  const renderVideoControls = () => (
+    <div className="flex items-center gap-2">
+      {availableDevices.length > 1 && (
+        <Select onValueChange={setSelectedDeviceId} value={selectedDeviceId}>
+          <SelectTrigger className="w-[150px] dopamine-click">
+            <Camera className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Select Camera" />
+          </SelectTrigger>
+          <SelectContent className="glass-card">
+            {availableDevices.map(device => (
+              <SelectItem key={device.deviceId} value={device.deviceId}>
+                {device.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      <Button
+        variant={isVideoEnabled ? "default" : "outline"}
+        onClick={toggleVideo}
+        className="dopamine-click shadow-glow flex items-center gap-2"
+        disabled={!selectedDeviceId}
+      >
+        {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+        Video
+      </Button>
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={toggleZenMode} 
+        title={isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"}
+      >
+        {isZenMode ? <Minimize2 className="h-5 w-5 text-destructive" /> : <Maximize2 className="h-5 w-5" />}
+      </Button>
+    </div>
+  );
+
   return (
     <div className={`min-h-screen flex flex-col bg-background relative overflow-x-hidden transition-colors duration-500`}>
       <EncouragementToasts />
@@ -213,6 +319,9 @@ const FocusRoom = () => {
           </h1>
           <TimeTracker sessionStartTime={sessionStartTime} />
           <div className="flex gap-2 items-center">
+            {/* Video Controls (Desktop/Mobile) */}
+            {!isMobile && renderVideoControls()}
+            
             {isMobile ? (
               <>
                 <Button variant="ghost" size="icon" onClick={toggleFocusMode} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
@@ -242,6 +351,12 @@ const FocusRoom = () => {
             )}
           </div>
         </div>
+        {/* Mobile Video Controls (Below header on mobile) */}
+        {isMobile && (
+            <div className="flex justify-center p-2 border-t border-border">
+                {renderVideoControls()}
+            </div>
+        )}
       </header>
 
       <main className="flex-1 overflow-y-auto">
@@ -258,7 +373,13 @@ const FocusRoom = () => {
             )}
 
             <div className="flex-1 min-h-[400px]">
-              <VideoGrid userId={userId} roomId={roomId} />
+              <VideoGrid 
+                userId={userId} 
+                roomId={roomId} 
+                isVideoEnabled={isVideoEnabled}
+                selectedDeviceId={selectedDeviceId}
+                webrtcManagerRef={webrtcManagerRef}
+              />
             </div>
             {showNotesWorkspace && <div className="mt-4"><NotesAndTasksWorkspace /></div>}
           </div>

@@ -8,24 +8,24 @@ import { supabase } from "@/integrations/supabase/client"; // Import supabase cl
 
 interface VideoGridProps {
   userId: string;
-  roomId: string; // Now dynamic
+  roomId: string;
+  isVideoEnabled: boolean;
+  selectedDeviceId: string | undefined;
+  webrtcManagerRef: React.MutableRefObject<WebRTCManager | null>;
 }
 
-const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
-  // Start with video disabled by default
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+const VideoGrid = ({ userId, roomId, isVideoEnabled, selectedDeviceId, webrtcManagerRef }: VideoGridProps) => {
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
   const [remoteStreams, setRemoteStreams] = useState<Map<string, { stream: MediaStream; username: string }>>(new Map());
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const webrtcManager = useRef<WebRTCManager | null>(null);
 
+  // Effect to manage WebRTC Manager initialization and cleanup
   useEffect(() => {
     // Cleanup previous manager if room ID changes
-    if (webrtcManager.current) {
-      webrtcManager.current.cleanup();
-      webrtcManager.current = null;
+    if (webrtcManagerRef.current) {
+      webrtcManagerRef.current.cleanup();
+      webrtcManagerRef.current = null;
       setRemoteStreams(new Map());
-      setIsVideoEnabled(false); // Reset state
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = null;
       }
@@ -33,7 +33,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
 
     const setup = async () => {
       try {
-        webrtcManager.current = new WebRTCManager(
+        webrtcManagerRef.current = new WebRTCManager(
           userId,
           async (peerId, stream) => {
             // Fetch username for the connected peer
@@ -63,9 +63,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         );
 
         // Initialize signaling only
-        await webrtcManager.current.initialize(roomId);
-        
-        // Note: We do not call toggleVideo(true) here. Video is off by default.
+        await webrtcManagerRef.current.initialize(roomId);
         
       } catch (error) {
         console.error("Error setting up WebRTC signaling:", error);
@@ -78,39 +76,41 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     }
     
     return () => {
-      if (webrtcManager.current) {
-        webrtcManager.current.cleanup();
+      if (webrtcManagerRef.current) {
+        webrtcManagerRef.current.cleanup();
       }
     };
-  }, [userId, roomId]); // Dependency on roomId ensures re-initialization when switching rooms
+  }, [userId, roomId]);
 
-  const toggleVideo = async () => {
-    const newVideoState = !isVideoEnabled;
-    if (!webrtcManager.current) return;
+  // Effect to manage local video stream based on isVideoEnabled and selectedDeviceId
+  useEffect(() => {
+    const manager = webrtcManagerRef.current;
+    if (!manager) return;
 
-    if (newVideoState) { // Turning video ON
-      try {
-        const newStream = await webrtcManager.current.toggleVideo(true);
-        if (newStream && localVideoRef.current) {
-          localVideoRef.current.srcObject = newStream;
-          localVideoRef.current.play().catch(console.error);
-          setIsVideoEnabled(true);
-          toast.success("Camera enabled");
+    const updateLocalStream = async () => {
+      if (isVideoEnabled) {
+        try {
+          const newStream = await manager.toggleVideo(true, selectedDeviceId);
+          if (newStream && localVideoRef.current) {
+            localVideoRef.current.srcObject = newStream;
+            localVideoRef.current.play().catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error enabling video:", e);
+          toast.error("Failed to enable camera. Check permissions or device selection.");
+          // Note: We don't update isVideoEnabled state here, FocusRoom handles it.
         }
-      } catch (e) {
-        console.error(e);
-        toast.error("Failed to enable camera. Please check permissions.");
-        setIsVideoEnabled(false);
+      } else {
+        manager.toggleVideo(false);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = null;
+        }
       }
-    } else { // Turning video OFF
-      webrtcManager.current.toggleVideo(false);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = null; // Clear the video element
-      }
-      setIsVideoEnabled(false);
-      toast.info("Camera disabled");
-    }
-  };
+    };
+
+    updateLocalStream();
+  }, [isVideoEnabled, selectedDeviceId, webrtcManagerRef]);
+
 
   const togglePin = (index: number) => {
     setPinnedVideos(prev => {
@@ -126,26 +126,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
 
   return (
     <div className="h-full flex flex-col gap-4">
-      {/* Controls */}
-      <div className="glass-card p-4 rounded-xl space-y-4 hover-lift">
-        <div className="flex items-center gap-4">
-          <Button
-            variant={isVideoEnabled ? "default" : "outline"}
-            onClick={toggleVideo}
-            className="dopamine-click shadow-glow flex items-center gap-2"
-          >
-            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-            Video
-          </Button>
-
-          <div className="flex-1 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground font-semibold">
-              Connected: {remoteStreams.size + 1}
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Video Grid */}
       <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2">
         {/* Local Video */}
