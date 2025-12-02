@@ -77,7 +77,14 @@ const CircleDetail = () => {
     }
     setCircle(circleData);
 
-    const { data: membersData } = await supabase.from("circle_members").select("*, profiles(username)").eq("circle_id", circleId);
+    // Fetch members and check for RLS errors
+    const { data: membersData, error: membersError } = await supabase.from("circle_members").select("*, profiles(username)").eq("circle_id", circleId);
+    
+    if (membersError) {
+        console.error("RLS Error fetching circle members:", membersError);
+        toast.error(`Failed to fetch members: ${membersError.message}. Check RLS on circle_members.`);
+    }
+
     setMembers(membersData as CircleMember[] || []);
     const memberCheck = membersData?.some(m => m.user_id === userId) || false;
     setIsMember(memberCheck);

@@ -44,7 +44,7 @@ export type Database = {
             foreignKeyName: "circles_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]
@@ -83,7 +83,7 @@ export type Database = {
             foreignKeyName: "circle_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]
@@ -122,7 +122,7 @@ export type Database = {
             foreignKeyName: "circle_messages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]
@@ -154,7 +154,7 @@ export type Database = {
             foreignKeyName: "feed_items_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles" // CHANGED from "users" to "profiles"
             referencedColumns: ["id"]
           }
         ]
@@ -190,7 +190,7 @@ export type Database = {
             foreignKeyName: "feed_applauds_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]
