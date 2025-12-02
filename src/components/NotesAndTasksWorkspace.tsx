@@ -1,7 +1,7 @@
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import NotesWorkspace from "./NotesWorkspace";
 import TaskList from "./TaskList";
-import YouTubeEmbedPanel from "./YouTubeEmbedPanel";
+import SpotifyEmbedPanel from "./SpotifyEmbedPanel";
 
 const NotesAndTasksWorkspace = () => {
   return (
@@ -30,9 +30,9 @@ const NotesAndTasksWorkspace = () => {
           <div className="h-1 w-10 bg-primary/50 rounded-full" />
         </PanelResizeHandle>
         
-        {/* Bottom Panel: YouTube Player (30%) */}
+        {/* Bottom Panel: Spotify Player (30%) */}
         <Panel defaultSize={30} minSize={20}>
-          <YouTubeEmbedPanel />
+          <SpotifyEmbedPanel />
         </Panel>
       </PanelGroup>
     </div>
