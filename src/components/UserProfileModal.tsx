@@ -44,7 +44,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
 
       if (profileError || !profile) {
         console.error("Error fetching profile:", profileError);
-        toast.error("Failed to load user profile.");
+        toast.error(`Failed to load user profile: ${profileError?.message || 'Unknown error'}`);
         onClose();
         return;
       }
@@ -60,6 +60,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
 
       if (statsError && statsError.code !== 'PGRST116') {
         console.error("Error fetching user stats:", statsError);
+        toast.error(`Failed to load user stats: ${statsError.message}`);
       }
       setStatsData(stats || null);
 
@@ -72,6 +73,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
 
       if (levelsError && levelsError.code !== 'PGRST116') {
         console.error("Error fetching user levels:", levelsError);
+        toast.error(`Failed to load user levels: ${levelsError.message}`);
       }
       setLevelsData(levels || null);
 
@@ -85,6 +87,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
 
       if (requestError) {
         console.error("Error checking friendship status:", requestError);
+        toast.error(`Failed to check friendship status: ${requestError.message}`);
       } else if (requestData) {
         if (requestData.status === 'accepted') {
           setFriendshipStatus('friend');
@@ -106,19 +109,23 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
   }, [userId, currentUserId, onClose]);
 
   const handleSendRequest = async () => {
-    const success = await sendFriendRequest(currentUserId, userId);
+    const { success, error } = await sendFriendRequest(currentUserId, userId);
     if (success) {
       setFriendshipStatus('pending_sent');
+    } else if (error) {
+      toast.error(`Failed to send request: ${error}`);
     }
   };
 
   const handleStartDM = async () => {
     if (!profileData) return;
-    const conversationId = await getOrCreateConversation(currentUserId, userId);
+    const { conversationId, error } = await getOrCreateConversation(currentUserId, userId);
     if (conversationId) {
       toast.info("DM conversation started. Check your Social panel.");
       onClose();
       // Note: In a full app, we might navigate the user to the DM panel here.
+    } else if (error) {
+      toast.error(`Failed to start DM: ${error}`);
     }
   };
 
@@ -137,7 +144,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
       .eq("id", userId);
 
     if (error) {
-      toast.error("Failed to update class.");
+      toast.error(`Failed to update class: ${error.message}`);
     } else {
       toast.success(`Class updated to ${FOCUS_CLASSES.find(c => c.id === classId)?.name}!`);
     }

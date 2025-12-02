@@ -32,7 +32,7 @@ export function useUserStats(): UserData {
 
     if (statsError && statsError.code !== 'PGRST116') { // PGRST116 means no rows found
       console.error("Error fetching user stats:", statsError);
-      toast.error("Failed to load user stats.");
+      toast.error(`Failed to load user stats: ${statsError.message}`);
     } else {
       setStats(statsData);
     }
@@ -46,7 +46,7 @@ export function useUserStats(): UserData {
 
     if (levelsError && levelsError.code !== 'PGRST116') {
       console.error("Error fetching user levels:", levelsError);
-      toast.error("Failed to load user levels.");
+      toast.error(`Failed to load user levels: ${levelsError.message}`);
     } else {
       setLevels(levelsData);
     }

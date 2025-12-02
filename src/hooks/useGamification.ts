@@ -44,6 +44,7 @@ export function useGamification() {
 
             if (error) {
                 console.error("Error fetching user class:", error);
+                toast.error(`Failed to fetch user class: ${error.message}`);
             } else {
                 const interests = data.interests as Record<string, any>;
                 if (interests && interests.focus_class) {
@@ -80,7 +81,7 @@ export function useGamification() {
 
         if (error) {
             console.error("Error updating class:", error);
-            toast.error("Failed to update class.");
+            toast.error(`Failed to update class: ${error.message}`);
             // Revert on error (could be improved)
         } else {
             toast.success(`Class updated to ${newClass}!`);

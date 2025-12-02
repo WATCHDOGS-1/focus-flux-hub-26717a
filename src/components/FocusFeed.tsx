@@ -54,7 +54,7 @@ const FocusFeed = () => {
 
     if (error) {
       console.error("Error loading feed:", error); // DEBUG LOG
-      toast.error("Failed to load focus feed.");
+      toast.error(`Failed to load focus feed: ${error.message}`);
     } else {
       setFeedItems(data as FeedItem[]);
     }
@@ -75,11 +75,11 @@ const FocusFeed = () => {
     if (existing) {
       // Un-applaud
       const { error } = await supabase.from("feed_applauds").delete().eq("id", existing.id);
-      if (error) toast.error("Failed to remove applaud.");
+      if (error) toast.error(`Failed to remove applaud: ${error.message}`);
     } else {
       // Applaud
       const { error } = await supabase.from("feed_applauds").insert({ feed_item_id: feedItemId, user_id: userId });
-      if (error) toast.error("Failed to applaud.");
+      if (error) toast.error(`Failed to applaud: ${error.message}`);
     }
     // The realtime listener will trigger a reload.
   };

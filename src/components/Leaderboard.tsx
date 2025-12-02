@@ -84,7 +84,7 @@ const Leaderboard = ({ onProfileClick }: LeaderboardProps) => {
       setTotalCount(count || 0);
     } else if (error) {
       console.error("Error loading leaderboard:", error);
-      toast.error("Failed to load leaderboard data.");
+      toast.error(`Failed to load leaderboard data: ${error.message}`);
     }
     setIsLoading(false);
   };
@@ -109,7 +109,7 @@ const Leaderboard = ({ onProfileClick }: LeaderboardProps) => {
 
     if (error || !data) {
       console.error("Error fetching all stats for rank:", error);
-      toast.error("Failed to determine your rank.");
+      toast.error(`Failed to determine your rank: ${error?.message || 'Unknown error'}`);
       return;
     }
 

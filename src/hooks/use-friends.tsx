@@ -47,7 +47,7 @@ export function useFriends(): UseFriendsResult {
 
     if (friendshipsError) {
       console.error("Error fetching friendships:", friendshipsError);
-      toast.error("Failed to load friends list.");
+      toast.error(`Failed to load friends list: ${friendshipsError.message}`);
     } else if (friendshipsData) {
       const friendList: Friend[] = friendshipsData.map((f: any) => {
         const friendProfile = f.user1.id === uid ? f.user2 : f.user1;
@@ -73,6 +73,7 @@ export function useFriends(): UseFriendsResult {
 
     if (requestsError) {
       console.error("Error fetching friend requests:", requestsError);
+      toast.error(`Failed to load friend requests: ${requestsError.message}`);
     } else if (requestsData) {
       setPendingRequests(requestsData as FriendRequest[]);
     }

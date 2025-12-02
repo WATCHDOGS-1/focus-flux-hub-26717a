@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) {
       console.error("Error fetching profile:", error);
-      toast.error("Failed to load user profile.");
+      toast.error(`Failed to load user profile: ${error.message}`);
       setProfile(null);
     } else {
       // --- Moderation Check ---

@@ -38,7 +38,7 @@ const WeeklyFocusChart = () => {
 
     if (error) {
       console.error("Error fetching weekly focus data:", error);
-      toast.error("Failed to load focus history.");
+      toast.error(`Failed to load focus history: ${error.message}`);
       setIsLoading(false);
       return;
     }
