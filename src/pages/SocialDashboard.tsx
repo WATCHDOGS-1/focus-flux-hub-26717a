@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, MessageSquare, Trophy, Shield } from "lucide-react";
+import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield } from "lucide-react";
 import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
 import UserProfileModal from "@/components/UserProfileModal";
+import FocusFeed from "@/components/FocusFeed"; // Import new component
+import StudyCircles from "@/components/StudyCircles"; // Import new component
 
 const SocialDashboard = () => {
     const navigate = useNavigate();
@@ -50,22 +51,30 @@ const SocialDashboard = () => {
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
-                        <h1 className="text-2xl font-bold text-foreground">Social Dashboard</h1>
+                        <h1 className="text-2xl font-bold text-foreground">Community Hub</h1>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
-                <Tabs defaultValue="friends" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-8">
+                <Tabs defaultValue="feed" className="w-full">
+                    <TabsList className="grid w-full grid-cols-5 mb-8">
+                        <TabsTrigger value="feed" className="flex items-center gap-2">
+                            <Rss className="h-4 w-4" />
+                            Feed
+                        </TabsTrigger>
+                        <TabsTrigger value="circles" className="flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Circles
+                        </TabsTrigger>
                         <TabsTrigger value="friends" className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             Friends
                         </TabsTrigger>
                         <TabsTrigger value="chat" className="flex items-center gap-2">
                             <MessageSquare className="h-4 w-4" />
-                            Chat
+                            Global Chat
                         </TabsTrigger>
                         <TabsTrigger value="leaderboard" className="flex items-center gap-2">
                             <Trophy className="h-4 w-4" />
@@ -73,48 +82,28 @@ const SocialDashboard = () => {
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="friends" className="space-y-4">
-                        <Card className="glass-card">
-                            <CardHeader>
-                                <CardTitle>Friends & Direct Messages</CardTitle>
-                                <CardDescription>
-                                    Connect with your focus buddies and send direct messages.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <SocialSidebar userId={userId} onProfileClick={handleProfileClick} />
-                            </CardContent>
-                        </Card>
+                    <TabsContent value="feed">
+                        <FocusFeed />
                     </TabsContent>
 
-                    <TabsContent value="chat" className="space-y-4">
-                        <Card className="glass-card">
-                            <CardHeader>
-                                <CardTitle>Global Chat</CardTitle>
-                                <CardDescription>
-                                    Chat with everyone in the OnlyFocus community.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-[600px]">
-                                    <GlobalChatPanel userId={userId} />
-                                </div>
-                            </CardContent>
-                        </Card>
+                    <TabsContent value="circles">
+                        <StudyCircles />
                     </TabsContent>
 
-                    <TabsContent value="leaderboard" className="space-y-4">
-                        <Card className="glass-card">
-                            <CardHeader>
-                                <CardTitle>Leaderboard</CardTitle>
-                                <CardDescription>
-                                    See how you rank against other focused individuals.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Leaderboard onProfileClick={handleProfileClick} />
-                            </CardContent>
-                        </Card>
+                    <TabsContent value="friends">
+                        <div className="h-[70vh]">
+                            <SocialSidebar userId={userId} onProfileClick={handleProfileClick} />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="chat">
+                        <div className="h-[70vh]">
+                            <GlobalChatPanel userId={userId} />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="leaderboard">
+                        <Leaderboard onProfileClick={handleProfileClick} />
                     </TabsContent>
                 </Tabs>
             </main>
