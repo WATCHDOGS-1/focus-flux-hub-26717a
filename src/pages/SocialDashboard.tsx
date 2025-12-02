@@ -8,8 +8,8 @@ import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
 import UserProfileModal from "@/components/UserProfileModal";
-import FocusFeed from "@/components/FocusFeed"; // Import new component
-import StudyCircles from "@/components/StudyCircles"; // Import new component
+import FocusFeed from "@/components/FocusFeed";
+import StudyCircles from "@/components/StudyCircles";
 
 const SocialDashboard = () => {
     const navigate = useNavigate();

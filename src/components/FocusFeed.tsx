@@ -10,7 +10,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type FeedItem = Database["public"]["Tables"]["feed_items"]["Row"] & {
   profiles: { username: string } | null;
-  feed_applauds: [{ count: number }];
+  feed_applauds: { count: number }[];
 };
 
 const FocusFeed = () => {
@@ -64,9 +64,7 @@ const FocusFeed = () => {
   const handleApplaud = async (feedItemId: string) => {
     if (!userId) return;
 
-    // This is an upsert with ignoreDuplicates: false, which means it will
-    // try to insert, and if it fails due to the unique constraint, it does nothing.
-    // To "un-applaud", we need to delete.
+    // Check if user has already applauded
     const { data: existing } = await supabase
       .from("feed_applauds")
       .select("id")
@@ -76,10 +74,12 @@ const FocusFeed = () => {
 
     if (existing) {
       // Un-applaud
-      await supabase.from("feed_applauds").delete().eq("id", existing.id);
+      const { error } = await supabase.from("feed_applauds").delete().eq("id", existing.id);
+      if (error) toast.error("Failed to remove applaud.");
     } else {
       // Applaud
-      await supabase.from("feed_applauds").insert({ feed_item_id: feedItemId, user_id: userId });
+      const { error } = await supabase.from("feed_applauds").insert({ feed_item_id: feedItemId, user_id: userId });
+      if (error) toast.error("Failed to applaud.");
     }
     // The realtime listener will trigger a reload.
   };
@@ -111,6 +111,7 @@ const FocusFeed = () => {
       content = <p>An unknown activity was completed.</p>;
     }
 
+    // Access count from the aggregated array
     const applaudCount = item.feed_applauds[0]?.count || 0;
 
     return (
@@ -126,7 +127,7 @@ const FocusFeed = () => {
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" /> {timeAgo}
                 </span>
-                <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => handleApplaud(item.id)}>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2 dopamine-click" onClick={() => handleApplaud(item.id)}>
                   <ThumbsUp className="w-4 h-4" />
                   {applaudCount}
                 </Button>

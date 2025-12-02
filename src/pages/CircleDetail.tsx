@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Users, Send, Crown, LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -44,7 +44,8 @@ const CircleDetail = () => {
   }, [circleId, userId]);
 
   useEffect(() => {
-    if (!circleId) return;
+    if (!circleId || !isMember) return;
+    
     const channel = supabase
       .channel(`circle-chat:${circleId}`)
       .on(
@@ -61,7 +62,7 @@ const CircleDetail = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [circleId]);
+  }, [circleId, isMember]);
 
   const loadCircleData = async () => {
     if (!circleId || !userId) return;
@@ -83,6 +84,7 @@ const CircleDetail = () => {
     if (memberCheck) {
       const { data: messagesData } = await supabase.from("circle_messages").select("*, profiles(username)").eq("circle_id", circleId).order("created_at", { ascending: true });
       setMessages(messagesData as CircleMessage[] || []);
+      setTimeout(scrollToBottom, 100);
     }
 
     setIsLoading(false);
@@ -125,6 +127,7 @@ const CircleDetail = () => {
 
   const handleDeleteCircle = async () => {
     if (!circleId || circle?.owner_id !== userId) return;
+    // Deleting the circle cascades to members and messages
     const { error } = await supabase.from("circles").delete().eq("id", circleId);
     if (error) {
       toast.error("Failed to delete circle.");
@@ -138,11 +141,26 @@ const CircleDetail = () => {
     if (!newMessage.trim() || !userId || !circleId) return;
     const content = newMessage.trim();
     setNewMessage("");
+    
+    // Optimistic update
+    const optimisticMessage: CircleMessage = {
+        id: `temp-${Date.now()}`,
+        circle_id: circleId,
+        user_id: userId,
+        content: content,
+        created_at: new Date().toISOString(),
+        profiles: { username: "You" },
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+    scrollToBottom();
+
     const { error } = await supabase.from("circle_messages").insert({ circle_id: circleId, user_id: userId, content });
     if (error) {
       toast.error("Failed to send message.");
       setNewMessage(content);
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id)); // Revert optimistic update
     }
+    // Realtime listener handles replacing the optimistic message
   };
 
   if (isLoading) {
@@ -171,14 +189,14 @@ const CircleDetail = () => {
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-2" /> Delete Circle</Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="glass-card">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>This will permanently delete the circle and all its messages. This action cannot be undone.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteCircle}>Delete</AlertDialogAction>
+                  <AlertDialogAction onClick={handleDeleteCircle} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -201,7 +219,7 @@ const CircleDetail = () => {
                       {messages.map(msg => (
                         <div key={msg.id} className={`flex gap-2 ${msg.user_id === userId ? "justify-end" : ""}`}>
                           <div className={`p-3 rounded-lg max-w-[80%] ${msg.user_id === userId ? "bg-primary/20" : "bg-secondary/20"}`}>
-                            <div className="text-xs font-bold mb-1">{msg.profiles?.username || "User"}</div>
+                            <div className="text-xs font-bold mb-1">{msg.user_id === userId ? "You" : msg.profiles?.username || "User"}</div>
                             <p>{msg.content}</p>
                           </div>
                         </div>
@@ -210,14 +228,19 @@ const CircleDetail = () => {
                     </div>
                   </ScrollArea>
                   <div className="flex gap-2 mt-4">
-                    <Input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Type a message..." />
-                    <Button onClick={sendMessage}><Send className="w-4 h-4" /></Button>
+                    <Input 
+                        value={newMessage} 
+                        onChange={e => setNewMessage(e.target.value)} 
+                        onKeyPress={e => e.key === 'Enter' && sendMessage()} 
+                        placeholder="Type a message..." 
+                    />
+                    <Button onClick={sendMessage} disabled={!newMessage.trim()}><Send className="w-4 h-4" /></Button>
                   </div>
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
                   <p>You must be a member to view and send messages.</p>
-                  <Button onClick={handleJoin} className="mt-4">Join Circle</Button>
+                  <Button onClick={handleJoin} className="mt-4 dopamine-click">Join Circle</Button>
                 </div>
               )}
             </CardContent>
@@ -233,14 +256,14 @@ const CircleDetail = () => {
             <CardContent>
               <div className="space-y-2">
                 {members.map(member => (
-                  <div key={member.user_id} className="flex items-center justify-between">
+                  <div key={member.user_id} className="flex items-center justify-between p-2 rounded hover:bg-secondary/50">
                     <span className="font-medium">{member.profiles?.username || "User"}</span>
-                    {member.role === 'owner' && <Crown className="w-4 h-4 text-yellow-500" />}
+                    {member.role === 'owner' && <Crown className="w-4 h-4 text-yellow-500" title="Circle Owner" />}
                   </div>
                 ))}
               </div>
               {isMember && circle.owner_id !== userId && (
-                <Button variant="outline" onClick={handleLeave} className="w-full mt-4"><LogOut className="w-4 h-4 mr-2" /> Leave Circle</Button>
+                <Button variant="outline" onClick={handleLeave} className="w-full mt-4 dopamine-click"><LogOut className="w-4 h-4 mr-2" /> Leave Circle</Button>
               )}
             </CardContent>
           </Card>
