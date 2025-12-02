@@ -107,6 +107,11 @@ const CircleDetail = () => {
     if (!userId || !circleId) return;
     const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
     if (error) {
+      if (error.code === '23505') { // PostgreSQL unique constraint violation
+        toast.info("You are already a member of this circle.");
+        loadCircleData(); // Reload data to ensure UI state is correct
+        return;
+      }
       const errorMsg = `Failed to join circle: ${error.message}`;
       console.error(errorMsg, error);
       toast.error(errorMsg); // Display detailed error
