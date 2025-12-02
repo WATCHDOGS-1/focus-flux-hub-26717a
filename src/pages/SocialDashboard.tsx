@@ -8,7 +8,6 @@ import { ArrowLeft, Users, MessageSquare, Trophy, Shield } from "lucide-react";
 import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
-import GuildSystem from "@/components/GuildSystem";
 import UserProfileModal from "@/components/UserProfileModal";
 
 const SocialDashboard = () => {
@@ -58,12 +57,8 @@ const SocialDashboard = () => {
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
-                <Tabs defaultValue="guilds" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-8">
-                        <TabsTrigger value="guilds" className="flex items-center gap-2">
-                            <Shield className="h-4 w-4" />
-                            Guilds
-                        </TabsTrigger>
+                <Tabs defaultValue="friends" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-8">
                         <TabsTrigger value="friends" className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             Friends
@@ -77,20 +72,6 @@ const SocialDashboard = () => {
                             Leaderboard
                         </TabsTrigger>
                     </TabsList>
-
-                    <TabsContent value="guilds" className="space-y-4">
-                        <Card className="glass-card">
-                            <CardHeader>
-                                <CardTitle>Guild System</CardTitle>
-                                <CardDescription>
-                                    Join or create a guild to collaborate with others. When guild members are in the same voice channel, your XP multipliers stack!
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <GuildSystem />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
 
                     <TabsContent value="friends" className="space-y-4">
                         <Card className="glass-card">

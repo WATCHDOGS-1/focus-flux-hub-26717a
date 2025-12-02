@@ -171,7 +171,6 @@ const FocusRoom = () => {
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer /> Timer</Button>
             <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User /> Profile</Button>
             <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes & Tasks</Button>
-            <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
             <ThemeToggle />
             <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut className="h-5 w-5" /></Button>
           </div>
@@ -219,6 +218,7 @@ const FocusRoom = () => {
                 <Button variant="ghost" size="icon" onClick={toggleFocusMode} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
                   {isFocusMode ? <Maximize2 className="h-5 w-5 text-destructive" /> : <Minimize2 className="h-5 w-5" />}
                 </Button>
+                <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
                 {renderMobileMenu()}
               </>
             ) : (
@@ -235,9 +235,9 @@ const FocusRoom = () => {
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer"><Timer className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings"><User className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
                   </>
                 )}
+                <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
                 <ThemeToggle />
                 <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
               </>
