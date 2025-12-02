@@ -72,7 +72,7 @@ const YouTubeEmbedPanel = () => {
 
       <div className="flex-1 min-h-0 relative">
         {embedUrl ? (
-            <>
+            <div className="w-full h-full"> {/* Added wrapper div to ensure full height */}
                 {renderIframe(embedUrl)}
                 <Button 
                     variant="destructive" 
@@ -82,7 +82,7 @@ const YouTubeEmbedPanel = () => {
                 >
                     <Trash2 className="w-4 h-4 mr-1" /> Clear Player
                 </Button>
-            </>
+            </div>
         ) : (
             <div className="flex flex-col justify-center items-center h-full text-muted-foreground">
                 <Youtube className="w-12 h-12 mb-2" />
