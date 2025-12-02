@@ -133,7 +133,8 @@ const FocusFeed = () => {
                 </Button>
               </div>
             </div>
-          </CardContent>
+          </div>
+        </CardContent>
       </Card>
     );
   };
