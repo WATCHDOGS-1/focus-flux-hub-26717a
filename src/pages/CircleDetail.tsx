@@ -82,7 +82,7 @@ const CircleDetail = () => {
     
     if (membersError) {
         console.error("RLS Error fetching circle members:", membersError);
-        toast.error(`Failed to fetch members: ${membersError.message}. Check RLS on circle_members.`);
+        // toast.error(`Failed to fetch members: ${membersError.message}. Check RLS on circle_members.`);
     }
 
     setMembers(membersData as CircleMember[] || []);
@@ -93,6 +93,8 @@ const CircleDetail = () => {
       const { data: messagesData } = await supabase.from("circle_messages").select("*, profiles(username)").eq("circle_id", circleId).order("created_at", { ascending: true });
       setMessages(messagesData as CircleMessage[] || []);
       setTimeout(scrollToBottom, 100);
+    } else {
+      setMessages([]); // Clear messages if not a member
     }
 
     setIsLoading(false);
@@ -114,8 +116,9 @@ const CircleDetail = () => {
     if (!userId || !circleId) return;
     const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
     if (error) {
-      if (error.code === '23505') { // PostgreSQL unique constraint violation
+      if (error.code === '23505') { // PostgreSQL unique constraint violation (already a member)
         toast.info("You are already a member of this circle.");
+        setIsMember(true); // Force UI update if already a member
         loadCircleData(); // Reload data to ensure UI state is correct
         return;
       }
@@ -124,6 +127,7 @@ const CircleDetail = () => {
       toast.error(errorMsg); // Display detailed error
     } else {
       toast.success("Joined circle!");
+      setIsMember(true); // OPTIMISTIC UPDATE: Assume success and switch UI immediately
       loadCircleData();
     }
   };
