@@ -30,9 +30,9 @@ CREATE TABLE IF NOT EXISTS public.circle_members (
     UNIQUE (circle_id, user_id)
 );
 ALTER TABLE public.circle_members ENABLE ROW LEVEL SECURITY;
--- Members can view their own circle memberships
+-- Members can view all members of their circle
 DROP POLICY IF EXISTS "Members can view their circle memberships" ON public.circle_members;
-CREATE POLICY "Members can view their circle memberships" ON public.circle_members FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Members can view their circle memberships" ON public.circle_members FOR SELECT USING (EXISTS (SELECT 1 FROM public.circle_members AS cm WHERE cm.circle_id = circle_members.circle_id AND cm.user_id = auth.uid()));
 -- Authenticated users can join circles (insert) - MUST check that the user_id being inserted is the current user
 DROP POLICY IF EXISTS "Authenticated users can join circles" ON public.circle_members;
 CREATE POLICY "Authenticated users can join circles" ON public.circle_members FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -69,7 +69,8 @@ DROP POLICY IF EXISTS "Feed is public read" ON public.feed_items;
 CREATE POLICY "Feed is public read" ON public.feed_items FOR SELECT USING (true);
 -- Allow authenticated insert for testing/trigger
 DROP POLICY IF EXISTS "Allow authenticated insert for testing" ON public.feed_items;
-CREATE POLICY "Allow authenticated insert for testing" ON public.feed_items FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated insert for testing" ON public.feed_items FOR INSERT WITH CHECK (auth.uid() = user_id); -- Changed to check auth.uid() = user_id for security
+-- Note: The trigger handles insertion, but this policy ensures no one can manually insert for another user.
 
 -- 5. Feed Applauds Table
 CREATE TABLE IF NOT EXISTS public.feed_applauds (
