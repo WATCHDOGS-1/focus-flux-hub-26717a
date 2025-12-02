@@ -76,14 +76,25 @@ export class WebRTCManager {
     return null;
   }
 
-  public async toggleVideo(enable: boolean): Promise<MediaStream | null> {
+  public async toggleVideo(enable: boolean, deviceId?: string): Promise<MediaStream | null> {
     if (enable) {
       // Turn video ON
       try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        // Stop existing tracks if stream is changing (e.g., switching camera)
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(track => track.stop());
+        }
+
+        const constraints: MediaStreamConstraints = {
+          video: { 
+            width: { ideal: 1280 }, 
+            height: { ideal: 720 },
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+          },
           audio: false,
-        });
+        };
+
+        const newStream = await navigator.mediaDevices.getUserMedia(constraints);
         
         this.localStream = newStream;
 

@@ -171,8 +171,9 @@ const FocusRoom = () => {
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer /> Timer</Button>
             <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User /> Profile</Button>
             <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes & Tasks</Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
             <ThemeToggle />
-            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut /> Leave Room</Button>
+            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut className="h-5 w-5" /></Button>
           </div>
         </ScrollArea>
       </DrawerContent>
@@ -234,6 +235,7 @@ const FocusRoom = () => {
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer"><Timer className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings"><User className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
                   </>
                 )}
                 <ThemeToggle />
@@ -245,7 +247,7 @@ const FocusRoom = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="flex h-full">
+        <div className="flex"> {/* Removed h-full here */}
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
             {/* Optional Focus Tag (when active) */}
             {isActive && focusTag && (
@@ -257,7 +259,7 @@ const FocusRoom = () => {
               </div>
             )}
 
-            <div className="flex-1 min-h-[400px]">
+            <div className={showNotesWorkspace ? "min-h-[400px]" : "flex-1 min-h-[400px]"}> {/* Adjusted flex-1 based on notes visibility */}
               <VideoGrid userId={userId} roomId={roomId} />
             </div>
             {showNotesWorkspace && <div className="mt-4"><NotesAndTasksWorkspace /></div>}
