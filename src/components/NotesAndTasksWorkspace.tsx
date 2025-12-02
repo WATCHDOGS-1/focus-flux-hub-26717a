@@ -5,7 +5,7 @@ import SpotifyEmbedPanel from "./SpotifyEmbedPanel";
 
 const NotesAndTasksWorkspace = () => {
   return (
-    <div className="h-[600px] w-full">
+    <div className="h-full w-full max-h-[80vh] min-h-[400px]">
       <PanelGroup direction="vertical" className="h-full">
         {/* Top Panel: Notes and Tasks (Resizable Horizontal Split) */}
         <Panel defaultSize={70} minSize={40}>

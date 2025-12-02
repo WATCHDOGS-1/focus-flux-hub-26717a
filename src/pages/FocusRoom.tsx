@@ -12,10 +12,9 @@ import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
-import AmbientSoundControl from "@/components/AmbientSoundControl"; // Import new control
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Volume2, Sparkles } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +23,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStats } from "@/hooks/use-user-stats";
 import { useFocusSession } from "@/hooks/use-focus-session"; // Import centralized hook
-import { useAmbientSound } from "@/hooks/use-ambient-sound"; // Import ambient sound hook
 import {
   Drawer,
   DrawerContent,
@@ -50,8 +48,6 @@ const FocusRoom = () => {
     currentMode,
     startNewSession,
   } = useFocusSession(); // Use the centralized hook
-
-  const { setSound } = useAmbientSound(); // Use ambient sound hook
 
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -132,7 +128,6 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
-      case "ambient-sound": return <AmbientSoundControl />;
       default: return null;
     }
   };
@@ -144,7 +139,6 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
-      "ambient-sound": "Ambient Sound",
     };
     return titles[panel] || "";
   };
@@ -171,7 +165,6 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={() => togglePanel("ambient-sound")} className="w-full justify-start gap-2"><Volume2 /> Ambient Sound</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
@@ -187,7 +180,7 @@ const FocusRoom = () => {
   );
 
   return (
-    <div className={`min-h-screen flex flex-col bg-background relative overflow-hidden transition-colors duration-500`}>
+    <div className={`min-h-screen flex flex-col bg-background relative overflow-x-hidden transition-colors duration-500`}>
       <EncouragementToasts />
 
       {/* Zen Mode HUD */}
@@ -230,7 +223,6 @@ const FocusRoom = () => {
             ) : (
               <>
                 <RoomThemeSelector onThemeChange={setRoomTheme} />
-                <Button variant="ghost" size="icon" onClick={() => togglePanel("ambient-sound")} title="Ambient Sound"><Volume2 className="h-5 w-5" /></Button>
                 <Button variant="ghost" size="icon" onClick={toggleFocusMode} title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}>
                   {isFocusMode ? <Maximize2 className="h-5 w-5 text-destructive" /> : <Minimize2 className="h-5 w-5" />}
                 </Button>
