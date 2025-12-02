@@ -72,24 +72,39 @@ const StudyCircles = () => {
       return;
     }
 
-    const { data, error } = await supabase
+    // 1. Create Circle
+    const { data: circleData, error: circleError } = await supabase
       .from("circles")
       .insert({ name: newCircleName, description: newCircleDesc, owner_id: userId })
       .select()
       .single();
 
-    if (error) {
-      console.error("Error creating circle:", error);
+    if (circleError) {
+      console.error("Error creating circle:", circleError);
       toast.error("Failed to create circle.");
-    } else if (data) {
-      // Add owner as a member
-      await supabase.from("circle_members").insert({ circle_id: data.id, user_id: userId, role: 'owner' });
+      return;
+    } 
+    
+    if (circleData) {
+      // 2. Add owner as a member
+      const { error: memberError } = await supabase
+        .from("circle_members")
+        .insert({ circle_id: circleData.id, user_id: userId, role: 'owner' });
+        
+      if (memberError) {
+        console.error("Error adding owner to circle_members:", memberError);
+        toast.error("Failed to add you as a member (RLS issue?).");
+        // Optionally delete the circle if membership fails
+        await supabase.from("circles").delete().eq("id", circleData.id);
+        return;
+      }
+
       toast.success("Study Circle created!");
       setIsCreateDialogOpen(false);
       setNewCircleName("");
       setNewCircleDesc("");
       loadCircles();
-      navigate(`/circle/${data.id}`);
+      navigate(`/circle/${circleData.id}`);
     }
   };
 

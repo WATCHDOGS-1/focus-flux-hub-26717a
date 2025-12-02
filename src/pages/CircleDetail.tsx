@@ -70,6 +70,7 @@ const CircleDetail = () => {
 
     const { data: circleData, error: circleError } = await supabase.from("circles").select("*").eq("id", circleId).single();
     if (circleError || !circleData) {
+      console.error("Error loading circle details:", circleError);
       toast.error("Failed to load circle details.");
       navigate("/social");
       return;
@@ -106,6 +107,7 @@ const CircleDetail = () => {
     if (!userId || !circleId) return;
     const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
     if (error) {
+      console.error("Error joining circle:", error); // DEBUG LOG
       toast.error("Failed to join circle.");
     } else {
       toast.success("Joined circle!");
@@ -156,6 +158,7 @@ const CircleDetail = () => {
 
     const { error } = await supabase.from("circle_messages").insert({ circle_id: circleId, user_id: userId, content });
     if (error) {
+      console.error("Error sending circle message:", error); // DEBUG LOG
       toast.error("Failed to send message.");
       setNewMessage(content);
       setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id)); // Revert optimistic update

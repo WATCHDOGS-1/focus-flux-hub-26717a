@@ -53,7 +53,7 @@ const FocusFeed = () => {
       .limit(50);
 
     if (error) {
-      console.error("Error loading feed:", error);
+      console.error("Error loading feed:", error); // DEBUG LOG
       toast.error("Failed to load focus feed.");
     } else {
       setFeedItems(data as FeedItem[]);
@@ -133,8 +133,7 @@ const FocusFeed = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        </CardContent>
+          </CardContent>
       </Card>
     );
   };
