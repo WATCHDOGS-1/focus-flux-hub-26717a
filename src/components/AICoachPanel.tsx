@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Code, MessageSquare, LayoutGrid, Database, Target } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Code, MessageSquare, LayoutGrid, Database, Target, Image, X } from "lucide-react";
 import { toast } from "sonner";
 import { sendGeminiChat, generateFlowchart, getGeminiApiKey, initializeGeminiClient } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
@@ -28,7 +28,10 @@ const AICoachPanel = () => {
     const [currentMessage, setCurrentMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [goalContext, setGoalContext] = useState("");
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const apiKey = getGeminiApiKey();
 
     const scrollToBottom = () => {
@@ -77,7 +80,7 @@ const AICoachPanel = () => {
         Analyze this data and provide a brief summary of my current focus areas and potential productivity bottlenecks.
         `;
 
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: dataMessage }] };
+        const userMessage: ChatMessage = { role: "user", parts: [{ text: "Loading and analyzing study data..." }] };
         setHistory(prev => [...prev, userMessage]);
 
         try {
@@ -92,21 +95,58 @@ const AICoachPanel = () => {
             setIsGenerating(false);
         }
     };
+    
+    const handleInjectContext = (contextType: 'stats' | 'notes' | 'tasks') => {
+        let contextText = "";
+        if (contextType === 'stats' && stats) {
+            contextText = `[STATS CONTEXT: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days]`;
+        } else if (contextType === 'notes') {
+            const notesSummary = getLocalStudyData().notesSummary;
+            contextText = `[NOTES CONTEXT: ${notesSummary || "No notes found."}]`;
+        } else if (contextType === 'tasks') {
+            const tasksSummary = getLocalStudyData().tasks.map(t => t.content).join("; ");
+            contextText = `[TASKS CONTEXT: Incomplete Tasks: ${tasksSummary || "No incomplete tasks found."}]`;
+        }
+        
+        if (contextText) {
+            setCurrentMessage(prev => (prev + " " + contextText).trim());
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                toast.error("Only image files are supported for analysis.");
+                return;
+            }
+            setImageFile(file);
+            setImagePreviewUrl(URL.createObjectURL(file));
+            toast.info("Image loaded for next prompt.");
+        }
+    };
 
     const handleChat = async (message: string) => {
-        if (!message.trim() || isGenerating) return;
+        if (!message.trim() && !imageFile || isGenerating) return;
         
         const contextualMessage = getContextualPromptPrefix() + message;
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: message }] }; // Store clean message in history
+        
+        // Store clean message in history (with image indicator if present)
+        const userMessageText = imageFile ? `(Image attached) ${message}` : message;
+        const userMessage: ChatMessage = { role: "user", parts: [{ text: userMessageText }] }; 
         
         // Optimistic update
         setHistory(prev => [...prev, userMessage]);
         setCurrentMessage("");
         setIsGenerating(true);
+        
+        const currentImageFile = imageFile;
+        setImageFile(null); // Clear image immediately
+        setImagePreviewUrl(null);
 
         try {
-            // Send contextual message to the model
-            const responseText = await sendGeminiChat(history, contextualMessage);
+            // Send contextual message and image file to the model
+            const responseText = await sendGeminiChat(history, contextualMessage, currentImageFile);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
             setHistory(prev => [...prev, modelMessage]);
@@ -220,7 +260,7 @@ const AICoachPanel = () => {
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     <Button 
                         variant="outline" 
                         size="sm" 
@@ -258,6 +298,36 @@ const AICoachPanel = () => {
                         <Code className="w-3 h-3 mr-1" /> Note-Taking Flowchart
                     </Button>
                 </div>
+                
+                <p className="text-sm font-semibold flex items-center gap-1 text-primary pt-2 border-t border-border/50">
+                    <Target className="w-4 h-4" /> Inject Context
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={() => handleInjectContext('stats')}
+                        className="text-xs h-8"
+                    >
+                        Inject Stats
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={() => handleInjectContext('notes')}
+                        className="text-xs h-8"
+                    >
+                        Inject Notes
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={() => handleInjectContext('tasks')}
+                        className="text-xs h-8"
+                    >
+                        Inject Tasks
+                    </Button>
+                </div>
             </div>
 
             {/* Chat History */}
@@ -279,8 +349,41 @@ const AICoachPanel = () => {
                 </div>
             </ScrollArea>
 
-            {/* Input */}
+            {/* Input and Image Preview */}
+            {imagePreviewUrl && (
+                <div className="relative mb-2 p-2 rounded-lg border border-primary/50 bg-secondary/20">
+                    <img src={imagePreviewUrl} alt="Image for AI analysis" className="h-16 w-auto object-contain rounded" />
+                    <span className="text-xs text-muted-foreground mt-1 block">Image attached for next prompt.</span>
+                    <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        className="absolute top-1 right-1 w-5 h-5"
+                        onClick={() => { setImageFile(null); setImagePreviewUrl(null); }}
+                    >
+                        <X className="w-3 h-3" />
+                    </Button>
+                </div>
+            )}
+
             <div className="flex gap-2">
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={isGenerating}
+                />
+                <Button 
+                    size="icon" 
+                    variant="outline" 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="dopamine-click flex-shrink-0"
+                    disabled={isGenerating}
+                    title="Upload Image for Analysis"
+                >
+                    <Image className="w-4 h-4" />
+                </Button>
                 <Input
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
@@ -289,7 +392,7 @@ const AICoachPanel = () => {
                     className="flex-1"
                     disabled={isGenerating}
                 />
-                <Button size="icon" onClick={() => handleChat(currentMessage)} className="dopamine-click" disabled={!currentMessage.trim() || isGenerating}>
+                <Button size="icon" onClick={() => handleChat(currentMessage)} className="dopamine-click" disabled={(!currentMessage.trim() && !imageFile) || isGenerating}>
                     <Send className="w-4 h-4" />
                 </Button>
             </div>

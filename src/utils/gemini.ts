@@ -7,6 +7,18 @@ const MODEL_NAME = "gemini-2.5-flash"; // Fast and capable for chat and generati
 let ai: GoogleGenAI | null = null;
 
 /**
+ * Converts a File object to a GenerativePart object for the Gemini API.
+ */
+const fileToGenerativePart = (file: File) => {
+  return {
+    inlineData: {
+      data: Buffer.from(file.arrayBuffer()).toString("base64"),
+      mimeType: file.type,
+    },
+  };
+};
+
+/**
  * Retrieves the stored Gemini API key.
  */
 export const getGeminiApiKey = (): string | null => {
@@ -48,12 +60,23 @@ export const clearGeminiApiKey = () => {
 };
 
 /**
- * Sends a chat message to the Gemini model.
+ * Sends a chat message to the Gemini model, optionally including an image.
  */
-export const sendGeminiChat = async (history: { role: "user" | "model", parts: { text: string }[] }[], newMessage: string): Promise<string> => {
+export const sendGeminiChat = async (
+    history: { role: "user" | "model", parts: { text: string }[] }[], 
+    newMessage: string,
+    imageFile: File | null = null
+): Promise<string> => {
   const client = initializeGeminiClient();
   if (!client) {
     throw new Error("Gemini API Key is missing. Please configure it in settings.");
+  }
+
+  const parts: ChatPart[] = [{ text: newMessage }];
+  
+  if (imageFile) {
+    // Add image part to the message
+    parts.unshift(fileToGenerativePart(imageFile));
   }
 
   const chat = client.chats.create({
@@ -61,7 +84,7 @@ export const sendGeminiChat = async (history: { role: "user" | "model", parts: {
     history: history,
   });
 
-  const response = await chat.sendMessage({ message: newMessage });
+  const response = await chat.sendMessage({ parts });
   return response.text;
 };
 
