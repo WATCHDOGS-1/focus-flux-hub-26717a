@@ -20,8 +20,12 @@ export const runAIFocusCoach = async (stats: UserStats | null, levels: UserLevel
             longestStreak: stats.longest_streak,
             totalFocusedMinutes: stats.total_focused_minutes,
         });
-        toast.info(`AI Coach Feedback: ${feedback}`, { duration: 10000 });
-        return;
+        
+        // If Gemini returns feedback, display it and stop.
+        if (feedback && feedback.trim().length > 0) {
+            toast.info(`AI Coach Feedback: ${feedback}`, { duration: 10000 });
+            return;
+        }
     } catch (e) {
         console.warn("Gemini analysis failed, falling back to rule-based coach.", e);
         // Fall through to rule-based coaching
