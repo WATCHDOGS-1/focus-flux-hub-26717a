@@ -74,7 +74,7 @@ const FocusHUD = ({ onExitZenMode }: FocusHUDProps) => {
             <div className="relative z-10 flex flex-col items-center w-full max-w-4xl p-8">
 
                 {/* Top Bar (Fades out on idle) */}
-                <div className={cn("absolute top-8 right-8 left-8 flex justify-between transition-opacity duration-500", mouseIdle && isActive ? "opacity-0" : "opacity-100")}>
+                <div className={cn("absolute top-8 right-8 left-8 flex justify-between transition-opacity duration-500", mouseIdle && isActive && !isSettingsOpen ? "opacity-0" : "opacity-100")}>
                     {/* Left side: Settings */}
                     <TimerSettingsDialog 
                         onSave={handleSaveCustomSettings}
@@ -134,7 +134,7 @@ const FocusHUD = ({ onExitZenMode }: FocusHUDProps) => {
                     </div>
 
                     {/* Controls (Fade out on idle) */}
-                    <div className={cn("flex items-center gap-6 transition-all duration-500", mouseIdle && isActive ? "opacity-0 translate-y-10" : "opacity-100 translate-y-0")}>
+                    <div className={cn("flex items-center gap-6 transition-all duration-500", mouseIdle && isActive && !isSettingsOpen ? "opacity-0 translate-y-10" : "opacity-100 translate-y-0")}>
                         <Button
                             size="lg"
                             variant="outline"
@@ -159,7 +159,7 @@ const FocusHUD = ({ onExitZenMode }: FocusHUDProps) => {
             </div>
 
             {/* Footer Status */}
-            <div className={cn("absolute bottom-8 text-white/30 text-sm font-mono transition-opacity duration-500", mouseIdle && isActive ? "opacity-0" : "opacity-100")}>
+            <div className={cn("absolute bottom-8 text-white/30 text-sm font-mono transition-opacity duration-500", mouseIdle && isActive && !isSettingsOpen ? "opacity-0" : "opacity-100")}>
                 {currentMode.name} • {isActive ? "Focusing..." : "Paused"}
             </div>
         </div>

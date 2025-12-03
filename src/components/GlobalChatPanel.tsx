@@ -2,10 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, MessageSquare, Zap } from "lucide-react";
+import { Send, MessageSquare, Zap, Flag, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { useUserTitles } from "@/hooks/use-user-titles";
+import { reportUser } from "@/utils/moderation-actions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -141,6 +148,10 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
     }
     // Real-time listener handles replacing the optimistic message with the final one.
   };
+  
+  const handleReportMessage = (messageId: string, reportedUserId: string) => {
+    reportUser(userId, reportedUserId, "chat", messageId, "Reported chat message content.");
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -157,22 +168,47 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
           return (
             <div
               key={msg.id}
-              className={`p-3 rounded-lg ${
-                isCurrentUser
-                  ? "bg-primary/20 ml-4"
-                  : "bg-secondary/20 mr-4"
-              }`}
+              className={`flex items-start ${isCurrentUser ? "justify-end" : "justify-start"}`}
             >
-              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                <span className="font-semibold text-foreground">{msg.profiles?.username || "Unknown"}</span>
-                {title && (
-                  <span className="text-accent font-medium flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    {title}
-                  </span>
+              <div
+                className={`p-3 rounded-lg max-w-[80%] flex items-center gap-2 group ${
+                  isCurrentUser
+                    ? "bg-primary/20"
+                    : "bg-secondary/20"
+                }`}
+              >
+                <div className="flex flex-col">
+                    <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                        <span className="font-semibold text-foreground">{msg.profiles?.username || "Unknown"}</span>
+                        {title && (
+                        <span className="text-accent font-medium flex items-center gap-1">
+                            <Zap className="w-3 h-3" />
+                            {title}
+                        </span>
+                        )}
+                    </div>
+                    <div className="text-sm">{msg.message}</div>
+                </div>
+                
+                {!isCurrentUser && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                <MoreVertical className="w-4 h-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="glass-card">
+                            <DropdownMenuItem 
+                                onClick={() => handleReportMessage(msg.id, msg.user_id)} 
+                                className="text-destructive flex items-center gap-2"
+                            >
+                                <Flag className="w-4 h-4" />
+                                Report Message
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )}
               </div>
-              <div className="text-sm">{msg.message}</div>
             </div>
           );
         })}

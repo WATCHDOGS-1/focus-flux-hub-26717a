@@ -1,10 +1,10 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import HeroSection from "@/components/home/HeroSection";
 import FeatureGridSection from "@/components/home/FeatureGridSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FAQSection from "@/components/home/FAQSection";
-import ResearchLinksSection from "@/components/home/ResearchLinksSection"; // Import new section
+import ResearchLinksSection from "@/components/home/ResearchLinksSection";
 import AnimatedSection from "@/components/AnimatedSection";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
@@ -125,6 +125,21 @@ const Home = () => {
           </AnimatedSection>
         </div>
       </div>
+      
+      {/* 7. Footer with Legal Links */}
+      <footer className="bg-card border-t border-border py-8">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} OnlyFocus. All rights reserved.</p>
+          <div className="flex gap-4 mt-4 sm:mt-0">
+            <Link to="/terms" className="hover:text-primary transition-colors">
+              Terms of Service
+            </Link>
+            <Link to="/privacy" className="hover:text-primary transition-colors">
+              Privacy Policy
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
