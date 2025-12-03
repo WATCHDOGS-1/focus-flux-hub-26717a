@@ -128,19 +128,20 @@ const CircleDetail = () => {
   const handleJoin = async () => {
     if (!userId || !circleId) return;
     
-    // Optimistically set member status
-    setIsMember(true);
+    // Do NOT optimistically set isMember=true here. Rely on loadCircleData after DB operation.
     
     const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
     
     if (error) {
       if (error.code === '23505') { // PostgreSQL unique constraint violation (already a member)
         toast.info("You are already a member of this circle.");
+        // If already a member, we must ensure the UI reflects membership by reloading data.
+        loadCircleData(); 
+        return;
       } else {
         const errorMsg = `Failed to join circle: ${error.message}`;
         console.error(errorMsg, error);
-        toast.error(errorMsg); // Display detailed error
-        setIsMember(false); // Revert optimistic update
+        toast.error(errorMsg);
         return;
       }
     } else {
