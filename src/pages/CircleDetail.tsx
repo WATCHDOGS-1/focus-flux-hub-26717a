@@ -37,12 +37,14 @@ const CircleDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Effect 1: Initial data load and membership check
   useEffect(() => {
     if (circleId && userId) {
       loadCircleData();
     }
   }, [circleId, userId]);
 
+  // Effect 2: Realtime listener for chat messages (only runs if isMember is true)
   useEffect(() => {
     if (!circleId || !isMember) return;
     
@@ -125,22 +127,28 @@ const CircleDetail = () => {
 
   const handleJoin = async () => {
     if (!userId || !circleId) return;
+    
+    // Optimistically set member status
+    setIsMember(true);
+    
     const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
+    
     if (error) {
       if (error.code === '23505') { // PostgreSQL unique constraint violation (already a member)
         toast.info("You are already a member of this circle.");
-        setIsMember(true); // Force UI update if already a member
-        loadCircleData(); // Reload data to ensure UI state is correct
+      } else {
+        const errorMsg = `Failed to join circle: ${error.message}`;
+        console.error(errorMsg, error);
+        toast.error(errorMsg); // Display detailed error
+        setIsMember(false); // Revert optimistic update
         return;
       }
-      const errorMsg = `Failed to join circle: ${error.message}`;
-      console.error(errorMsg, error);
-      toast.error(errorMsg); // Display detailed error
     } else {
-      toast.success("Joined circle!");
-      setIsMember(true); // OPTIMISTIC UPDATE: Assume success and switch UI immediately
-      loadCircleData();
+      toast.success("Joined circle! Loading chat...");
     }
+    
+    // Reload data to fetch members and messages now that we are confirmed members
+    loadCircleData();
   };
 
   const handleLeave = async () => {
@@ -153,6 +161,7 @@ const CircleDetail = () => {
     } else {
       toast.info("You have left the circle.");
       setIsMember(false);
+      setMessages([]);
       loadCircleData();
     }
   };

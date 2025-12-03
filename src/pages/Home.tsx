@@ -4,6 +4,7 @@ import HeroSection from "@/components/home/HeroSection";
 import FeatureGridSection from "@/components/home/FeatureGridSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FAQSection from "@/components/home/FAQSection";
+import ResearchLinksSection from "@/components/home/ResearchLinksSection"; // Import new section
 import AnimatedSection from "@/components/AnimatedSection";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
@@ -99,8 +100,11 @@ const Home = () => {
 
       {/* 4. FAQ Section */}
       <FAQSection />
+      
+      {/* 5. Research Links Section */}
+      <ResearchLinksSection />
 
-      {/* 5. Final CTA Section */}
+      {/* 6. Final CTA Section */}
       <div className="bg-primary/10 py-20">
         <div className="container mx-auto px-4 text-center">
           <AnimatedSection>
