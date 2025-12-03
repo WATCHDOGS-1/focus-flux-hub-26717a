@@ -2,13 +2,15 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Code, MessageSquare, LayoutGrid } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Code, MessageSquare, LayoutGrid, Database, Target } from "lucide-react";
 import { toast } from "sonner";
 import { sendGeminiChat, generateFlowchart, getGeminiApiKey, initializeGeminiClient } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
 import { cn } from "@/lib/utils";
+import { getRecentFocusSessions } from "@/utils/session-management";
+import { getLocalStudyData } from "@/utils/local-data";
 
 // Define chat history type compatible with Gemini API
 interface ChatPart {
@@ -25,6 +27,7 @@ const AICoachPanel = () => {
     const [history, setHistory] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
+    const [goalContext, setGoalContext] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const apiKey = getGeminiApiKey();
 
@@ -36,10 +39,65 @@ const AICoachPanel = () => {
         scrollToBottom();
     }, [history]);
 
+    const getContextualPromptPrefix = () => {
+        let prefix = "";
+        if (goalContext.trim()) {
+            prefix += `[CURRENT GOAL: ${goalContext.trim()}] `;
+        }
+        if (stats) {
+            prefix += `[USER STATS: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days] `;
+        }
+        return prefix;
+    };
+
+    const handleLoadData = async () => {
+        if (!userId || isGenerating) return;
+
+        setIsGenerating(true);
+        
+        // 1. Fetch Supabase Data
+        const sessionData = await getRecentFocusSessions(userId);
+        const sessionSummary = sessionData.length > 0 
+            ? sessionData.map(s => `${s.tag} (${s.totalMinutes} min)`).join(", ")
+            : "No recent focused sessions found.";
+
+        // 2. Fetch Local Data
+        const localData = getLocalStudyData();
+        const tasksSummary = localData.tasks.length > 0 
+            ? localData.tasks.map(t => t.content).join("; ")
+            : "No incomplete tasks found.";
+        
+        const dataMessage = `
+        --- User Study Data ---
+        Recent Focus Sessions (Last 7 days, aggregated by subject/tag): ${sessionSummary}
+        Incomplete To-Do List Items (Local Storage): ${tasksSummary}
+        Local Notes Summary (First 200 chars): ${localData.notesSummary || "No notes found."}
+        --- End Data ---
+        
+        Analyze this data and provide a brief summary of my current focus areas and potential productivity bottlenecks.
+        `;
+
+        const userMessage: ChatMessage = { role: "user", parts: [{ text: dataMessage }] };
+        setHistory(prev => [...prev, userMessage]);
+
+        try {
+            const responseText = await sendGeminiChat(history, dataMessage);
+            const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
+            setHistory(prev => [...prev, modelMessage]);
+            toast.success("Study data loaded and analyzed.");
+        } catch (error: any) {
+            toast.error(error.message || "AI Coach failed to analyze data.");
+            setHistory(prev => prev.slice(0, -1));
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     const handleChat = async (message: string) => {
         if (!message.trim() || isGenerating) return;
         
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: message }] };
+        const contextualMessage = getContextualPromptPrefix() + message;
+        const userMessage: ChatMessage = { role: "user", parts: [{ text: message }] }; // Store clean message in history
         
         // Optimistic update
         setHistory(prev => [...prev, userMessage]);
@@ -47,7 +105,8 @@ const AICoachPanel = () => {
         setIsGenerating(true);
 
         try {
-            const responseText = await sendGeminiChat(history, message);
+            // Send contextual message to the model
+            const responseText = await sendGeminiChat(history, contextualMessage);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
             setHistory(prev => [...prev, modelMessage]);
@@ -63,12 +122,13 @@ const AICoachPanel = () => {
     const handleFlowchartGeneration = async (prompt: string) => {
         if (isGenerating) return;
         
+        const contextualPrompt = getContextualPromptPrefix() + prompt;
         const userMessage: ChatMessage = { role: "user", parts: [{ text: `Generate a flowchart for: ${prompt}` }] };
         setHistory(prev => [...prev, userMessage]);
         setIsGenerating(true);
 
         try {
-            const mermaidCode = await generateFlowchart(prompt);
+            const mermaidCode = await generateFlowchart(contextualPrompt);
             
             const modelMessage: ChatMessage = { 
                 role: "model", 
@@ -141,6 +201,19 @@ const AICoachPanel = () => {
                 <Brain className="w-5 h-5 text-accent" />
                 AI Focus Coach
             </h3>
+            
+            {/* Goal Context Input */}
+            <div className="mb-4 space-y-2">
+                <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" />
+                    <Input
+                        placeholder="Set a temporary goal for this conversation (e.g., 'Finish Chapter 3')"
+                        value={goalContext}
+                        onChange={(e) => setGoalContext(e.target.value)}
+                        className="flex-1"
+                    />
+                </div>
+            </div>
 
             {/* Predetermined Functions */}
             <div className="space-y-2 mb-4 p-3 rounded-lg bg-secondary/30">
@@ -148,6 +221,15 @@ const AICoachPanel = () => {
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
                 </p>
                 <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleLoadData}
+                        disabled={isGenerating}
+                        className="text-xs h-8"
+                    >
+                        <Database className="w-3 h-3 mr-1" /> Load Study Data
+                    </Button>
                     <Button 
                         variant="outline" 
                         size="sm" 
@@ -165,6 +247,15 @@ const AICoachPanel = () => {
                         className="text-xs h-8"
                     >
                         <Code className="w-3 h-3 mr-1" /> Distraction Flowchart
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleFlowchartGeneration("Create a step-by-step guide for effective note-taking.")}
+                        disabled={isGenerating}
+                        className="text-xs h-8"
+                    >
+                        <Code className="w-3 h-3 mr-1" /> Note-Taking Flowchart
                     </Button>
                 </div>
             </div>

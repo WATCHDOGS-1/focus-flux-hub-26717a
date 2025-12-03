@@ -31,6 +31,43 @@ const getTitleByXP = (xp: number) => {
 export const getLevelThresholds = () => LEVEL_THRESHOLDS;
 
 /**
+ * Fetches and aggregates focus session data for the last 7 days, grouped by tag.
+ */
+export const getRecentFocusSessions = async (userId: string): Promise<{ tag: string, totalMinutes: number }[]> => {
+  const today = new Date();
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 7);
+  const sevenDaysAgoISO = sevenDaysAgo.toISOString();
+
+  const { data: sessions, error } = await supabase
+    .from("focus_sessions")
+    .select("duration_minutes, tag")
+    .eq("user_id", userId)
+    .gte("start_time", sevenDaysAgoISO)
+    .not("duration_minutes", "is", null)
+    .gt("duration_minutes", 0);
+
+  if (error) {
+    console.error("Error fetching recent focus sessions:", error);
+    return [];
+  }
+
+  const aggregatedData: { [tag: string]: number } = {};
+
+  sessions?.forEach(session => {
+    const tag = session.tag || "General Focus";
+    const minutes = session.duration_minutes || 0;
+    aggregatedData[tag] = (aggregatedData[tag] || 0) + minutes;
+  });
+
+  return Object.entries(aggregatedData).map(([tag, totalMinutes]) => ({
+    tag,
+    totalMinutes,
+  }));
+};
+
+
+/**
  * Handles all post-session logic: saving session, updating weekly stats,
  * calculating streaks, updating longest session, and calculating XP/levels.
  */
