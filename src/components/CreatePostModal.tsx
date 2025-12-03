@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Image, Send, Edit, Clock, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { uploadImageToCloudinary } from "@/utils/cloudinary"; // Reverted import
+import { uploadImageToCloudinary } from "@/utils/cloudinary";
 import type { Database } from "@/integrations/supabase/types";
 
 type FeedItem = Database["public"]["Tables"]["feed_items"]["Row"];
@@ -34,7 +34,7 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
     const [isUploading, setIsUploading] = useState(false);
     const [lastPostTime, setLastPostTime] = useState<number>(0);
     
-    const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the hidden file input
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const isEditing = !!editingPost;
 

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsUp, Zap, Tag, Clock, Plus, Image, Edit, MoreVertical, Trash2 } from "lucide-react";
+import { ThumbsUp, Zap, Tag, Clock, Plus, Image, Edit, MoreVertical, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import CloudinaryImage from "./CloudinaryImage"; // Import CloudinaryImage
+import CloudinaryImage from "./CloudinaryImage";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type FeedItemRaw = Database["public"]["Tables"]["feed_items"]["Row"] & {
@@ -38,23 +38,10 @@ const FocusFeed = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<FeedItemRaw | null>(null);
 
-  // Temporarily disable feed functionality and show coming soon message
-  return (
-    <div className="text-center py-20 space-y-4 glass-card p-8 rounded-xl">
-      <Zap className="w-12 h-12 text-primary mx-auto" />
-      <h3 className="text-2xl font-bold">Focus Feed: Coming Soon</h3>
-      <p className="text-muted-foreground max-w-md mx-auto">
-        We are currently optimizing the real-time feed infrastructure. Check back soon to see the latest achievements and posts from your friends!
-      </p>
-    </div>
-  );
-
-  /*
-  // Original logic (commented out for now)
   const loadFeed = async () => {
     setIsLoading(true);
     
-    // 1. Fetch raw feed items and applauds
+    // 1. Fetch raw feed items and applauds count
     const { data: rawData, error } = await supabase
       .from("feed_items")
       .select(`
@@ -75,7 +62,7 @@ const FocusFeed = () => {
       const rawItems = rawData as FeedItemRaw[];
       const userIds = Array.from(new Set(rawItems.map(item => item.user_id)));
       
-      // 2. Fetch all required profiles separately (including profile_photo_url)
+      // 2. Fetch all required profiles separately
       const { data: profilesData } = await supabase
         .from("profiles")
         .select("id, username, profile_photo_url")
@@ -107,6 +94,11 @@ const FocusFeed = () => {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "feed_items" },
+        () => loadFeed()
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "feed_items" },
         () => loadFeed()
       )
       .on(
@@ -251,7 +243,6 @@ const FocusFeed = () => {
                 <p className="text-base">{postData.caption}</p>
                 {postData.imageUrl && (
                     <div className="mt-3 w-full max-h-60 rounded-lg overflow-hidden">
-                        // Use CloudinaryImage for optimized display
                         <CloudinaryImage 
                             publicIdOrUrl={postData.imageUrl} 
                             width={600} 
@@ -318,7 +309,7 @@ const FocusFeed = () => {
   };
 
   if (isLoading) {
-    return <div className="text-center py-8 text-muted-foreground">Loading feed...</div>;
+    return <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" /> Loading feed...</div>;
   }
 
   return (
@@ -349,7 +340,6 @@ const FocusFeed = () => {
       )}
     </div>
   );
-  */
 };
 
 export default FocusFeed;
