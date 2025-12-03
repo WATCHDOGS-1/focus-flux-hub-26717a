@@ -8,15 +8,61 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
-type FeedItem = Database["public"]["Tables"]["feed_items"]["Row"] & {
-  profiles: { username: string } | null;
+type FeedItemRaw = Database["public"]["Tables"]["feed_items"]["Row"] & {
   feed_applauds: { count: number }[];
+};
+
+type FeedItemWithProfile = FeedItemRaw & {
+  profiles: { username: string } | null;
 };
 
 const FocusFeed = () => {
   const { userId } = useAuth();
-  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [feedItems, setFeedItems] = useState<FeedItemWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const loadFeed = async () => {
+    setIsLoading(true);
+    
+    // 1. Fetch raw feed items and applauds (excluding profiles join to bypass schema cache issue)
+    const { data: rawData, error } = await supabase
+      .from("feed_items")
+      .select(`
+        *,
+        feed_applauds (count)
+      `)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error("Error loading feed:", error);
+      toast.error(`Failed to load focus feed: ${error.message}`);
+      setIsLoading(false);
+      return;
+    }
+
+    if (rawData) {
+      const rawItems = rawData as FeedItemRaw[];
+      const userIds = Array.from(new Set(rawItems.map(item => item.user_id)));
+      
+      // 2. Fetch all required profiles separately
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", userIds);
+        
+      const profileMap = new Map(profilesData?.map(p => [p.id, p.username]));
+
+      // 3. Map profiles back onto feed items
+      const itemsWithProfiles: FeedItemWithProfile[] = rawItems.map(item => ({
+        ...item,
+        profiles: { username: profileMap.get(item.user_id) || "Unknown User" },
+      }));
+      
+      setFeedItems(itemsWithProfiles);
+    }
+    setIsLoading(false);
+  };
 
   useEffect(() => {
     loadFeed();
@@ -39,27 +85,6 @@ const FocusFeed = () => {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  const loadFeed = async () => {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from("feed_items")
-      .select(`
-        *,
-        profiles (username),
-        feed_applauds (count)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error("Error loading feed:", error); // DEBUG LOG
-      toast.error(`Failed to load focus feed: ${error.message}`);
-    } else {
-      setFeedItems(data as FeedItem[]);
-    }
-    setIsLoading(false);
-  };
 
   const handleApplaud = async (feedItemId: string) => {
     if (!userId) return;
@@ -114,7 +139,7 @@ const FocusFeed = () => {
     setTimeout(loadFeed, 500);
   };
 
-  const renderFeedItem = (item: FeedItem) => {
+  const renderFeedItem = (item: FeedItemWithProfile) => {
     const { type, data, profiles, created_at } = item;
     const username = profiles?.username || "A user";
     const timeAgo = formatDistanceToNow(new Date(created_at), { addSuffix: true });

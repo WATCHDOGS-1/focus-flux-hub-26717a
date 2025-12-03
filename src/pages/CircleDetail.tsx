@@ -77,24 +77,35 @@ const CircleDetail = () => {
     }
     setCircle(circleData);
 
-    // Fetch members and check for RLS errors
+    // 1. Dedicated Membership Check
+    const { data: membershipData } = await supabase
+      .from("circle_members")
+      .select("id")
+      .eq("circle_id", circleId)
+      .eq("user_id", userId)
+      .maybeSingle();
+      
+    const memberCheck = !!membershipData;
+    setIsMember(memberCheck);
+
+    // 2. Fetch Members List (Only if member, or if RLS allows reading)
+    let membersList: CircleMember[] = [];
     const { data: membersData, error: membersError } = await supabase.from("circle_members").select("*, profiles(username)").eq("circle_id", circleId);
     
     if (membersError) {
-        console.error("RLS Error fetching circle members:", membersError);
-        // toast.error(`Failed to fetch members: ${membersError.message}. Check RLS on circle_members.`);
+        console.error("Error fetching circle members:", membersError);
     }
+    membersList = membersData as CircleMember[] || [];
+    setMembers(membersList);
 
-    setMembers(membersData as CircleMember[] || []);
-    const memberCheck = membersData?.some(m => m.user_id === userId) || false;
-    setIsMember(memberCheck);
 
+    // 3. Fetch Messages (Only if member)
     if (memberCheck) {
       const { data: messagesData } = await supabase.from("circle_messages").select("*, profiles(username)").eq("circle_id", circleId).order("created_at", { ascending: true });
       setMessages(messagesData as CircleMessage[] || []);
       setTimeout(scrollToBottom, 100);
     } else {
-      setMessages([]); // Clear messages if not a member
+      setMessages([]);
     }
 
     setIsLoading(false);
