@@ -604,7 +604,7 @@ export type Database = {
     }
     Enums: {
       friend_request_status: "pending" | "accepted" | "rejected"
-      feed_item_type: "session_completed" | "achievement_unlocked"
+      feed_item_type: "session_completed" | "achievement_unlocked" | "user_post"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -733,7 +733,7 @@ export const Constants = {
   public: {
     Enums: {
       friend_request_status: ["pending", "accepted", "rejected"] as const,
-      feed_item_type: ["session_completed", "achievement_unlocked"] as const,
+      feed_item_type: ["session_completed", "achievement_unlocked", "user_post"] as const,
     },
   },
 } as const
