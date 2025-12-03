@@ -36,7 +36,7 @@ const RoomThemeSelector = ({ onThemeChange }: RoomThemeSelectorProps) => {
   return (
     <Select onValueChange={handleThemeChange} value={selectedTheme}>
       <SelectTrigger className={cn("w-[180px] dopamine-click", "text-foreground")}>
-        <CurrentIcon className="w-4 h-4 mr-2" />
+        {/* Removed CurrentIcon here to fix double icon issue */}
         <SelectValue placeholder="Select Room Theme" />
       </SelectTrigger>
       <SelectContent className="glass-card">

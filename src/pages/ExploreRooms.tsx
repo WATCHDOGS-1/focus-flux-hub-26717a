@@ -4,7 +4,7 @@ import { PREDEFINED_ROOMS } from "@/utils/constants";
 import { useRoomPresence } from "@/hooks/use-room-presence";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Video, Zap, Search, Shield } from "lucide-react";
+import { Users, Video, Zap, Search, Shield, Home } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -30,14 +30,24 @@ const ExploreRooms = () => {
           <h1 className="text-4xl font-bold">
             Explore Focus Rooms
           </h1>
-          <Button
-            onClick={() => navigate("/social")}
-            className="dopamine-click flex items-center gap-2"
-            variant="outline"
-          >
-            <Shield className="w-4 h-4" />
-            Social Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => navigate("/")}
+              className="dopamine-click flex items-center gap-2"
+              variant="outline"
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </Button>
+            <Button
+              onClick={() => navigate("/social")}
+              className="dopamine-click flex items-center gap-2"
+              variant="outline"
+            >
+              <Shield className="w-4 h-4" />
+              Social Dashboard
+            </Button>
+          </div>
         </div>
         <p className="text-xl text-muted-foreground text-center max-w-3xl mx-auto mb-8">
           Join a virtual study room to co-work with peers. Each room supports up to 10 users via P2P video.
