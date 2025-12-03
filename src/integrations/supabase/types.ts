@@ -134,7 +134,6 @@ export type Database = {
           type: Database["public"]["Enums"]["feed_item_type"]
           data: Json | null
           created_at: string
-          delete_at: string | null // NEW: Timestamp for automatic deletion
         }
         Insert: {
           id?: string
@@ -142,7 +141,6 @@ export type Database = {
           type: Database["public"]["Enums"]["feed_item_type"]
           data?: Json | null
           created_at?: string
-          delete_at?: string | null // NEW
         }
         Update: {
           id?: string
@@ -150,7 +148,6 @@ export type Database = {
           type?: Database["public"]["Enums"]["feed_item_type"]
           data?: Json | null
           created_at?: string
-          delete_at?: string | null // NEW
         }
         Relationships: [
           {
@@ -670,7 +667,7 @@ export type TablesInsert<
         Insert: infer I
       }
       ? I
-      ? never
+      : never
     : never
 
 export type TablesUpdate<

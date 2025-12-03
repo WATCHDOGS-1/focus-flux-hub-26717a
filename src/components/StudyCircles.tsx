@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,13 +24,17 @@ const StudyCircles = () => {
   const [newCircleName, setNewCircleName] = useState("");
   const [newCircleDesc, setNewCircleDesc] = useState("");
 
-  const loadCircles = useCallback(async () => {
+  useEffect(() => {
+    if (userId) {
+      loadCircles();
+    }
+  }, [userId]);
+
+  const loadCircles = async () => {
     if (!userId) return;
     setIsLoading(true);
 
-    let currentMyCircles: Circle[] = [];
-
-    // 1. Fetch circles the user is a member of
+    // Fetch circles the user is a member of
     const { data: memberData, error: memberError } = await supabase
       .from("circle_members")
       .select("circle_id")
@@ -45,12 +49,13 @@ const StudyCircles = () => {
           .from("circles")
           .select("*")
           .in("id", circleIds);
-        if (circlesData) currentMyCircles = circlesData;
+        if (circlesData) setMyCircles(circlesData);
+      } else {
+        setMyCircles([]);
       }
-      setMyCircles(currentMyCircles);
     }
 
-    // 2. Fetch circles to discover (all circles not joined by user, up to 50)
+    // Fetch circles to discover (all circles not joined by user, up to 50)
     const { data: allCircles, error: allCirclesError } = await supabase
       .from("circles")
       .select("*")
@@ -58,19 +63,13 @@ const StudyCircles = () => {
       .limit(50);
       
     if (allCircles) {
-        const myCircleIds = new Set(currentMyCircles.map(c => c.id));
+        const myCircleIds = new Set(myCircles.map(c => c.id));
         const discoverable = allCircles.filter(c => !myCircleIds.has(c.id));
         setDiscoverCircles(discoverable);
     }
 
     setIsLoading(false);
-  }, [userId]);
-
-  useEffect(() => {
-    if (userId) {
-      loadCircles();
-    }
-  }, [userId, loadCircles]);
+  };
   
   const handleJoinCircle = async (circleId: string) => {
     if (!userId) return;

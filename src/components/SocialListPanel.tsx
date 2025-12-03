@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, MessageSquare, User, Users, UserPlus, Check, X, Clock, Flame } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -29,45 +29,6 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
 
   const { friends, pendingRequests, isLoading: isLoadingFriends, refetch } = useFriends();
 
-  const loadConversations = useCallback(async () => {
-    // Fetch conversations where the current user is either user1 or user2
-    const { data, error } = await supabase
-      .from("dm_conversations")
-      .select("*")
-      .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error loading conversations:", error);
-      toast.error("Failed to load DMs.");
-    } else if (data) {
-      setConversations(data as Conversation[]);
-    }
-  }, [currentUserId]);
-
-  const loadAllUsers = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, profile_photo_url")
-      .neq("id", currentUserId) // Exclude current user
-      .order("username", { ascending: true });
-
-    if (error) {
-      console.error("Error loading users:", error);
-    } else if (data) {
-      // Filter out any profiles whose username looks like an email address for privacy/security
-      const safeUsers = (data as Profile[]).filter(user => !isLikelyEmail(user.username));
-      setAllUsers(safeUsers);
-    }
-  }, [currentUserId]);
-
-  const loadData = useCallback(async () => {
-    setIsLoadingData(true);
-    await Promise.all([loadConversations(), loadAllUsers()]);
-    setIsLoadingData(false);
-  }, [loadConversations, loadAllUsers]);
-
-
   useEffect(() => {
     loadData();
     
@@ -90,11 +51,49 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId, loadData, loadConversations]);
+  }, [currentUserId]);
+
+  const loadData = async () => {
+    setIsLoadingData(true);
+    await Promise.all([loadConversations(), loadAllUsers()]);
+    setIsLoadingData(false);
+  };
+
+  const loadConversations = async () => {
+    // Fetch conversations where the current user is either user1 or user2
+    const { data, error } = await supabase
+      .from("dm_conversations")
+      .select("*")
+      .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading conversations:", error);
+      toast.error("Failed to load DMs.");
+    } else if (data) {
+      setConversations(data as Conversation[]);
+    }
+  };
+
+  const loadAllUsers = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, username, profile_photo_url")
+      .neq("id", currentUserId) // Exclude current user
+      .order("username", { ascending: true });
+
+    if (error) {
+      console.error("Error loading users:", error);
+    } else if (data) {
+      // Filter out any profiles whose username looks like an email address for privacy/security
+      const safeUsers = (data as Profile[]).filter(user => !isLikelyEmail(user.username));
+      setAllUsers(safeUsers);
+    }
+  };
 
   const handleUserClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
     if (view === 'dms') {
-      const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
+      const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
       if (conversationId) {
         onSelectConversation(conversationId, targetUser.username, targetUser.id);
       }
@@ -105,7 +104,7 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
   };
   
   const handleConversationClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
-    const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
+    const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
     if (conversationId) {
       onSelectConversation(conversationId, targetUser.username, targetUser.id);
     }
