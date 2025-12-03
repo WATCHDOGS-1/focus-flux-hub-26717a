@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Users, Send, Crown, LogOut, Trash2 } from "lucide-react";
+import { ArrowLeft, Users, Send, Crown, LogOut, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,13 +22,15 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type Circle = Database["public"]["Tables"]["circles"]["Row"];
-type CircleMember = Database["public"]["Tables"]["circle_members"]["Row"] & { profiles: { username: string } | null };
-type CircleMessage = Database["public"]["Tables"]["circle_messages"]["Row"] & { profiles: { username: string } | null };
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type CircleMember = Database["public"]["Tables"]["circle_members"]["Row"] & { profiles: Pick<Profile, 'username'> | null };
+type CircleMessage = Database["public"]["Tables"]["circle_messages"]["Row"] & { profiles: Pick<Profile, 'username'> | null };
 
 const CircleDetail = () => {
   const { circleId } = useParams<{ circleId: string }>();
   const { userId } = useAuth();
   const navigate = useNavigate();
+  
   const [circle, setCircle] = useState<Circle | null>(null);
   const [members, setMembers] = useState<CircleMember[]>([]);
   const [messages, setMessages] = useState<CircleMessage[]>([]);
@@ -37,39 +39,15 @@ const CircleDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Effect 1: Initial data load and membership check
-  useEffect(() => {
-    if (circleId && userId) {
-      loadCircleData();
-    }
-  }, [circleId, userId]);
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
-  // Effect 2: Realtime listener for chat messages (only runs if isMember is true)
-  useEffect(() => {
-    if (!circleId || !isMember) return;
-    
-    const channel = supabase
-      .channel(`circle-chat:${circleId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "circle_messages", filter: `circle_id=eq.${circleId}` },
-        (payload) => {
-          // Fetch profile with message to avoid extra lookup
-          const newMessageId = (payload.new as any).id;
-          fetchSingleMessage(newMessageId);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [circleId, isMember]);
-
-  const loadCircleData = async () => {
+  const loadCircleData = useCallback(async (shouldScroll = false) => {
     if (!circleId || !userId) return;
     setIsLoading(true);
 
+    // 1. Fetch Circle Details
     const { data: circleData, error: circleError } = await supabase.from("circles").select("*").eq("id", circleId).single();
     if (circleError || !circleData) {
       console.error("Error loading circle details:", circleError);
@@ -79,7 +57,7 @@ const CircleDetail = () => {
     }
     setCircle(circleData);
 
-    // 1. Dedicated Membership Check
+    // 2. Dedicated Membership Check
     const { data: membershipData } = await supabase
       .from("circle_members")
       .select("id")
@@ -90,66 +68,82 @@ const CircleDetail = () => {
     const memberCheck = !!membershipData;
     setIsMember(memberCheck);
 
-    // 2. Fetch Members List (Only if member, or if RLS allows reading)
-    let membersList: CircleMember[] = [];
+    // 3. Fetch Members List
     const { data: membersData, error: membersError } = await supabase.from("circle_members").select("*, profiles(username)").eq("circle_id", circleId);
-    
     if (membersError) {
         console.error("Error fetching circle members:", membersError);
     }
-    membersList = membersData as CircleMember[] || [];
-    setMembers(membersList);
+    setMembers(membersData as CircleMember[] || []);
 
-
-    // 3. Fetch Messages (Only if member)
+    // 4. Fetch Messages (Only if member)
     if (memberCheck) {
       const { data: messagesData } = await supabase.from("circle_messages").select("*, profiles(username)").eq("circle_id", circleId).order("created_at", { ascending: true });
       setMessages(messagesData as CircleMessage[] || []);
-      setTimeout(scrollToBottom, 100);
+      if (shouldScroll) {
+        setTimeout(scrollToBottom, 100);
+      }
     } else {
       setMessages([]);
     }
 
     setIsLoading(false);
-  };
+  }, [circleId, userId, navigate, scrollToBottom]);
 
-  const fetchSingleMessage = async (messageId: string) => {
-    const { data } = await supabase.from("circle_messages").select("*, profiles(username)").eq("id", messageId).single();
-    if (data) {
-      setMessages(prev => [...prev, data as CircleMessage]);
-      scrollToBottom();
+  // Effect 1: Initial data load
+  useEffect(() => {
+    if (circleId && userId) {
+      loadCircleData(true);
     }
-  };
+  }, [circleId, userId, loadCircleData]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Effect 2: Realtime listener for chat messages and members
+  useEffect(() => {
+    if (!circleId) return;
+    
+    const channel = supabase
+      .channel(`circle:${circleId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "circle_messages", filter: `circle_id=eq.${circleId}` },
+        () => {
+          // Reload messages and scroll to bottom
+          loadCircleData(true);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "circle_members", filter: `circle_id=eq.${circleId}` },
+        () => {
+          // Reload members list and membership status
+          loadCircleData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [circleId, loadCircleData]);
+
 
   const handleJoin = async () => {
     if (!userId || !circleId) return;
     
-    // Do NOT optimistically set isMember=true here. Rely on loadCircleData after DB operation.
-    
     const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
     
     if (error) {
-      if (error.code === '23505') { // PostgreSQL unique constraint violation (already a member)
+      if (error.code === '23505') { 
         toast.info("You are already a member of this circle.");
-        // If already a member, we must ensure the UI reflects membership by reloading data.
-        loadCircleData(); 
-        return;
       } else {
         const errorMsg = `Failed to join circle: ${error.message}`;
         console.error(errorMsg, error);
         toast.error(errorMsg);
-        return;
       }
     } else {
       toast.success("Joined circle! Loading chat...");
     }
     
-    // Reload data to fetch members and messages now that we are confirmed members
-    loadCircleData();
+    loadCircleData(true);
   };
 
   const handleLeave = async () => {
@@ -158,7 +152,7 @@ const CircleDetail = () => {
     if (error) {
       const errorMsg = `Failed to leave circle: ${error.message}`;
       console.error(errorMsg, error);
-      toast.error(errorMsg); // Display detailed error
+      toast.error(errorMsg);
     } else {
       toast.info("You have left the circle.");
       setIsMember(false);
@@ -169,12 +163,12 @@ const CircleDetail = () => {
 
   const handleDeleteCircle = async () => {
     if (!circleId || circle?.owner_id !== userId) return;
-    // Deleting the circle cascades to members and messages
+    
     const { error } = await supabase.from("circles").delete().eq("id", circleId);
     if (error) {
       const errorMsg = `Failed to delete circle: ${error.message}`;
       console.error(errorMsg, error);
-      toast.error(errorMsg); // Display detailed error
+      toast.error(errorMsg);
     } else {
       toast.success("Circle deleted.");
       navigate("/social");
@@ -182,7 +176,7 @@ const CircleDetail = () => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !userId || !circleId) return;
+    if (!newMessage.trim() || !userId || !circleId || !isMember) return;
     const content = newMessage.trim();
     setNewMessage("");
     
@@ -202,15 +196,19 @@ const CircleDetail = () => {
     if (error) {
       const errorMsg = `Failed to send message: ${error.message}`;
       console.error(errorMsg, error);
-      toast.error(errorMsg); // Display detailed error
+      toast.error(errorMsg);
       setNewMessage(content);
-      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id)); // Revert optimistic update
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
     }
     // Realtime listener handles replacing the optimistic message
   };
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading Circle...</div>;
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+    );
   }
 
   if (!circle) {
@@ -233,7 +231,7 @@ const CircleDetail = () => {
           {isMember && circle.owner_id === userId && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-2" /> Delete Circle</Button>
+                <Button variant="destructive" size="sm" className="dopamine-click"><Trash2 className="w-4 h-4 mr-2" /> Delete Circle</Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="glass-card">
                 <AlertDialogHeader>
@@ -265,7 +263,9 @@ const CircleDetail = () => {
                       {messages.map(msg => (
                         <div key={msg.id} className={`flex gap-2 ${msg.user_id === userId ? "justify-end" : ""}`}>
                           <div className={`p-3 rounded-lg max-w-[80%] ${msg.user_id === userId ? "bg-primary/20" : "bg-secondary/20"}`}>
-                            <div className="text-xs font-bold mb-1">{msg.user_id === userId ? "You" : msg.profiles?.username || "User"}</div>
+                            <div className="text-xs font-bold mb-1">
+                                {msg.user_id === userId ? "You" : msg.profiles?.username || "User"}
+                            </div>
                             <p>{msg.content}</p>
                           </div>
                         </div>
@@ -279,8 +279,11 @@ const CircleDetail = () => {
                         onChange={e => setNewMessage(e.target.value)} 
                         onKeyPress={e => e.key === 'Enter' && sendMessage()} 
                         placeholder="Type a message..." 
+                        disabled={!isMember}
                     />
-                    <Button onClick={sendMessage} disabled={!newMessage.trim()}><Send className="w-4 h-4" /></Button>
+                    <Button onClick={sendMessage} disabled={!newMessage.trim() || !isMember} className="dopamine-click">
+                        <Send className="w-4 h-4" />
+                    </Button>
                   </div>
                 </>
               ) : (
