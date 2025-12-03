@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import CloudinaryImage from "./CloudinaryImage"; // Import CloudinaryImage
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type FeedItemRaw = Database["public"]["Tables"]["feed_items"]["Row"] & {
@@ -237,10 +238,12 @@ const FocusFeed = () => {
                 <p className="text-base">{postData.caption}</p>
                 {postData.imageUrl && (
                     <div className="mt-3 w-full max-h-60 rounded-lg overflow-hidden">
-                        <img 
-                            src={postData.imageUrl} 
-                            alt="User Post Image" 
-                            className="w-full object-cover"
+                        {/* Use CloudinaryImage for optimized display */}
+                        <CloudinaryImage 
+                            publicIdOrUrl={postData.imageUrl} 
+                            width={600} 
+                            height={240} 
+                            className="w-full h-full object-cover"
                         />
                     </div>
                 )}
