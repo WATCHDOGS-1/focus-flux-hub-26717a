@@ -1,13 +1,35 @@
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { initializeGeminiClient, analyzeSession } from "./gemini"; // Import Gemini utilities
 
 type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
 type UserLevels = Database["public"]["Tables"]["user_levels"]["Row"];
 
 /**
- * Provides rule-based motivational advice based on user stats.
+ * Provides rule-based or Gemini-powered motivational advice based on user stats.
  */
-export const runAIFocusCoach = (stats: UserStats | null, levels: UserLevels | null, sessionDurationMinutes: number) => {
+export const runAIFocusCoach = async (stats: UserStats | null, levels: UserLevels | null, sessionDurationMinutes: number, focusTag: string) => {
+  const client = initializeGeminiClient();
+
+  if (client && stats && levels) {
+    // Use Gemini for advanced analysis if key is present
+    try {
+        const feedback = await analyzeSession({
+            durationMinutes: sessionDurationMinutes,
+            focusTag: focusTag || "General Focus",
+            longestStreak: stats.longest_streak,
+            totalFocusedMinutes: stats.total_focused_minutes,
+        });
+        toast.info(`AI Coach Feedback: ${feedback}`, { duration: 10000 });
+        return;
+    } catch (e) {
+        console.warn("Gemini analysis failed, falling back to rule-based coach.", e);
+        // Fall through to rule-based coaching
+    }
+  }
+  
+  // --- Rule-Based Coaching (Fallback) ---
+
   if (!stats || !levels) {
     // Rule 1: New user encouragement
     toast.info("Welcome to OnlyFocus! Complete your first session to start earning XP and climbing the leaderboard. You got this! 🚀", { duration: 8000 });

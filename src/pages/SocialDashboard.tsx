@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home, User } from "lucide-react";
+import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home, User, Brain } from "lucide-react";
 import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
@@ -11,6 +11,7 @@ import UserProfileModal from "@/components/UserProfileModal";
 import FocusFeed from "@/components/FocusFeed";
 import StudyCircles from "@/components/StudyCircles";
 import ProfileMenu from "@/components/ProfileMenu"; // Import ProfileMenu
+import AICoachPanel from "@/components/AICoachPanel"; // Import AICoachPanel
 
 const SocialDashboard = () => {
     const navigate = useNavigate();
@@ -68,7 +69,7 @@ const SocialDashboard = () => {
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
                 <Tabs defaultValue="feed" className="w-full">
-                    <TabsList className="grid w-full grid-cols-6 mb-8">
+                    <TabsList className="grid w-full grid-cols-7 mb-8">
                         <TabsTrigger value="feed" className="flex items-center gap-2">
                             <Rss className="h-4 w-4" />
                             Feed
@@ -88,6 +89,10 @@ const SocialDashboard = () => {
                         <TabsTrigger value="leaderboard" className="flex items-center gap-2">
                             <Trophy className="h-4 w-4" />
                             Leaderboard
+                        </TabsTrigger>
+                        <TabsTrigger value="ai-coach" className="flex items-center gap-2">
+                            <Brain className="h-4 w-4" />
+                            AI Coach
                         </TabsTrigger>
                         <TabsTrigger value="profile" className="flex items-center gap-2">
                             <User className="h-4 w-4" />
@@ -117,6 +122,12 @@ const SocialDashboard = () => {
 
                     <TabsContent value="leaderboard">
                         <Leaderboard onProfileClick={handleProfileClick} />
+                    </TabsContent>
+                    
+                    <TabsContent value="ai-coach">
+                        <div className="max-w-md mx-auto">
+                            <AICoachPanel />
+                        </div>
                     </TabsContent>
                     
                     <TabsContent value="profile">

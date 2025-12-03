@@ -14,7 +14,8 @@ import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles } from "lucide-react";
+import AICoachPanel from "@/components/AICoachPanel"; // Import AICoachPanel
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,9 +82,10 @@ const FocusRoom = () => {
   // Auto-start timer when joining room
   useEffect(() => {
     if (userId && !isActive && sessionStartTime === 0) {
-      startNewSession();
+      // We no longer auto-start here, as the user must set a focus tag first.
+      // The user must manually start the timer via the toggleTimer function.
     }
-  }, [userId, isActive, sessionStartTime, startNewSession]);
+  }, [userId, isActive, sessionStartTime]);
 
   useEffect(() => {
     document.body.className = roomTheme;
@@ -128,6 +130,7 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
+      case "ai-coach": return <AICoachPanel />;
       default: return null;
     }
   };
@@ -139,6 +142,7 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
+      "ai-coach": "AI Focus Coach",
     };
     return titles[panel] || "";
   };
@@ -165,6 +169,7 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
+            <Button onClick={() => togglePanel("ai-coach")} className="w-full justify-start gap-2"><Brain /> AI Coach</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
@@ -232,6 +237,7 @@ const FocusRoom = () => {
                 {!isFocusMode && (
                   <>
                     <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes & Tasks"><NotebookText className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("ai-coach")} title="AI Focus Coach"><Brain className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
@@ -253,12 +259,18 @@ const FocusRoom = () => {
       <main className="flex-1 overflow-y-auto">
         <div className="flex"> {/* Removed h-full here */}
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
-            {/* Optional Focus Tag (when active) */}
-            {isActive && focusTag && (
-              <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-primary/10 border-primary/50">
+            {/* Focus Tag Input (Always visible in room, unless in Focus Mode) */}
+            {!isFocusMode && (
+              <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-secondary/50 border-border">
                 <Tag className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-sm font-medium truncate">
-                  Focus: {focusTag}
+                <Input
+                  placeholder="What are you focusing on? (e.g., 'Math Homework', 'Project Alpha')"
+                  value={focusTag}
+                  onChange={(e) => setFocusTag(e.target.value)}
+                  className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <span className="text-xs text-muted-foreground flex-shrink-0">
+                  (Saved locally & for AI Coach)
                 </span>
               </div>
             )}

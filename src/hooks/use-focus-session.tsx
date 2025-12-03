@@ -81,7 +81,7 @@ export function useFocusSession(): UseFocusSessionResult {
     toast.promise(leavePromise, {
       loading: "Saving your session...",
       success: (result) => {
-        runAIFocusCoach(stats, levels, result.durationMinutes);
+        runAIFocusCoach(stats, levels, result.durationMinutes, result.focusTag); // Pass focusTag for AI analysis
         refetchStats();
         return result.message;
       },
@@ -156,15 +156,23 @@ export function useFocusSession(): UseFocusSessionResult {
 
   const toggleTimer = () => {
     const newState = !isActive;
-    setIsActive(newState);
-
+    
     if (newState && sessionStartTime === 0) {
-      // If starting from a fresh state (sessionStartTime is 0), initiate logging
+      // If starting from a fresh state, check for focus tag
+      if (!focusTag.trim()) {
+        toast.warning("Please set a Focus Tag (e.g., 'Math Homework') before starting.");
+        return;
+      }
       startNewSession();
     } else if (!newState && sessionStartTime !== 0 && !isBreak) {
-      // If pausing a work session, we should offer to end it or just pause.
-      toast.info(isBreak ? "Break paused." : "Focus paused.");
+      // If pausing a work session
+      toast.info("Focus paused.");
+    } else if (!newState && isBreak) {
+      // If pausing a break
+      toast.info("Break paused.");
     }
+    
+    setIsActive(newState);
   };
 
   const resetTimer = () => {

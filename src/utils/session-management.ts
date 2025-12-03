@@ -39,7 +39,7 @@ export const endFocusSession = async (
   sessionId: string,
   sessionStartTime: number,
   focusTag: string
-): Promise<{ message: string, durationMinutes: number }> => {
+): Promise<{ message: string, durationMinutes: number, focusTag: string }> => {
   const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
   const minutes = Math.floor(sessionDuration / 60);
   const today = new Date();
@@ -51,7 +51,7 @@ export const endFocusSession = async (
       .from("focus_sessions")
       .update({ end_time: new Date().toISOString(), duration_minutes: 0, tag: focusTag || null })
       .eq("id", sessionId);
-    return { message: `Session ended. Duration too short to count towards stats.`, durationMinutes: 0 };
+    return { message: `Session ended. Duration too short to count towards stats.`, durationMinutes: 0, focusTag };
   }
 
   // --- 1. Update Focus Session ---
@@ -186,5 +186,5 @@ export const endFocusSession = async (
       .insert({ user_id: userId, week_start: weekStart.toISOString(), total_minutes: minutes });
   }
 
-  return { message: `Session saved! +${xpEarned} XP${bonusDescription}. Streak: ${newStreak} days.`, durationMinutes: minutes };
+  return { message: `Session saved! +${xpEarned} XP${bonusDescription}. Streak: ${newStreak} days.`, durationMinutes: minutes, focusTag };
 };
