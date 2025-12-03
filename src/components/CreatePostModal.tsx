@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Image, Send, Edit, Clock, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { uploadImageToCloudinary } from "@/utils/cloudinary";
+import { uploadImageToImgur } from "@/utils/imgur"; // Changed import
 import type { Database } from "@/integrations/supabase/types";
 
 type FeedItem = Database["public"]["Tables"]["feed_items"]["Row"];
@@ -98,8 +98,8 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
 
         try {
             if (imageFile) {
-                // 1. Upload image to Cloudinary
-                finalImageUrl = await uploadImageToCloudinary(imageFile);
+                // 1. Upload image to Imgur
+                finalImageUrl = await uploadImageToImgur(imageFile);
             }
 
             const postData: PostData = {
