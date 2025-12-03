@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,8 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [lastPostTime, setLastPostTime] = useState<number>(0);
+    
+    const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the hidden file input
 
     const isEditing = !!editingPost;
 
@@ -177,7 +179,9 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
                     )}
 
                     <div className="flex items-center gap-2">
-                        <Input
+                        {/* Hidden file input, triggered by ref click */}
+                        <input
+                            ref={fileInputRef}
                             id="image-upload"
                             type="file"
                             accept="image/*"
@@ -185,16 +189,16 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
                             className="hidden"
                             disabled={isUploading}
                         />
-                        <label htmlFor="image-upload" className="flex-1">
-                            <Button 
-                                variant="outline" 
-                                className="w-full flex items-center gap-2"
-                                disabled={isUploading}
-                            >
-                                <Image className="w-4 h-4" />
-                                {imageFile ? "Change Image" : "Add Image"}
-                            </Button>
-                        </label>
+                        
+                        <Button 
+                            variant="outline" 
+                            className="w-full flex items-center gap-2 flex-1"
+                            onClick={() => fileInputRef.current?.click()} // Manual click trigger
+                            disabled={isUploading}
+                        >
+                            <Image className="w-4 h-4" />
+                            {imageFile ? "Change Image" : "Add Image"}
+                        </Button>
                         
                         <Button 
                             onClick={handleSubmit} 
