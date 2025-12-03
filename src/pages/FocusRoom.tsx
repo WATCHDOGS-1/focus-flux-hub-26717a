@@ -47,7 +47,7 @@ const FocusRoom = () => {
     setFocusTag,
     endCurrentSession,
     currentMode,
-    startNewSession,
+    startNewSession, // Import startNewSession
     saveFocusTag, // New function from hook
   } = useFocusSession(); // Use the centralized hook
 
@@ -84,10 +84,10 @@ const FocusRoom = () => {
   // Auto-start timer when joining room
   useEffect(() => {
     if (userId && !isActive && sessionStartTime === 0) {
-      // We no longer auto-start here, as the user must set a focus tag first.
-      // The user must manually start the timer via the toggleTimer function.
+      // Automatically start the session when entering the room
+      startNewSession();
     }
-  }, [userId, isActive, sessionStartTime]);
+  }, [userId, isActive, sessionStartTime, startNewSession]);
 
   useEffect(() => {
     document.body.className = roomTheme;
