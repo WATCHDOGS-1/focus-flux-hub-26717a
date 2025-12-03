@@ -9,10 +9,15 @@ let ai: GoogleGenAI | null = null;
 /**
  * Converts a File object to a GenerativePart object for the Gemini API.
  */
-const fileToGenerativePart = (file: File) => {
+export const fileToGenerativePart = async (file: File) => {
+  const arrayBuffer = await file.arrayBuffer();
+  // Using Buffer.from in a modern environment (Vite/Bun) often works, 
+  // but if not, a browser-native base64 conversion would be needed.
+  const base64Data = Buffer.from(arrayBuffer).toString("base64");
+  
   return {
     inlineData: {
-      data: Buffer.from(file.arrayBuffer()).toString("base64"),
+      data: base64Data,
       mimeType: file.type,
     },
   };
@@ -59,32 +64,39 @@ export const clearGeminiApiKey = () => {
   toast.info("Gemini API Key cleared.");
 };
 
+// Define ChatPart type for clarity
+export interface ChatPart {
+    text?: string;
+    inlineData?: {
+        data: string;
+        mimeType: string;
+    };
+}
+
 /**
- * Sends a chat message to the Gemini model, optionally including an image.
+ * Sends a chat message to the Gemini model, using the provided history and new parts.
  */
 export const sendGeminiChat = async (
-    history: { role: "user" | "model", parts: { text: string }[] }[], 
-    newMessage: string,
-    imageFile: File | null = null
+    history: { role: "user" | "model", parts: ChatPart[] }[], 
+    newParts: ChatPart[]
 ): Promise<string> => {
   const client = initializeGeminiClient();
   if (!client) {
     throw new Error("Gemini API Key is missing. Please configure it in settings.");
   }
 
-  const parts: ChatPart[] = [{ text: newMessage }];
-  
-  if (imageFile) {
-    // Add image part to the message
-    parts.unshift(fileToGenerativePart(imageFile));
-  }
+  // The history passed here should be the complete previous conversation.
+  // The new message parts are sent as the last entry in the contents array.
+  const contents = [
+      ...history,
+      { role: "user" as const, parts: newParts }
+  ];
 
-  const chat = client.chats.create({
+  const response = await client.models.generateContent({
     model: MODEL_NAME,
-    history: history,
+    contents: contents,
   });
-
-  const response = await chat.sendMessage({ parts });
+  
   return response.text;
 };
 

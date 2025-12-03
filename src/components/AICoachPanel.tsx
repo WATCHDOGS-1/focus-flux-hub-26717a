@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Code, MessageSquare, LayoutGrid, Database, Target, Image, X } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Code, MessageSquare, LayoutGrid, Database, Target, Image, X, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
-import { sendGeminiChat, generateFlowchart, getGeminiApiKey, initializeGeminiClient } from "@/utils/gemini";
+import { sendGeminiChat, generateFlowchart, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
@@ -13,13 +13,12 @@ import { getRecentFocusSessions } from "@/utils/session-management";
 import { getLocalStudyData } from "@/utils/local-data";
 
 // Define chat history type compatible with Gemini API
-interface ChatPart {
-    text: string;
-}
 interface ChatMessage {
     role: "user" | "model";
     parts: ChatPart[];
 }
+
+const LONG_TERM_GOAL_KEY = "ai_coach_long_term_goal";
 
 const AICoachPanel = () => {
     const { userId } = useAuth();
@@ -27,7 +26,8 @@ const AICoachPanel = () => {
     const [history, setHistory] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
-    const [goalContext, setGoalContext] = useState("");
+    const [goalContext, setGoalContext] = useState(""); // Temporary context for current chat
+    const [longTermGoal, setLongTermGoal] = useState(""); // Persistent long-term goal
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -41,11 +41,32 @@ const AICoachPanel = () => {
     useEffect(() => {
         scrollToBottom();
     }, [history]);
+    
+    useEffect(() => {
+        const storedGoal = localStorage.getItem(LONG_TERM_GOAL_KEY);
+        if (storedGoal) {
+            setLongTermGoal(storedGoal);
+        }
+    }, []);
+
+    const handleSaveLongTermGoal = () => {
+        if (longTermGoal.trim()) {
+            localStorage.setItem(LONG_TERM_GOAL_KEY, longTermGoal.trim());
+            toast.success("Long-term goal saved!");
+        } else {
+            localStorage.removeItem(LONG_TERM_GOAL_KEY);
+            setLongTermGoal("");
+            toast.info("Long-term goal cleared.");
+        }
+    };
 
     const getContextualPromptPrefix = () => {
         let prefix = "";
         if (goalContext.trim()) {
-            prefix += `[CURRENT GOAL: ${goalContext.trim()}] `;
+            prefix += `[CURRENT CHAT GOAL: ${goalContext.trim()}] `;
+        }
+        if (longTermGoal.trim()) {
+            prefix += `[LONG-TERM GOAL: ${longTermGoal.trim()}] `;
         }
         if (stats) {
             prefix += `[USER STATS: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days] `;
@@ -70,7 +91,8 @@ const AICoachPanel = () => {
             ? localData.tasks.map(t => t.content).join("; ")
             : "No incomplete tasks found.";
         
-        const dataMessage = `
+        const dataPrompt = `
+        ${getContextualPromptPrefix()}
         --- User Study Data ---
         Recent Focus Sessions (Last 7 days, aggregated by subject/tag): ${sessionSummary}
         Incomplete To-Do List Items (Local Storage): ${tasksSummary}
@@ -81,21 +103,52 @@ const AICoachPanel = () => {
         `;
 
         const userMessage: ChatMessage = { role: "user", parts: [{ text: "Loading and analyzing study data..." }] };
-        setHistory(prev => [...prev, userMessage]);
+        
+        // Optimistic update
+        const optimisticHistory = [...history, userMessage];
+        setHistory(optimisticHistory);
 
         try {
-            const responseText = await sendGeminiChat(history, dataMessage);
+            // Send the dataPrompt as the new message parts
+            const responseText = await sendGeminiChat(history, [{ text: dataPrompt }]);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
-            setHistory(prev => [...prev, modelMessage]);
+            
+            // Replace the optimistic message with the actual response
+            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
             toast.success("Study data loaded and analyzed.");
         } catch (error: any) {
             toast.error(error.message || "AI Coach failed to analyze data.");
-            setHistory(prev => prev.slice(0, -1));
+            setHistory(prev => prev.slice(0, -1)); // Remove optimistic message
         } finally {
             setIsGenerating(false);
         }
     };
     
+    const handleGenerateTip = async () => {
+        if (isGenerating) return;
+        
+        setIsGenerating(true);
+        
+        const tipPrompt = `Based on the user's current stats (Total Focused Minutes: ${stats?.total_focused_minutes || 0}, Longest Streak: ${stats?.longest_streak || 0} days) and their long-term goal (${longTermGoal || 'None Set'}), generate one highly specific, actionable productivity tip for their next focus session. Keep it concise.`;
+        
+        const userMessage: ChatMessage = { role: "user", parts: [{ text: "Requesting a personalized productivity tip..." }] };
+        const optimisticHistory = [...history, userMessage];
+        setHistory(optimisticHistory);
+
+        try {
+            const responseText = await sendGeminiChat(history, [{ text: tipPrompt }]);
+            const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
+            
+            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
+            toast.success("Productivity tip generated.");
+        } catch (error: any) {
+            toast.error(error.message || "AI Coach failed to generate tip.");
+            setHistory(prev => prev.slice(0, -1));
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     const handleInjectContext = (contextType: 'stats' | 'notes' | 'tasks') => {
         let contextText = "";
         if (contextType === 'stats' && stats) {
@@ -131,12 +184,13 @@ const AICoachPanel = () => {
         
         const contextualMessage = getContextualPromptPrefix() + message;
         
-        // Store clean message in history (with image indicator if present)
+        // 1. Construct the optimistic user message for display
         const userMessageText = imageFile ? `(Image attached) ${message}` : message;
         const userMessage: ChatMessage = { role: "user", parts: [{ text: userMessageText }] }; 
         
-        // Optimistic update
-        setHistory(prev => [...prev, userMessage]);
+        // 2. Optimistic update
+        const optimisticHistory = [...history, userMessage];
+        setHistory(optimisticHistory);
         setCurrentMessage("");
         setIsGenerating(true);
         
@@ -145,11 +199,19 @@ const AICoachPanel = () => {
         setImagePreviewUrl(null);
 
         try {
-            // Send contextual message and image file to the model
-            const responseText = await sendGeminiChat(history, contextualMessage, currentImageFile);
+            // 3. Construct the actual parts payload for the API
+            const newParts: ChatPart[] = [{ text: contextualMessage }];
+            if (currentImageFile) {
+                const imagePart = await fileToGenerativePart(currentImageFile);
+                newParts.unshift(imagePart);
+            }
+            
+            // 4. Send API call using the previous history state
+            const responseText = await sendGeminiChat(history, newParts);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
-            setHistory(prev => [...prev, modelMessage]);
+            // 5. Replace the optimistic message with the final response
+            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
         } catch (error: any) {
             toast.error(error.message || "AI Coach failed to respond.");
             // Remove optimistic message if failed
@@ -164,7 +226,9 @@ const AICoachPanel = () => {
         
         const contextualPrompt = getContextualPromptPrefix() + prompt;
         const userMessage: ChatMessage = { role: "user", parts: [{ text: `Generate a flowchart for: ${prompt}` }] };
-        setHistory(prev => [...prev, userMessage]);
+        
+        const optimisticHistory = [...history, userMessage];
+        setHistory(optimisticHistory);
         setIsGenerating(true);
 
         try {
@@ -176,7 +240,7 @@ const AICoachPanel = () => {
                     text: `Here is the Mermaid flowchart code for your plan. You can copy this code into a Mermaid live editor to visualize it:\n\n\`\`\`mermaid\n${mermaidCode}\n\`\`\`` 
                 }] 
             };
-            setHistory(prev => [...prev, modelMessage]);
+            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
         } catch (error: any) {
             toast.error(error.message || "Flowchart generation failed.");
             setHistory(prev => prev.slice(0, -1));
@@ -195,7 +259,7 @@ const AICoachPanel = () => {
 
         return (
             <div
-                key={index}
+                key={msg.id || index} // Use index as fallback if id is missing
                 className={cn(
                     "p-3 rounded-lg max-w-[90%] flex flex-col",
                     isUser ? "bg-primary/20 ml-auto" : "bg-secondary/20 mr-auto"
@@ -242,49 +306,66 @@ const AICoachPanel = () => {
                 AI Focus Coach
             </h3>
             
-            {/* Goal Context Input */}
-            <div className="mb-4 space-y-2">
-                <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-primary" />
+            {/* Long-Term Goal Setting */}
+            <div className="mb-4 space-y-2 p-3 rounded-lg bg-secondary/30">
+                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
+                    <Target className="w-4 h-4" /> Long-Term Focus Goal
+                </p>
+                <div className="flex gap-2">
                     <Input
-                        placeholder="Set a temporary goal for this conversation (e.g., 'Finish Chapter 3')"
-                        value={goalContext}
-                        onChange={(e) => setGoalContext(e.target.value)}
+                        placeholder="e.g., 'Finish my thesis by end of month'"
+                        value={longTermGoal}
+                        onChange={(e) => setLongTermGoal(e.target.value)}
                         className="flex-1"
                     />
+                    <Button onClick={handleSaveLongTermGoal} className="dopamine-click">
+                        Save
+                    </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                    This goal provides context for all AI advice.
+                </p>
             </div>
 
-            {/* Predetermined Functions */}
+            {/* Quick Actions */}
             <div className="space-y-3 mb-4 p-4 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={handleLoadData}
                         disabled={isGenerating}
-                        className="text-xs h-9"
+                        className="text-xs h-9 flex items-center justify-center"
                     >
                         <Database className="w-3 h-3 mr-1" /> Load Study Data
                     </Button>
                     <Button 
                         variant="outline" 
                         size="sm" 
+                        onClick={handleGenerateTip}
+                        disabled={isGenerating}
+                        className="text-xs h-9 flex items-center justify-center"
+                    >
+                        <Lightbulb className="w-3 h-3 mr-1" /> Get Tip
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
                         onClick={() => handleFlowchartGeneration("Plan my study session for the next 3 hours, including breaks and tasks.")}
                         disabled={isGenerating}
-                        className="text-xs h-9"
+                        className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Code className="w-3 h-3 mr-1" /> Study Plan Flowchart
+                        <Code className="w-3 h-3 mr-1" /> Study Plan
                     </Button>
                     <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleFlowchartGeneration("Generate a decision tree for handling distractions during deep work.")}
                         disabled={isGenerating}
-                        className="text-xs h-9"
+                        className="text-xs h-9 flex items-center justify-center"
                     >
                         <Code className="w-3 h-3 mr-1" /> Distraction Flowchart
                     </Button>
@@ -293,9 +374,9 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleFlowchartGeneration("Create a step-by-step guide for effective note-taking.")}
                         disabled={isGenerating}
-                        className="text-xs h-9"
+                        className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Code className="w-3 h-3 mr-1" /> Note-Taking Flowchart
+                        <Code className="w-3 h-3 mr-1" /> Note-Taking
                     </Button>
                 </div>
                 
