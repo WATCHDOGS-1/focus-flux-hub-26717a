@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Database, Target, Image, X, Lightbulb, MessageSquare, LayoutGrid } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { sendGeminiChat, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
@@ -19,6 +19,7 @@ interface ChatMessage {
 }
 
 const LONG_TERM_GOAL_KEY = "ai_coach_long_term_goal";
+const SAVED_CONTEXT_KEY = "ai_coach_saved_context";
 
 const AICoachPanel = () => {
     const { userId } = useAuth();
@@ -26,8 +27,8 @@ const AICoachPanel = () => {
     const [history, setHistory] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
-    const [goalContext, setGoalContext] = useState(""); // Temporary context for current chat
     const [longTermGoal, setLongTermGoal] = useState(""); // Persistent long-term goal
+    const [savedContext, setSavedContext] = useState<ChatMessage[] | null>(null); // Persistent memory
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -38,6 +39,7 @@ const AICoachPanel = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    // --- Initialization and Context Loading ---
     useEffect(() => {
         scrollToBottom();
     }, [history]);
@@ -47,8 +49,19 @@ const AICoachPanel = () => {
         if (storedGoal) {
             setLongTermGoal(storedGoal);
         }
+        
+        const storedContext = localStorage.getItem(SAVED_CONTEXT_KEY);
+        if (storedContext) {
+            try {
+                setSavedContext(JSON.parse(storedContext));
+            } catch (e) {
+                console.error("Failed to parse saved context:", e);
+                localStorage.removeItem(SAVED_CONTEXT_KEY);
+            }
+        }
     }, []);
 
+    // --- Persistent Memory Handlers ---
     const handleSaveLongTermGoal = () => {
         if (longTermGoal.trim()) {
             localStorage.setItem(LONG_TERM_GOAL_KEY, longTermGoal.trim());
@@ -59,12 +72,26 @@ const AICoachPanel = () => {
             toast.info("Long-term goal cleared.");
         }
     };
+    
+    const handleSaveContext = () => {
+        if (history.length === 0) {
+            toast.warning("Start a conversation before saving context.");
+            return;
+        }
+        localStorage.setItem(SAVED_CONTEXT_KEY, JSON.stringify(history));
+        setSavedContext(history);
+        toast.success("Chat context saved for future sessions!");
+    };
+    
+    const handleClearContext = () => {
+        localStorage.removeItem(SAVED_CONTEXT_KEY);
+        setSavedContext(null);
+        toast.info("Saved chat context cleared.");
+    };
 
+    // --- Contextual Prompt Generation ---
     const getContextualPromptPrefix = () => {
         let prefix = "";
-        if (goalContext.trim()) {
-            prefix += `[CURRENT CHAT GOAL: ${goalContext.trim()}] `;
-        }
         if (longTermGoal.trim()) {
             prefix += `[LONG-TERM GOAL: ${longTermGoal.trim()}] `;
         }
@@ -74,18 +101,17 @@ const AICoachPanel = () => {
         return prefix;
     };
 
+    // --- Quick Actions ---
     const handleLoadData = async () => {
         if (!userId || isGenerating) return;
 
         setIsGenerating(true);
         
-        // 1. Fetch Supabase Data
         const sessionData = await getRecentFocusSessions(userId);
         const sessionSummary = sessionData.length > 0 
             ? sessionData.map(s => `${s.tag} (${s.totalMinutes} min)`).join(", ")
             : "No recent focused sessions found.";
 
-        // 2. Fetch Local Data
         const localData = getLocalStudyData();
         const tasksSummary = localData.tasks.length > 0 
             ? localData.tasks.map(t => t.content).join("; ")
@@ -103,23 +129,19 @@ const AICoachPanel = () => {
         `;
 
         const userMessage: ChatMessage = { role: "user", parts: [{ text: "Loading and analyzing study data..." }] };
-        
-        // Optimistic update
         const optimisticHistory = [...history, userMessage];
         setHistory(optimisticHistory);
 
         try {
-            // Send the dataPrompt as the new message parts
             const apiContents = [...history, { role: "user" as const, parts: [{ text: dataPrompt }] }];
             const responseText = await sendGeminiChat(apiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
-            // Replace the optimistic message with the actual response
             setHistory(prev => [...prev.slice(0, -1), modelMessage]);
             toast.success("Study data loaded and analyzed.");
         } catch (error: any) {
             toast.error(error.message || "AI Coach failed to analyze data.");
-            setHistory(prev => prev.slice(0, -1)); // Remove optimistic message
+            setHistory(prev => prev.slice(0, -1));
         } finally {
             setIsGenerating(false);
         }
@@ -171,7 +193,6 @@ const AICoachPanel = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Allow images, PDFs, and common text/code files
             const allowedTypes = ['image/', 'application/pdf', 'text/plain', 'text/csv', 'application/json', 'text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
             const isAllowed = allowedTypes.some(type => file.type.startsWith(type));
             
@@ -205,21 +226,53 @@ const AICoachPanel = () => {
         setImageFile(null); // Clear file immediately
         setImagePreviewUrl(null);
 
+        let apiContents: ChatMessage[] = [...history];
+        let finalUserMessageParts: ChatPart[] = [{ text: contextualMessage }];
+
+        // --- Persistent Context Injection Logic (Only on first message of new session) ---
+        if (history.length === 0 && savedContext) {
+            // Step A: Ask the model to summarize the saved context
+            const contextSummaryPrompt = `Based on the following previous conversation history, provide a concise summary (2-3 sentences) of the user's main goals, challenges, or topics discussed. This summary will be used to prime the current chat session. Do not respond to the user's current message yet.
+            --- PREVIOUS CONTEXT ---
+            ${JSON.stringify(savedContext)}
+            --- END PREVIOUS CONTEXT ---`;
+            
+            const summaryContents: ChatMessage[] = [{ role: "user", parts: [{ text: contextSummaryPrompt }] }];
+            
+            try {
+                const summaryResponse = await sendGeminiChat(summaryContents);
+                
+                // Step B: Inject the summary into the current chat history
+                const contextInjectionMessage: ChatMessage = { 
+                    role: "model", 
+                    parts: [{ text: `[CONTEXT INJECTED] Welcome back! Based on our last chat, here's the summary: ${summaryResponse}` }] 
+                };
+                apiContents = [contextInjectionMessage]; // Start new history with context injection
+                
+                // Update UI history to show the context injection message
+                setHistory([contextInjectionMessage, userMessage]);
+            } catch (e) {
+                console.error("Failed to inject saved context:", e);
+                toast.warning("Failed to load saved context. Starting fresh.");
+                // Continue with empty apiContents if context injection fails
+            }
+        }
+        // --- End Persistent Context Injection Logic ---
+
         try {
             // 3. Construct the actual parts payload for the API
-            const newParts: ChatPart[] = [{ text: contextualMessage }];
             if (currentImageFile) {
                 const filePart = await fileToGenerativePart(currentImageFile);
-                newParts.unshift(filePart);
+                finalUserMessageParts.unshift(filePart);
             }
             
             // 4. Send API call using the full history (including the new message)
-            const apiContents = [
-                ...history, // Previous history
-                { role: "user" as const, parts: newParts } // New message parts
+            const finalApiContents = [
+                ...apiContents, // Includes injected context if applicable, or is just the current session history
+                { role: "user" as const, parts: finalUserMessageParts } 
             ];
             
-            const responseText = await sendGeminiChat(apiContents);
+            const responseText = await sendGeminiChat(finalApiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
             // 5. Replace the optimistic message with the final response
@@ -294,6 +347,37 @@ const AICoachPanel = () => {
                     This goal provides context for all AI advice.
                 </p>
             </div>
+            
+            {/* Persistent Memory Controls */}
+            <div className="mb-4 space-y-2 p-3 rounded-lg bg-secondary/30">
+                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
+                    <Lightbulb className="w-4 h-4" /> Persistent Memory
+                </p>
+                <div className="flex gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleSaveContext}
+                        disabled={history.length === 0 || isGenerating}
+                        className="flex-1 flex items-center gap-1"
+                    >
+                        <Save className="w-4 h-4" /> Save Current Chat
+                    </Button>
+                    <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={handleClearContext}
+                        disabled={!savedContext || isGenerating}
+                        className="flex-1 flex items-center gap-1"
+                    >
+                        <Trash2 className="w-4 h-4" /> Clear Saved Context
+                    </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    {savedContext ? "Context loaded. New chat will start with a summary." : "No context saved. Save a chat to enable memory."}
+                </p>
+            </div>
+
 
             {/* Quick Actions */}
             <div className="space-y-3 mb-4 p-4 rounded-lg bg-secondary/30">
@@ -331,11 +415,11 @@ const AICoachPanel = () => {
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => handleChat("What are the best strategies for avoiding distractions?")}
+                        onClick={() => handleInjectContext('notes')}
                         disabled={isGenerating}
                         className="text-xs h-9 flex items-center justify-center"
                     >
-                        <MessageSquare className="w-3 h-3 mr-1" /> Distraction Help
+                        <NotebookText className="w-3 h-3 mr-1" /> Inject Notes
                     </Button>
                 </div>
                 
@@ -354,18 +438,19 @@ const AICoachPanel = () => {
                     <Button 
                         variant="secondary" 
                         size="sm" 
-                        onClick={() => handleInjectContext('notes')}
-                        className="text-xs h-9"
-                    >
-                        Inject Notes
-                    </Button>
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
                         onClick={() => handleInjectContext('tasks')}
                         className="text-xs h-9"
                     >
                         Inject Tasks
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={() => handleChat("What are the best strategies for avoiding distractions?")}
+                        disabled={isGenerating}
+                        className="text-xs h-9"
+                    >
+                        Distraction Help
                     </Button>
                 </div>
             </div>
@@ -389,7 +474,7 @@ const AICoachPanel = () => {
                 </div>
             </ScrollArea>
 
-            {/* Input and Image Preview */}
+            {/* Input and File Preview */}
             {imagePreviewUrl && (
                 <div className="relative mb-2 p-2 rounded-lg border border-primary/50 bg-secondary/20">
                     <div className="flex items-center gap-3">
@@ -429,7 +514,7 @@ const AICoachPanel = () => {
                     disabled={isGenerating}
                     title="Upload Document or Image for Analysis"
                 >
-                    <Image className="w-4 h-4" />
+                    <Paperclip className="w-4 h-4" />
                 </Button>
                 <Input
                     value={currentMessage}

@@ -9,18 +9,29 @@ let ai: GoogleGenAI | null = null;
 /**
  * Converts a File object to a GenerativePart object for the Gemini API.
  */
-export const fileToGenerativePart = async (file: File) => {
-  const arrayBuffer = await file.arrayBuffer();
-  // Using Buffer.from in a modern environment (Vite/Bun) often works, 
-  // but if not, a browser-native base64 conversion would be needed.
-  const base64Data = Buffer.from(arrayBuffer).toString("base64");
-  
-  return {
-    inlineData: {
-      data: base64Data,
-      mimeType: file.type,
-    },
-  };
+export const fileToGenerativePart = (file: File) => {
+  return new Promise<ChatPart>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Extract base64 string from data URL (e.g., remove 'data:image/jpeg;base64,')
+      const base64Data = dataUrl.split(',')[1];
+      
+      if (!base64Data) {
+        reject(new Error("Failed to read file as base64."));
+        return;
+      }
+
+      resolve({
+        inlineData: {
+          data: base64Data,
+          mimeType: file.type,
+        },
+      });
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
 };
 
 /**
