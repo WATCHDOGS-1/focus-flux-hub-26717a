@@ -32,6 +32,8 @@ interface UseFocusSessionResult {
   progress: number;
 }
 
+const FOCUS_TAG_KEY = "onlyfocus_focus_tag";
+
 export function useFocusSession(): UseFocusSessionResult {
   const { userId } = useAuth();
   const { stats, levels, refetch: refetchStats } = useUserStats();
@@ -42,11 +44,11 @@ export function useFocusSession(): UseFocusSessionResult {
   const [isBreak, setIsBreak] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [focusTag, setFocusTag] = useState("");
+  const [focusTag, setFocusTagState] = useState("");
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load mode from local storage on mount
+  // Load mode and tag from local storage on mount
   useEffect(() => {
     const storedModeName = localStorage.getItem("focus_session_mode");
     const storedMode = SESSION_MODES.find(m => m.name === storedModeName);
@@ -54,7 +56,23 @@ export function useFocusSession(): UseFocusSessionResult {
       setCurrentMode(storedMode);
       setTimeLeft(storedMode.work);
     }
+    
+    const storedTag = localStorage.getItem(FOCUS_TAG_KEY);
+    if (storedTag) {
+        setFocusTagState(storedTag);
+    }
   }, []);
+
+  // Setter for focus tag that also updates local storage
+  const setFocusTag = (tag: string) => {
+    setFocusTagState(tag);
+  };
+  
+  // Function to save tag to local storage explicitly
+  const saveFocusTag = (tag: string) => {
+      localStorage.setItem(FOCUS_TAG_KEY, tag);
+      toast.success("Focus tag saved locally.");
+  };
 
   // Reset timer when mode changes
   useEffect(() => {
@@ -75,8 +93,11 @@ export function useFocusSession(): UseFocusSessionResult {
 
     setIsActive(false);
     setSessionId(null);
+    
+    // Use the current focusTag, defaulting if empty
+    const finalFocusTag = focusTag.trim() || "General Focus";
 
-    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
+    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, finalFocusTag);
 
     toast.promise(leavePromise, {
       loading: "Saving your session...",
@@ -96,11 +117,14 @@ export function useFocusSession(): UseFocusSessionResult {
 
   const startNewSession = useCallback(async () => {
     if (!userId) return;
+    
+    // Use the current focusTag, defaulting if empty
+    const finalFocusTag = focusTag.trim() || "General Focus";
 
     // Start Supabase session logging
     const { data, error } = await supabase
       .from("focus_sessions")
-      .insert({ user_id: userId, start_time: new Date().toISOString(), tag: focusTag || null })
+      .insert({ user_id: userId, start_time: new Date().toISOString(), tag: finalFocusTag || null })
       .select("id")
       .single();
 
@@ -158,11 +182,7 @@ export function useFocusSession(): UseFocusSessionResult {
     const newState = !isActive;
     
     if (newState && sessionStartTime === 0) {
-      // If starting from a fresh state, check for focus tag
-      if (!focusTag.trim()) {
-        toast.warning("Please set a Focus Tag (e.g., 'Math Homework') before starting.");
-        return;
-      }
+      // Start session regardless of focus tag presence
       startNewSession();
     } else if (!newState && sessionStartTime !== 0 && !isBreak) {
       // If pausing a work session
@@ -219,5 +239,6 @@ export function useFocusSession(): UseFocusSessionResult {
     endCurrentSession,
     currentDuration,
     progress,
+    saveFocusTag: () => saveFocusTag(focusTag),
   };
 }

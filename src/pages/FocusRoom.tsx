@@ -15,7 +15,7 @@ import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import AICoachPanel from "@/components/AICoachPanel"; // Import AICoachPanel
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +48,7 @@ const FocusRoom = () => {
     endCurrentSession,
     currentMode,
     startNewSession,
+    saveFocusTag, // New function from hook
   } = useFocusSession(); // Use the centralized hook
 
   const [activePanel, setActivePanel] = useState<string | null>(null);
@@ -269,6 +270,15 @@ const FocusRoom = () => {
                   onChange={(e) => setFocusTag(e.target.value)}
                   className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
+                <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={saveFocusTag} 
+                    title="Save Focus Tag Locally"
+                    className="dopamine-click flex-shrink-0"
+                >
+                    <Save className="w-4 h-4" />
+                </Button>
                 <span className="text-xs text-muted-foreground flex-shrink-0">
                   (Saved locally & for AI Coach)
                 </span>
