@@ -8,6 +8,8 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// NOTE: For JWT to expire in 7 days, the Supabase project setting (Auth -> Settings -> JWT Settings) 
+// must have 'Refresh Token Lifetime' set to 604800 seconds (7 days).
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
