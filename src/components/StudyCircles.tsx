@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Users, Shield } from "lucide-react";
+import { Plus, Search, Users, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -24,19 +24,6 @@ const StudyCircles = () => {
   const [newCircleName, setNewCircleName] = useState("");
   const [newCircleDesc, setNewCircleDesc] = useState("");
 
-  // Temporarily disable circles functionality and show coming soon message
-  return (
-    <div className="text-center py-20 space-y-4 glass-card p-8 rounded-xl">
-      <Shield className="w-12 h-12 text-primary mx-auto" />
-      <h3 className="text-2xl font-bold">Study Circles: Coming Soon</h3>
-      <p className="text-muted-foreground max-w-md mx-auto">
-        Study Circles are currently under construction. This feature will allow you to create private, persistent focus groups with friends for enhanced accountability and shared goals.
-      </p>
-    </div>
-  );
-
-  /*
-  // Original logic (commented out for now)
   useEffect(() => {
     if (userId) {
       loadCircles();
@@ -68,15 +55,40 @@ const StudyCircles = () => {
       }
     }
 
-    // Fetch circles to discover (all circles for now, can be optimized)
+    // Fetch circles to discover (all circles not joined by user, up to 50)
     const { data: allCircles, error: allCirclesError } = await supabase
       .from("circles")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
-    if (allCircles) setDiscoverCircles(allCircles);
+      
+    if (allCircles) {
+        const myCircleIds = new Set(myCircles.map(c => c.id));
+        const discoverable = allCircles.filter(c => !myCircleIds.has(c.id));
+        setDiscoverCircles(discoverable);
+    }
 
     setIsLoading(false);
+  };
+  
+  const handleJoinCircle = async (circleId: string) => {
+    if (!userId) return;
+    
+    const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
+    
+    if (error) {
+      if (error.code === '23505') { 
+        toast.info("You are already a member of this circle.");
+      } else {
+        const errorMsg = `Failed to join circle: ${error.message}`;
+        console.error(errorMsg, error);
+        toast.error(errorMsg);
+      }
+    } else {
+      toast.success("Joined circle! Redirecting...");
+      loadCircles();
+      navigate(`/circle/${circleId}`);
+    }
   };
 
   const handleCreateCircle = async () => {
@@ -95,7 +107,7 @@ const StudyCircles = () => {
     if (circleError) {
       const errorMsg = `Failed to create circle: ${circleError.message}`;
       console.error(errorMsg, circleError);
-      toast.error(errorMsg); // Display detailed error
+      toast.error(errorMsg);
       return;
     } 
     
@@ -108,13 +120,13 @@ const StudyCircles = () => {
       if (memberError) {
         const errorMsg = `Failed to add you as a member: ${memberError.message}`;
         console.error(errorMsg, memberError);
-        toast.error(errorMsg); // Display detailed error
+        toast.error(errorMsg);
         // Optionally delete the circle if membership fails
         await supabase.from("circles").delete().eq("id", circleData.id);
         return;
       }
 
-      toast.success("Study Circle created!");
+      toast.success("Study Circle created! Redirecting...");
       setIsCreateDialogOpen(false);
       setNewCircleName("");
       setNewCircleDesc("");
@@ -124,32 +136,44 @@ const StudyCircles = () => {
   };
 
   const filteredDiscover = discoverCircles.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const renderCircleCard = (circle: Circle) => (
+  const renderCircleCard = (circle: Circle, isMember: boolean) => (
     <Card
       key={circle.id}
-      className="glass-card hover-lift cursor-pointer"
-      onClick={() => navigate(`/circle/${circle.id}`)}
+      className="glass-card hover-lift"
     >
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> {circle.name}</CardTitle>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg"><Users className="w-5 h-5 text-primary" /> {circle.name}</CardTitle>
         <CardDescription className="truncate">{circle.description || "No description."}</CardDescription>
       </CardHeader>
+      <CardContent className="flex justify-between items-center pt-0">
+        {isMember ? (
+            <Button size="sm" variant="secondary" onClick={() => navigate(`/circle/${circle.id}`)}>
+                View Chat
+            </Button>
+        ) : (
+            <Button size="sm" className="dopamine-click" onClick={() => handleJoinCircle(circle.id)}>
+                <UserPlus className="w-4 h-4 mr-2" /> Join Circle
+            </Button>
+        )}
+        <span className="text-xs text-muted-foreground">ID: {circle.id.slice(0, 8)}...</span>
+      </CardContent>
     </Card>
   );
 
   if (isLoading) {
-    return <div className="text-center py-8 text-muted-foreground">Loading circles...</div>;
+    return <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" /> Loading circles...</div>;
   }
 
   return (
     <Tabs defaultValue="my-circles">
       <div className="flex justify-between items-center mb-4">
         <TabsList>
-          <TabsTrigger value="my-circles">My Circles</TabsTrigger>
-          <TabsTrigger value="discover">Discover</TabsTrigger>
+          <TabsTrigger value="my-circles">My Circles ({myCircles.length})</TabsTrigger>
+          <TabsTrigger value="discover">Discover ({discoverCircles.length})</TabsTrigger>
         </TabsList>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -164,7 +188,7 @@ const StudyCircles = () => {
             <div className="space-y-4 py-4">
               <Input placeholder="Circle Name (e.g., 'Quantum Physics Crew')" value={newCircleName} onChange={e => setNewCircleName(e.target.value)} />
               <Input placeholder="Description (Optional)" value={newCircleDesc} onChange={e => setNewCircleDesc(e.target.value)} />
-              <Button onClick={handleCreateCircle} className="w-full">Create</Button>
+              <Button onClick={handleCreateCircle} className="w-full dopamine-click">Create</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -173,7 +197,7 @@ const StudyCircles = () => {
       <TabsContent value="my-circles">
         <div className="space-y-4">
           {myCircles.length > 0 ? (
-            myCircles.map(renderCircleCard)
+            myCircles.map(circle => renderCircleCard(circle, true))
           ) : (
             <p className="text-center py-8 text-muted-foreground">You haven't joined any circles yet. Discover one!</p>
           )}
@@ -183,17 +207,20 @@ const StudyCircles = () => {
       <TabsContent value="discover">
         <div className="space-y-4">
           <Input
-            placeholder="Search for circles..."
+            placeholder="Search for circles by name or description..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             icon={<Search className="w-4 h-4 text-muted-foreground" />}
           />
-          {filteredDiscover.map(renderCircleCard)}
+          {filteredDiscover.length > 0 ? (
+            filteredDiscover.map(circle => renderCircleCard(circle, false))
+          ) : (
+            <p className="text-center py-8 text-muted-foreground">No circles found matching your search.</p>
+          )}
         </div>
       </TabsContent>
     </Tabs>
   );
-  */
 };
 
 export default StudyCircles;
