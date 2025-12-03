@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsUp, Zap, Tag, Clock, Plus, Image, Edit, MoreVertical, Trash2, Loader2 } from "lucide-react";
+import { ThumbsUp, Zap, Tag, Clock, Plus, Image, Edit, MoreVertical, Trash2, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import CloudinaryImage from "./CloudinaryImage";
+import { deleteSupabaseFile } from "@/utils/image-processing"; // New utility
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type FeedItemRaw = Database["public"]["Tables"]["feed_items"]["Row"] & {
@@ -38,16 +38,48 @@ const FocusFeed = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<FeedItemRaw | null>(null);
 
+  // --- Client-Side Deletion Script ---
+  const deleteExpiredPosts = useCallback(async (items: FeedItemRaw[]) => {
+    const now = new Date();
+    const expiredItems = items.filter(item => 
+        item.delete_at && new Date(item.delete_at) < now
+    );
+
+    if (expiredItems.length === 0) return;
+
+    console.log(`Found ${expiredItems.length} expired posts. Deleting...`);
+
+    const deletePromises = expiredItems.map(async (item) => {
+        const postData = item.data as PostData;
+        
+        // 1. Delete image from storage if it exists
+        if (postData?.imageUrl) {
+            await deleteSupabaseFile(postData.imageUrl);
+        }
+        
+        // 2. Delete the feed item record
+        await supabase.from("feed_items").delete().eq("id", item.id);
+    });
+
+    await Promise.all(deletePromises);
+    console.log("Expired posts deleted successfully.");
+  }, []);
+  // --- End Client-Side Deletion Script ---
+
+
   const loadFeed = async () => {
     setIsLoading(true);
+    const now = new Date().toISOString();
     
-    // 1. Fetch raw feed items and applauds count
+    // 1. Fetch raw feed items and applauds count, filtering out expired items
     const { data: rawData, error } = await supabase
       .from("feed_items")
       .select(`
         *,
         feed_applauds (count)
       `)
+      // Filter out items where delete_at is in the past
+      .or(`delete_at.is.null,delete_at.gte.${now}`)
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -60,6 +92,10 @@ const FocusFeed = () => {
 
     if (rawData) {
       const rawItems = rawData as FeedItemRaw[];
+      
+      // Run the client-side deletion script in the background
+      deleteExpiredPosts(rawItems);
+      
       const userIds = Array.from(new Set(rawItems.map(item => item.user_id)));
       
       // 2. Fetch all required profiles separately
@@ -172,6 +208,15 @@ const FocusFeed = () => {
   const handleDeletePost = async (postId: string) => {
       if (!window.confirm("Are you sure you want to delete this post?")) return;
       
+      const itemToDelete = feedItems.find(item => item.id === postId);
+      const postData = itemToDelete?.data as PostData;
+      
+      // 1. Delete image from storage if it exists
+      if (postData?.imageUrl) {
+          await deleteSupabaseFile(postData.imageUrl);
+      }
+      
+      // 2. Delete the feed item record
       const { error } = await supabase
           .from("feed_items")
           .delete()
@@ -210,7 +255,7 @@ const FocusFeed = () => {
   };
 
   const renderFeedItem = (item: FeedItemWithProfile) => {
-    const { id, type, data, profiles, created_at, user_id } = item;
+    const { id, type, data, profiles, created_at, user_id, delete_at } = item;
     const username = profiles?.username || "A user";
     const timeAgo = formatDistanceToNow(new Date(created_at), { addSuffix: true });
     const isCurrentUser = user_id === userId;
@@ -243,10 +288,9 @@ const FocusFeed = () => {
                 <p className="text-base">{postData.caption}</p>
                 {postData.imageUrl && (
                     <div className="mt-3 w-full max-h-60 rounded-lg overflow-hidden">
-                        <CloudinaryImage 
-                            publicIdOrUrl={postData.imageUrl} 
-                            width={600} 
-                            height={240} 
+                        <img 
+                            src={postData.imageUrl} 
+                            alt="Focus Post Image" 
                             className="w-full h-full object-cover"
                         />
                     </div>
@@ -259,6 +303,17 @@ const FocusFeed = () => {
 
     // Access count from the aggregated array
     const applaudCount = item.feed_applauds[0]?.count || 0;
+    
+    // Calculate time remaining for deletion
+    let deletionNotice = null;
+    if (delete_at) {
+        const timeRemaining = formatDistanceToNow(new Date(delete_at));
+        deletionNotice = (
+            <span className="text-xs text-warning flex items-center gap-1">
+                <Info className="w-3 h-3" /> Deletes in {timeRemaining}
+            </span>
+        );
+    }
 
     return (
       <Card key={id} className="glass-card hover-lift">
@@ -296,10 +351,13 @@ const FocusFeed = () => {
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="w-3 h-3" /> {timeAgo}
                     </span>
-                    <Button variant="ghost" size="sm" className="flex items-center gap-2 dopamine-click" onClick={() => handleApplaud(id)}>
-                      <ThumbsUp className="w-4 h-4" />
-                      {applaudCount}
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        {deletionNotice}
+                        <Button variant="ghost" size="sm" className="flex items-center gap-2 dopamine-click" onClick={() => handleApplaud(id)}>
+                          <ThumbsUp className="w-4 h-4" />
+                          {applaudCount}
+                        </Button>
+                    </div>
                 </div>
             </div>
           </div>

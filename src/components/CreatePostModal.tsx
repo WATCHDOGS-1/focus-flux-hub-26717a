@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Image, Send, Edit, Clock, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { uploadImageToCloudinary } from "@/utils/cloudinary";
+import { uploadResizedImageToSupabase } from "@/utils/image-processing";
 import type { Database } from "@/integrations/supabase/types";
+import { addHours } from "date-fns";
 
 type FeedItem = Database["public"]["Tables"]["feed_items"]["Row"];
 
@@ -95,11 +96,18 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
 
         setIsUploading(true);
         let finalImageUrl = previewUrl;
+        let deleteAt: string | null = null;
 
         try {
             if (imageFile) {
-                // 1. Upload image to Cloudinary
-                finalImageUrl = await uploadImageToCloudinary(imageFile);
+                // 1. Upload image to Supabase Storage (resized)
+                finalImageUrl = await uploadResizedImageToSupabase(imageFile, userId);
+                
+                // 2. Set deletion timestamp (24 hours from now)
+                deleteAt = addHours(new Date(), 24).toISOString();
+            } else if (isEditing && editingPost && editingPost.data && (editingPost.data as PostData).imageUrl) {
+                // If editing and keeping an existing image, preserve its deletion time if it exists
+                deleteAt = editingPost.delete_at;
             }
 
             const postData: PostData = {
@@ -108,27 +116,28 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
             };
 
             if (isEditing && editingPost) {
-                // 2. Update existing post
+                // 3. Update existing post
                 const { error } = await supabase
                     .from("feed_items")
-                    .update({ data: postData })
+                    .update({ data: postData, delete_at: deleteAt })
                     .eq("id", editingPost.id);
 
                 if (error) throw error;
                 toast.success("Post updated successfully!");
             } else {
-                // 2. Create new post
+                // 3. Create new post
                 const { error } = await supabase
                     .from("feed_items")
                     .insert({
                         user_id: userId,
                         type: 'user_post',
                         data: postData,
+                        delete_at: deleteAt,
                     });
 
                 if (error) throw error;
                 
-                // 3. Set cooldown
+                // 4. Set cooldown
                 const now = Date.now();
                 localStorage.setItem(COOLDOWN_KEY, now.toString());
                 setLastPostTime(now);
@@ -221,6 +230,13 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
                             <Clock className="w-4 h-4" />
                             Cooldown: {formatTime(timeRemaining)} remaining
                         </div>
+                    )}
+                    
+                    {/* New deletion notice */}
+                    {finalImageUrl && (
+                        <p className="text-xs text-muted-foreground text-center pt-2">
+                            Posts with images are deleted automatically 24 hours after creation.
+                        </p>
                     )}
                 </div>
             </DialogContent>
