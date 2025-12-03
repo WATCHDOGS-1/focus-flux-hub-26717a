@@ -21,8 +21,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Circle = Database["public"]["Tables"]["circles"]["Row"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type CircleMember = Database["public"]["Tables"]["circle_members"]["Row"] & { profiles: Pick<Profile, 'username'> | null };
 type CircleMessage = Database["public"]["Tables"]["circle_messages"]["Row"] & { profiles: Pick<Profile, 'username'> | null };
 
@@ -60,7 +60,7 @@ const CircleDetail = () => {
     // 2. Dedicated Membership Check
     const { data: membershipData } = await supabase
       .from("circle_members")
-      .select("id, role")
+      .select("id")
       .eq("circle_id", circleId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -158,14 +158,12 @@ const CircleDetail = () => {
       setIsMember(false);
       setMessages([]);
       loadCircleData();
-      navigate("/social"); // Redirect back to social dashboard
     }
   };
 
   const handleDeleteCircle = async () => {
     if (!circleId || circle?.owner_id !== userId) return;
     
-    // Note: Database cascade rules should handle deleting members and messages.
     const { error } = await supabase.from("circles").delete().eq("id", circleId);
     if (error) {
       const errorMsg = `Failed to delete circle: ${error.message}`;
@@ -216,8 +214,6 @@ const CircleDetail = () => {
   if (!circle) {
     return <div className="min-h-screen flex items-center justify-center">Circle not found.</div>;
   }
-  
-  const isOwner = circle.owner_id === userId;
 
   return (
     <div className="min-h-screen bg-background">
@@ -232,7 +228,7 @@ const CircleDetail = () => {
               <p className="text-sm text-muted-foreground">{circle.description}</p>
             </div>
           </div>
-          {isMember && isOwner && (
+          {isMember && circle.owner_id === userId && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm" className="dopamine-click"><Trash2 className="w-4 h-4 mr-2" /> Delete Circle</Button>
@@ -315,7 +311,7 @@ const CircleDetail = () => {
                   </div>
                 ))}
               </div>
-              {isMember && !isOwner && (
+              {isMember && circle.owner_id !== userId && (
                 <Button variant="outline" onClick={handleLeave} className="w-full mt-4 dopamine-click"><LogOut className="w-4 h-4 mr-2" /> Leave Circle</Button>
               )}
             </CardContent>
