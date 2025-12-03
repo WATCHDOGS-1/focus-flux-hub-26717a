@@ -109,29 +109,31 @@ const SocialDashboard = () => {
                     </TabsContent>
 
                     <TabsContent value="friends">
-                        <div className="h-[70vh]">
+                        <div className="h-[70vh] glass-card p-4 rounded-xl">
                             <SocialSidebar userId={userId} onProfileClick={handleProfileClick} />
                         </div>
                     </TabsContent>
 
                     <TabsContent value="chat">
-                        <div className="h-[70vh]">
+                        <div className="h-[70vh] glass-card p-4 rounded-xl">
                             <GlobalChatPanel userId={userId} />
                         </div>
                     </TabsContent>
 
                     <TabsContent value="leaderboard">
-                        <Leaderboard onProfileClick={handleProfileClick} />
+                        <div className="glass-card p-4 rounded-xl">
+                            <Leaderboard onProfileClick={handleProfileClick} />
+                        </div>
                     </TabsContent>
                     
                     <TabsContent value="ai-coach">
-                        <div>
+                        <div className="max-w-xl mx-auto glass-card p-4 rounded-xl">
                             <AICoachPanel />
                         </div>
                     </TabsContent>
                     
                     <TabsContent value="profile">
-                        <div className="max-w-md mx-auto">
+                        <div className="max-w-md mx-auto glass-card p-4 rounded-xl">
                             <ProfileMenu />
                         </div>
                     </TabsContent>

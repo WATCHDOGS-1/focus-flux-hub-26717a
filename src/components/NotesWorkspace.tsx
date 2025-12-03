@@ -47,7 +47,7 @@ const NotesWorkspace = () => {
       border-bottom-left-radius: var(--radius);
       border-bottom-right-radius: var(--radius);
       border-color: hsl(var(--border));
-      background-color: hsl(var(--background));
+      background-color: hsl(var(--card)); /* Changed from --background to --card */
       flex-grow: 1;
       overflow-y: auto;
     }
