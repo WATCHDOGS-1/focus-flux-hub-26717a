@@ -68,6 +68,7 @@ const HeroSection = () => {
             variants={itemVariants}
             className="flex flex-col sm:flex-row justify-center gap-4 mb-16"
           >
+            {/* Internal Link 1: Explore Rooms */}
             <Button
               onClick={() => navigate("/explore")}
               size="lg"
@@ -75,6 +76,7 @@ const HeroSection = () => {
             >
               Explore Rooms
             </Button>
+            {/* Internal Link 2: Social Dashboard */}
             <Button
               onClick={() => navigate("/social")}
               size="lg"
