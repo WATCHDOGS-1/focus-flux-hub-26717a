@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { toast } from "sonner";
 
 const API_KEY_STORAGE_KEY = "gemini_api_key";
