@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PREDEFINED_ROOMS } from "@/utils/constants";
+import { cn } from "@/lib/utils"; // Ensure cn is imported
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -266,7 +267,7 @@ const FocusRoom = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="flex">
+        <div className="flex h-full"> {/* Added h-full here */}
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
             {/* Focus Tag Input (Always visible in room, unless in Focus Mode) */}
             {!isFocusMode && (
@@ -293,12 +294,26 @@ const FocusRoom = () => {
               </div>
             )}
 
-            <div className={showWorkspace ? "min-h-[400px]" : "flex-1 min-h-[400px]"}>
-              <VideoGrid userId={userId} roomId={roomId} />
+            {/* Main Content Area: Video Grid and Workspace */}
+            <div className={cn(
+                "flex-1 min-h-[400px]", // Ensure minimum height for the whole area
+                showWorkspace && "flex flex-col gap-4" // If workspace is shown, make it a vertical flex container
+            )}>
+                {/* Video Grid */}
+                <div className={cn(
+                    "min-h-[400px]", // Minimum height for video grid
+                    showWorkspace && "flex-1" // Take half the space if workspace is open
+                )}>
+                    <VideoGrid userId={userId} roomId={roomId} />
+                </div>
+                
+                {/* Conditional Workspace Panels */}
+                {showWorkspace && (
+                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
+                        <NotesAndTasksWorkspace />
+                    </div>
+                )}
             </div>
-            
-            {/* Conditional Workspace Panels */}
-            {showWorkspace && <div className="mt-4"><NotesAndTasksWorkspace /></div>}
           </div>
           {activePanel && !isFocusMode && !isMobile && (
             <aside className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">

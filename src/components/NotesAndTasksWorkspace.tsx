@@ -6,7 +6,7 @@ import AICoachWorkspace from "./AICoachWorkspace"; // Import the new wrapper
 
 const NotesAndTasksWorkspace = () => {
   return (
-    <div className="h-full w-full min-h-[800px]"> {/* Increased min-height */}
+    <div className="h-full w-full"> {/* Removed min-h-[800px] */}
       <PanelGroup direction="vertical" className="h-full">
         
         {/* Top Panel: Notes and Tasks (Resizable Horizontal Split) */}

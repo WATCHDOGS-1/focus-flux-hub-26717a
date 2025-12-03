@@ -127,7 +127,7 @@ const SocialDashboard = () => {
                     </TabsContent>
                     
                     <TabsContent value="ai-coach">
-                        <div className="max-w-xl mx-auto glass-card p-4 rounded-xl">
+                        <div className="glass-card p-4 rounded-xl">
                             <AICoachPanel />
                         </div>
                     </TabsContent>
