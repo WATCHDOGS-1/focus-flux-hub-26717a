@@ -1,9 +1,8 @@
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import NotesWorkspace from "./NotesWorkspace";
 import TaskList from "./TaskList";
-import YouTubeEmbedPanel from "./YouTubeEmbedPanel";
-import AICoachWorkspace from "./AICoachWorkspace"; // Import the new wrapper
-import QuickAskPanel from "./QuickAskPanel"; // Import the new QuickAskPanel
+import AICoachWorkspace from "./AICoachWorkspace";
+import YouTubePanel from "./YouTubePanel"; // Use the consolidated YouTubePanel
 
 const NotesAndTasksWorkspace = () => {
   return (
@@ -42,9 +41,9 @@ const NotesAndTasksWorkspace = () => {
           <div className="h-1 w-10 bg-primary/50 rounded-full" />
         </PanelResizeHandle>
         
-        {/* Bottom Panel: Quick Ask AI */}
+        {/* Bottom Panel: YouTube Player */}
         <Panel defaultSize={34} minSize={20}>
-          <QuickAskPanel />
+          <YouTubePanel />
         </Panel>
       </PanelGroup>
     </div>
