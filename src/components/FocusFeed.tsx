@@ -38,6 +38,19 @@ const FocusFeed = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<FeedItemRaw | null>(null);
 
+  // Temporarily disable feed functionality and show coming soon message
+  return (
+    <div className="text-center py-20 space-y-4 glass-card p-8 rounded-xl">
+      <Zap className="w-12 h-12 text-primary mx-auto" />
+      <h3 className="text-2xl font-bold">Focus Feed: Coming Soon</h3>
+      <p className="text-muted-foreground max-w-md mx-auto">
+        We are currently optimizing the real-time feed infrastructure. Check back soon to see the latest achievements and posts from your friends!
+      </p>
+    </div>
+  );
+
+  /*
+  // Original logic (commented out for now)
   const loadFeed = async () => {
     setIsLoading(true);
     
@@ -238,7 +251,7 @@ const FocusFeed = () => {
                 <p className="text-base">{postData.caption}</p>
                 {postData.imageUrl && (
                     <div className="mt-3 w-full max-h-60 rounded-lg overflow-hidden">
-                        {/* Use CloudinaryImage for optimized display */}
+                        // Use CloudinaryImage for optimized display
                         <CloudinaryImage 
                             publicIdOrUrl={postData.imageUrl} 
                             width={600} 
@@ -336,6 +349,7 @@ const FocusFeed = () => {
       )}
     </div>
   );
+  */
 };
 
 export default FocusFeed;

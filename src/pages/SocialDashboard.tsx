@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield } from "lucide-react";
+import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home } from "lucide-react";
 import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
@@ -43,6 +43,14 @@ const SocialDashboard = () => {
             <header className="glass-card border-b border-border sticky top-0 z-10">
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate("/")}
+                            title="Go to Home"
+                        >
+                            <Home className="h-5 w-5" />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon"
