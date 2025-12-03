@@ -18,7 +18,7 @@ export const uploadImageToCloudinary = async (file: File): Promise<string> => {
   
   const placeholderUrl = `https://res.cloudinary.com/dyad-placeholder/image/upload/${Date.now()}/${file.name}`;
   
-  toast.info("Image upload simulated. Using placeholder URL.");
+  toast.info("Image upload simulated.");
   
   return placeholderUrl;
 };
