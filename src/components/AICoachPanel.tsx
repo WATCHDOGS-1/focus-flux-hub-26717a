@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2 } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2, NotebookText } from "lucide-react";
 import { toast } from "sonner";
 import { sendGeminiChat, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
