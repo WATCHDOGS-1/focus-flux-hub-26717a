@@ -13,17 +13,17 @@ const researchLinks = [
   {
     title: "The Pomodoro Technique: Enhancing Productivity",
     description: "A study on how structured time management, like the Pomodoro Technique, can significantly reduce mental fatigue and improve focus duration.",
-    url: "https://example.com/pomodoro-study-1", // Placeholder URL
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC12292963/",
   },
   {
     title: "Social Accountability and Co-Working Effectiveness",
     description: "Research demonstrating the positive impact of virtual co-working environments on motivation, task initiation, and adherence to goals.",
-    url: "https://example.com/coworking-accountability-2", // Placeholder URL
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4843169/",
   },
   {
     title: "The Science of Deep Work and Flow State",
     description: "An analysis of neurological and psychological factors that contribute to achieving and maintaining a state of deep, distraction-free concentration.",
-    url: "https://example.com/deep-work-flow-3", // Placeholder URL
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7551835/",
   },
 ];
 
