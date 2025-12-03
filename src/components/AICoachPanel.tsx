@@ -256,17 +256,17 @@ const AICoachPanel = () => {
             </div>
 
             {/* Predetermined Functions */}
-            <div className="space-y-2 mb-4 p-3 rounded-lg bg-secondary/30">
+            <div className="space-y-3 mb-4 p-4 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={handleLoadData}
                         disabled={isGenerating}
-                        className="text-xs h-8"
+                        className="text-xs h-9"
                     >
                         <Database className="w-3 h-3 mr-1" /> Load Study Data
                     </Button>
@@ -275,7 +275,7 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleFlowchartGeneration("Plan my study session for the next 3 hours, including breaks and tasks.")}
                         disabled={isGenerating}
-                        className="text-xs h-8"
+                        className="text-xs h-9"
                     >
                         <Code className="w-3 h-3 mr-1" /> Study Plan Flowchart
                     </Button>
@@ -284,7 +284,7 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleFlowchartGeneration("Generate a decision tree for handling distractions during deep work.")}
                         disabled={isGenerating}
-                        className="text-xs h-8"
+                        className="text-xs h-9"
                     >
                         <Code className="w-3 h-3 mr-1" /> Distraction Flowchart
                     </Button>
@@ -293,21 +293,21 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleFlowchartGeneration("Create a step-by-step guide for effective note-taking.")}
                         disabled={isGenerating}
-                        className="text-xs h-8"
+                        className="text-xs h-9"
                     >
                         <Code className="w-3 h-3 mr-1" /> Note-Taking Flowchart
                     </Button>
                 </div>
                 
-                <p className="text-sm font-semibold flex items-center gap-1 text-primary pt-2 border-t border-border/50">
+                <p className="text-sm font-semibold flex items-center gap-1 text-primary pt-3 border-t border-border/50 mt-3">
                     <Target className="w-4 h-4" /> Inject Context
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-3">
                     <Button 
                         variant="secondary" 
                         size="sm" 
                         onClick={() => handleInjectContext('stats')}
-                        className="text-xs h-8"
+                        className="text-xs h-9"
                     >
                         Inject Stats
                     </Button>
@@ -315,7 +315,7 @@ const AICoachPanel = () => {
                         variant="secondary" 
                         size="sm" 
                         onClick={() => handleInjectContext('notes')}
-                        className="text-xs h-8"
+                        className="text-xs h-9"
                     >
                         Inject Notes
                     </Button>
@@ -323,7 +323,7 @@ const AICoachPanel = () => {
                         variant="secondary" 
                         size="sm" 
                         onClick={() => handleInjectContext('tasks')}
-                        className="text-xs h-8"
+                        className="text-xs h-9"
                     >
                         Inject Tasks
                     </Button>

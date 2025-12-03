@@ -56,6 +56,7 @@ const FocusRoom = () => {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false); // New Zen Mode state
   const [showNotesWorkspace, setShowNotesWorkspace] = useState(false);
+  const [showAICoach, setShowAICoach] = useState(false); // NEW STATE for AI Coach workspace
   const [roomTheme, setRoomTheme] = useState("default");
 
   // --- Profile Modal State and Handler ---
@@ -105,7 +106,10 @@ const FocusRoom = () => {
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false);
-    if (activePanel !== panel) setShowNotesWorkspace(false);
+    if (activePanel !== panel) {
+        setShowNotesWorkspace(false);
+        setShowAICoach(false); // Close workspace panels when opening a sidebar panel
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -114,12 +118,26 @@ const FocusRoom = () => {
     if (!isFocusMode) {
       setActivePanel(null);
       setShowNotesWorkspace(false);
+      setShowAICoach(false); // Close workspace panels on focus mode entry
     }
   };
 
   const toggleNotesWorkspace = () => {
     setShowNotesWorkspace(!showNotesWorkspace);
-    if (!showNotesWorkspace) setActivePanel(null);
+    if (!showNotesWorkspace) {
+        setActivePanel(null);
+        setShowAICoach(false); // Close coach when opening notes
+    }
+    if (isFocusMode) setIsFocusMode(false);
+    setIsMobileMenuOpen(false);
+  };
+  
+  const toggleAICoach = () => {
+    setShowAICoach(!showAICoach);
+    if (!showAICoach) {
+        setActivePanel(null);
+        setShowNotesWorkspace(false); // Close notes when opening coach
+    }
     if (isFocusMode) setIsFocusMode(false);
     setIsMobileMenuOpen(false);
   };
@@ -131,7 +149,8 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
-      case "ai-coach": return <AICoachPanel />;
+      // AI Coach is now primarily a workspace panel, but keep fallback for mobile/sidebar
+      case "ai-coach": return <AICoachPanel />; 
       default: return null;
     }
   };
@@ -170,7 +189,7 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={() => togglePanel("ai-coach")} className="w-full justify-start gap-2"><Brain /> AI Coach</Button>
+            <Button onClick={toggleAICoach} className="w-full justify-start gap-2"><Brain /> AI Coach Workspace</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
@@ -237,8 +256,24 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
-                    <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes & Tasks"><NotebookText className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("ai-coach")} title="AI Focus Coach"><Brain className="h-5 w-5" /></Button>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={toggleNotesWorkspace} 
+                        title="Local Notes & Tasks"
+                        className={showNotesWorkspace ? "bg-secondary" : ""}
+                    >
+                        <NotebookText className="h-5 w-5" />
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={toggleAICoach} 
+                        title="AI Focus Coach"
+                        className={showAICoach ? "bg-secondary" : ""}
+                    >
+                        <Brain className="h-5 w-5" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
@@ -285,10 +320,17 @@ const FocusRoom = () => {
               </div>
             )}
 
-            <div className={showNotesWorkspace ? "min-h-[400px]" : "flex-1 min-h-[400px]"}> {/* Adjusted flex-1 based on notes visibility */}
+            <div className={showNotesWorkspace || showAICoach ? "min-h-[400px]" : "flex-1 min-h-[400px]"}> {/* Adjusted flex-1 based on notes/coach visibility */}
               <VideoGrid userId={userId} roomId={roomId} />
             </div>
+            
+            {/* Conditional Workspace Panels */}
             {showNotesWorkspace && <div className="mt-4"><NotesAndTasksWorkspace /></div>}
+            {showAICoach && (
+                <div className="mt-4 glass-card p-4 rounded-xl h-[70vh] flex flex-col">
+                    <AICoachPanel />
+                </div>
+            )}
           </div>
           {activePanel && !isFocusMode && !isMobile && (
             <aside className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
