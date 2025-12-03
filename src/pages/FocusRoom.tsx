@@ -172,7 +172,9 @@ const FocusRoom = () => {
             <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User /> Profile</Button>
             <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes & Tasks</Button>
             <ThemeToggle />
-            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut className="h-5 w-5" /></Button>
+            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2">
+                <LogOut className="h-5 w-5" /> Save Session
+            </Button>
           </div>
         </ScrollArea>
       </DrawerContent>
@@ -239,7 +241,9 @@ const FocusRoom = () => {
                 )}
                 <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
                 <ThemeToggle />
-                <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
+                <Button variant="destructive" onClick={leaveRoom} title="Save Session and Leave" className="dopamine-click">
+                    <LogOut className="h-5 w-5 mr-2" /> Save Session
+                </Button>
               </>
             )}
           </div>
