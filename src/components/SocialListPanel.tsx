@@ -9,6 +9,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { getOrCreateConversation } from "@/utils/dm";
 import { useFriends } from "@/hooks/use-friends";
 import { sendFriendRequest, acceptFriendRequest, rejectFriendRequest } from "@/utils/friends";
+import { isLikelyEmail } from "@/utils/moderation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Conversation = Database["public"]["Tables"]["dm_conversations"]["Row"];
@@ -84,13 +85,15 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
     if (error) {
       console.error("Error loading users:", error);
     } else if (data) {
-      setAllUsers(data as Profile[]);
+      // Filter out users whose username looks like an email address for privacy
+      const sanitizedData = data.filter(user => user.username && !isLikelyEmail(user.username));
+      setAllUsers(sanitizedData as Profile[]);
     }
   };
 
   const handleUserClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
     if (view === 'dms') {
-      const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
+      const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
       if (conversationId) {
         onSelectConversation(conversationId, targetUser.username, targetUser.id);
       }
@@ -101,7 +104,7 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
   };
   
   const handleConversationClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
-    const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
+    const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
     if (conversationId) {
       onSelectConversation(conversationId, targetUser.username, targetUser.id);
     }
