@@ -64,11 +64,11 @@ const YouTubePanel = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 border-b border-border pb-2 text-primary">
+    <div className="glass-card p-4 rounded-xl flex flex-col gap-3 h-full">
+      <h4 className="text-lg font-semibold flex items-center gap-2 border-b border-border pb-2 text-primary">
         <Youtube className="w-5 h-5" />
         YouTube Focus Player
-      </h3>
+      </h4>
 
       <div className="flex-1 min-h-0 relative">
         {embedUrl ? (
