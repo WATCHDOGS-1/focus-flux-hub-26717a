@@ -40,6 +40,10 @@ const TermsOfService = () => {
         <p>
           Video streams are peer-to-peer (WebRTC) and are not recorded by OnlyFocus. However, you are responsible for the content you broadcast. Streams must be used for silent co-working purposes only.
         </p>
+        <h3 className="text-xl font-bold mt-4">2.3 AI Coach Usage</h3>
+        <p>
+          The AI Coach feature uses the Google Gemini API. You are responsible for providing your own API key, which is stored locally in your browser. You agree not to use the AI Coach to generate illegal, harmful, or inappropriate content. OnlyFocus does not store or review the content of your AI conversations unless required for moderation purposes.
+        </p>
 
         <h2 className="text-2xl font-bold mt-6">3. Intellectual Property</h2>
         <p>
