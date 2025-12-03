@@ -26,6 +26,7 @@ const WeeklyFocusChart = () => {
     setIsLoading(true);
     
     const today = new Date();
+    // Get the start of the 7-day period (6 days before today)
     const sevenDaysAgo = subDays(today, 6);
     const sevenDaysAgoISO = format(sevenDaysAgo, 'yyyy-MM-dd');
 
@@ -45,25 +46,33 @@ const WeeklyFocusChart = () => {
 
     // Aggregate data by day
     const dailyTotals: { [key: string]: number } = {};
+    const dayKeys: string[] = [];
+    
     for (let i = 0; i < 7; i++) {
       const date = subDays(today, 6 - i);
-      dailyTotals[format(date, 'EEE')] = 0; // Initialize with 0 minutes
+      const dayKey = format(date, 'EEE');
+      dailyTotals[dayKey] = 0; // Initialize with 0 minutes
+      dayKeys.push(dayKey);
     }
 
     sessions?.forEach(session => {
       if (session.duration_minutes && session.start_time) {
         const sessionDate = new Date(session.start_time);
         const dayKey = format(sessionDate, 'EEE');
-        dailyTotals[dayKey] = (dailyTotals[dayKey] || 0) + session.duration_minutes;
+        // Only count if the day key is one of the last 7 days
+        if (dailyTotals.hasOwnProperty(dayKey)) {
+            dailyTotals[dayKey] = (dailyTotals[dayKey] || 0) + session.duration_minutes;
+        }
       }
     });
 
-    const chartData: DailyFocusData[] = Object.entries(dailyTotals).map(([day, minutes]) => ({
+    const chartData: DailyFocusData[] = dayKeys.map(day => ({
       day,
-      minutes,
+      minutes: dailyTotals[day] || 0,
     }));
     
-    const max = Math.max(...chartData.map(d => d.minutes), 60); // Ensure min max is 60
+    // Calculate max minutes, ensuring a minimum scale for visibility (e.g., 120 minutes)
+    const max = Math.max(...chartData.map(d => d.minutes), 120); 
     setMaxMinutes(max);
     setData(chartData);
     setIsLoading(false);
@@ -84,32 +93,51 @@ const WeeklyFocusChart = () => {
         Weekly Focus History
       </h4>
       
-      <div className="flex items-end h-32 gap-1 border-b border-l border-border pb-1 pl-1">
-        {data.map((item, index) => {
-          const heightPct = (item.minutes / maxMinutes) * 100;
-          const isToday = index === 6; // Assuming the last item is today
+      <div className="flex flex-col h-32 border-b border-border">
+        {/* Bar Container (grows upwards) */}
+        <div className="flex items-end flex-1 h-full gap-1 pb-1">
+          {data.map((item, index) => {
+            const heightPct = (item.minutes / maxMinutes) * 100;
+            const isToday = index === 6; // The last item is today
 
-          return (
-            <div key={item.day} className="flex flex-col items-center flex-1 h-full group relative">
-              {/* Bar */}
-              <div 
-                className={cn(
-                  "w-4 rounded-t-sm transition-all duration-500 ease-out bg-primary/70 hover:bg-primary",
-                  isToday && "bg-accent/80 hover:bg-accent"
-                )}
-                style={{ height: `${heightPct}%` }}
-              />
-              
-              {/* Tooltip/Value */}
-              <div className="absolute top-0 -translate-y-full text-xs font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                {item.minutes}m
+            return (
+              <div key={item.day} className="flex flex-col items-center flex-1 h-full group relative justify-end">
+                {/* Bar */}
+                <div 
+                  className={cn(
+                    "w-4 rounded-t-sm transition-all duration-500 ease-out shadow-md",
+                    item.minutes > 0 ? "bg-primary/70 hover:bg-primary" : "bg-muted/50",
+                    isToday && item.minutes > 0 && "bg-accent/80 hover:bg-accent shadow-accent/50"
+                  )}
+                  style={{ height: `${heightPct}%` }}
+                />
+                
+                {/* Tooltip/Value (Above the bar) */}
+                <div className="absolute bottom-full mb-1 text-xs font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                  {item.minutes}m
+                </div>
               </div>
-
-              {/* Day Label */}
-              <span className="text-xs text-muted-foreground mt-1">{item.day}</span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        
+        {/* Day Labels (Below the axis) */}
+        <div className="flex justify-between gap-1 pt-1">
+            {data.map((item, index) => {
+                const isToday = index === 6;
+                return (
+                    <span 
+                        key={item.day} 
+                        className={cn(
+                            "text-xs text-muted-foreground flex-1 text-center",
+                            isToday && "font-semibold text-accent"
+                        )}
+                    >
+                        {item.day}
+                    </span>
+                );
+            })}
+        </div>
       </div>
       <p className="text-xs text-muted-foreground text-center">Total minutes focused over the last 7 days.</p>
     </div>
