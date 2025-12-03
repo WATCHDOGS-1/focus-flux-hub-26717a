@@ -344,7 +344,7 @@ const FocusRoom = () => {
             </div>
           </div>
           {activePanel && !isFocusMode && !isMobile && (
-            <aside className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
+            <aside className="w-96 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
               {renderPanelContent(activePanel)}
             </aside>
           )}
