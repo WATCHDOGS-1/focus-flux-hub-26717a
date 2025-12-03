@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, Flame, Zap, Clock, Tag, Plus, X, TrendingUp } from "lucide-react";
+import { LogOut, Flame, Zap, Clock, Tag, Plus, X, TrendingUp, Camera, User } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
+import { useImageUpload } from "@/hooks/use-image-upload";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { getLevelThresholds } from "@/utils/session-management";
@@ -25,16 +26,21 @@ const RECOMMENDED_TAGS = [
 const ProfileMenu = () => {
   const { userId, profile, refreshProfile } = useAuth();
   const { stats, levels, isLoading: isLoadingStats, refetch } = useUserStats();
+  const { isUploading, uploadFile } = useImageUpload('avatars');
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [username, setUsername] = useState("");
   const [dailyGoal, setDailyGoal] = useState(60);
   const [weeklyGoal, setWeeklyGoal] = useState(420);
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState("");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
       setUsername(profile.username);
+      setProfilePhotoUrl(profile.profile_photo_url);
       // Ensure interests are treated as string[]
       if (Array.isArray(profile.interests)) {
         setInterests(profile.interests as string[]);
@@ -87,17 +93,34 @@ const ProfileMenu = () => {
       addInterest(newInterest);
     }
   };
+  
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !userId) return;
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error("File size must be less than 5MB.");
+      return;
+    }
+
+    const filePath = `${userId}/${Date.now()}_profile.jpg`;
+    const { url, error } = await uploadFile(file, filePath);
+
+    if (url) {
+      setProfilePhotoUrl(url);
+      toast.success("Profile picture uploaded! Click 'Save Profile' to confirm.");
+    }
+  };
 
   const saveProfileAndGoals = async () => {
     if (!userId) return;
     let allSuccess = true;
 
-    // 1. Save username and interests
-    // We explicitly cast interests to Json type to satisfy the Supabase client, 
-    // which should resolve the schema cache issue if it's related to type inference.
+    // 1. Save username, interests, and profile photo URL
     const profileUpdatePayload = { 
       username: username, 
-      interests: interests as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
+      interests: interests as Database["public"]["Tables"]["profiles"]["Update"]["interests"],
+      profile_photo_url: profilePhotoUrl,
     };
     
     const { error: profileError } = await supabase
@@ -106,7 +129,7 @@ const ProfileMenu = () => {
       .eq("id", userId);
 
     if (profileError) {
-      const errorMsg = `Failed to save profile (username/interests): ${profileError.message}`;
+      const errorMsg = `Failed to save profile (username/interests/photo): ${profileError.message}`;
       console.error(errorMsg, profileError);
       toast.error(errorMsg); // Display detailed error
       allSuccess = false;
@@ -198,10 +221,28 @@ const ProfileMenu = () => {
 
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-            <span className="text-3xl font-semibold text-white">
-              {username?.[0]?.toUpperCase()}
-            </span>
+          {/* Profile Picture Upload Area */}
+          <div className="relative w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            {profilePhotoUrl ? (
+              <img src={profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-12 h-12 text-white" />
+            )}
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {isUploading ? (
+                <Zap className="w-6 h-6 animate-pulse text-white" />
+              ) : (
+                <Camera className="w-6 h-6 text-white" />
+              )}
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={isUploading}
+            />
           </div>
 
           <div className="text-center">
@@ -352,8 +393,8 @@ const ProfileMenu = () => {
             />
           </div>
 
-          <Button onClick={saveProfileAndGoals} className="w-full">
-            Save Profile & Goals
+          <Button onClick={saveProfileAndGoals} className="w-full" disabled={isUploading}>
+            {isUploading ? "Uploading..." : "Save Profile & Goals"}
           </Button>
         </div>
 
