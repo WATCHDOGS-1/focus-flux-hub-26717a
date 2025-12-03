@@ -50,7 +50,8 @@ const FocusFeed = () => {
     console.log(`Found ${expiredItems.length} expired posts. Deleting...`);
 
     const deletePromises = expiredItems.map(async (item) => {
-        const postData = item.data as PostData;
+        // Safely cast and check data structure
+        const postData = item.data as PostData | null;
         
         // 1. Delete image from storage if it exists
         if (postData?.imageUrl) {
@@ -209,7 +210,7 @@ const FocusFeed = () => {
       if (!window.confirm("Are you sure you want to delete this post?")) return;
       
       const itemToDelete = feedItems.find(item => item.id === postId);
-      const postData = itemToDelete?.data as PostData;
+      const postData = itemToDelete?.data as PostData | null;
       
       // 1. Delete image from storage if it exists
       if (postData?.imageUrl) {
@@ -262,11 +263,14 @@ const FocusFeed = () => {
 
     let content;
     
-    const postData = data as PostData;
+    // Safely handle data casting and null checks
+    const postData = (type === 'user_post' && typeof data === 'object' && data) ? data as PostData : null;
+    const sessionData = (type === 'session_completed' && typeof data === 'object' && data && 'duration' in data) ? data as { duration: number, tag?: string } : null;
 
-    if (type === "session_completed" && typeof data === 'object' && data && 'duration' in data) {
-      const duration = data.duration as number;
-      const tag = data.tag as string | undefined;
+
+    if (type === "session_completed" && sessionData) {
+      const duration = sessionData.duration;
+      const tag = sessionData.tag;
       
       content = (
         <>
@@ -298,7 +302,8 @@ const FocusFeed = () => {
             </>
         );
     } else {
-      content = <p>An unknown activity was completed.</p>;
+      // Fallback for unknown or malformed data
+      content = <p>An activity was completed, but the data is unavailable.</p>;
     }
 
     // Access count from the aggregated array
