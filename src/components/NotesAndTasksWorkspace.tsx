@@ -3,10 +3,11 @@ import NotesWorkspace from "./NotesWorkspace";
 import TaskList from "./TaskList";
 import YouTubeEmbedPanel from "./YouTubeEmbedPanel";
 import AICoachWorkspace from "./AICoachWorkspace"; // Import the new wrapper
+import QuickAskPanel from "./QuickAskPanel"; // Import the new QuickAskPanel
 
 const NotesAndTasksWorkspace = () => {
   return (
-    <div className="h-full w-full"> {/* Removed min-h-[800px] */}
+    <div className="h-full w-full">
       <PanelGroup direction="vertical" className="h-full">
         
         {/* Top Panel: Notes and Tasks (Resizable Horizontal Split) */}
@@ -41,9 +42,9 @@ const NotesAndTasksWorkspace = () => {
           <div className="h-1 w-10 bg-primary/50 rounded-full" />
         </PanelResizeHandle>
         
-        {/* Bottom Panel: YouTube Player */}
+        {/* Bottom Panel: Quick Ask AI */}
         <Panel defaultSize={34} minSize={20}>
-          <YouTubeEmbedPanel />
+          <QuickAskPanel />
         </Panel>
       </PanelGroup>
     </div>

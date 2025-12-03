@@ -14,8 +14,8 @@ import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
-import AICoachPanel from "@/components/AICoachPanel"; // Import AICoachPanel
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save } from "lucide-react";
+import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,6 +136,7 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
+      case "youtube": return <YouTubePanel />; // New YouTube Panel
       default: return null;
     }
   };
@@ -147,6 +148,7 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
+      "youtube": "YouTube Player", // New Title
     };
     return titles[panel] || "";
   };
@@ -174,6 +176,7 @@ const FocusRoom = () => {
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
             <Button onClick={toggleWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes, AI & Media</Button>
+            <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
@@ -248,11 +251,14 @@ const FocusRoom = () => {
                     >
                         <NotebookText className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer"><Timer className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings"><User className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("youtube")} title="YouTube Player" className={activePanel === 'youtube' ? "bg-secondary" : ""}>
+                        <Youtube className="h-5 w-5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat" className={activePanel === 'global-chat' ? "bg-secondary" : ""}><MessageSquare className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages" className={activePanel === 'social' ? "bg-secondary" : ""}><Users className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard" className={activePanel === 'leaderboard' ? "bg-secondary" : ""}><Trophy className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer" className={activePanel === 'pomodoro' ? "bg-secondary" : ""}><Timer className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings" className={activePanel === 'profile' ? "bg-secondary" : ""}><User className="h-5 w-5" /></Button>
                   </>
                 )}
                 <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
