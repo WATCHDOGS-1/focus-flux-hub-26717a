@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Key, Save, Trash2, ExternalLink } from "lucide-react";
 import { setGeminiApiKey, clearGeminiApiKey, getGeminiApiKey } from "@/utils/gemini";
 
-const GEMINI_API_LINK = "https://ai.google.dev/gemini-api/docs/api-key";
+const GEMINI_API_LINK = "https://aistudio.google.com/api-keys";
 
 const GeminiApiKeySetup = () => {
   const [inputKey, setInputKey] = useState("");
