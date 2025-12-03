@@ -31,8 +31,9 @@ const BANNED_WORDS = [
  * @returns true if it looks like an email, false otherwise.
  */
 export const isLikelyEmail = (input: string): boolean => {
-  // Simple regex check for presence of '@' and '.'
-  return /\S+@\S+\.\S+/.test(input);
+  // Robust regex check for presence of '@' and '.' followed by 2+ characters, 
+  // and ensuring it doesn't contain spaces.
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(input);
 };
 
 /**
