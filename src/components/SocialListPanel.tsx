@@ -9,6 +9,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { getOrCreateConversation } from "@/utils/dm";
 import { useFriends } from "@/hooks/use-friends";
 import { sendFriendRequest, acceptFriendRequest, rejectFriendRequest } from "@/utils/friends";
+import { isLikelyEmail } from "@/utils/moderation"; // Import the utility
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Conversation = Database["public"]["Tables"]["dm_conversations"]["Row"];
@@ -84,7 +85,9 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
     if (error) {
       console.error("Error loading users:", error);
     } else if (data) {
-      setAllUsers(data as Profile[]);
+      // Filter out any profiles whose username looks like an email address for privacy/security
+      const safeUsers = (data as Profile[]).filter(user => !isLikelyEmail(user.username));
+      setAllUsers(safeUsers);
     }
   };
 
