@@ -10,7 +10,8 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
+import NotesAndMediaPanel from "@/components/NotesAndMediaPanel"; // Updated import
+import AICoachAndTasksPanel from "@/components/AICoachAndTasksPanel"; // New import
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
@@ -56,7 +57,7 @@ const FocusRoom = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false); // New Zen Mode state
-  const [showWorkspace, setShowWorkspace] = useState(false); // Combined state for Notes/Tasks/AI Coach
+  const [mainWorkspacePanel, setMainWorkspacePanel] = useState<'notes' | 'ai' | null>(null); // Replaced showWorkspace
   const [roomTheme, setRoomTheme] = useState("default");
 
   // --- Profile Modal State and Handler ---
@@ -107,8 +108,17 @@ const FocusRoom = () => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false);
     if (activePanel !== panel) {
-        setShowWorkspace(false); // Close workspace panels when opening a sidebar panel
+        setMainWorkspacePanel(null); // Close main workspace panels when opening a sidebar panel
     }
+    setIsMobileMenuOpen(false);
+  };
+  
+  const toggleMainWorkspace = (panel: 'notes' | 'ai') => {
+    setMainWorkspacePanel(mainWorkspacePanel === panel ? null : panel);
+    if (mainWorkspacePanel !== panel) {
+        setActivePanel(null); // Close sidebar panels when opening a main workspace panel
+    }
+    if (isFocusMode) setIsFocusMode(false);
     setIsMobileMenuOpen(false);
   };
 
@@ -116,17 +126,8 @@ const FocusRoom = () => {
     setIsFocusMode(!isFocusMode);
     if (!isFocusMode) {
       setActivePanel(null);
-      setShowWorkspace(false); // Close workspace panels on focus mode entry
+      setMainWorkspacePanel(null); // Close main workspace panels on focus mode entry
     }
-  };
-
-  const toggleWorkspace = () => {
-    setShowWorkspace(!showWorkspace);
-    if (!showWorkspace) {
-        setActivePanel(null);
-    }
-    if (isFocusMode) setIsFocusMode(false);
-    setIsMobileMenuOpen(false);
   };
 
   const renderPanelContent = (panel: string) => {
@@ -175,7 +176,8 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={toggleWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes, AI & Media</Button>
+            <Button onClick={() => toggleMainWorkspace('notes')} className="w-full justify-start gap-2"><NotebookText /> Notes, Tasks & Media</Button>
+            <Button onClick={() => toggleMainWorkspace('ai')} className="w-full justify-start gap-2"><Brain /> AI Coach & Tasks</Button>
             <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
@@ -242,15 +244,29 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
+                    {/* Notes/Media Button */}
                     <Button 
                         variant="ghost" 
                         size="icon" 
-                        onClick={toggleWorkspace} 
-                        title="Notes, AI Coach & Media Workspace"
-                        className={showWorkspace ? "bg-secondary" : ""}
+                        onClick={() => toggleMainWorkspace('notes')} 
+                        title="Notes, Tasks & Media Workspace"
+                        className={mainWorkspacePanel === 'notes' ? "bg-secondary" : ""}
                     >
                         <NotebookText className="h-5 w-5" />
                     </Button>
+                    
+                    {/* AI Coach Button (New) */}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => toggleMainWorkspace('ai')} 
+                        title="AI Coach & Tasks Panel"
+                        className={mainWorkspacePanel === 'ai' ? "bg-secondary" : ""}
+                    >
+                        <Brain className="h-5 w-5" />
+                    </Button>
+                    
+                    {/* Sidebar Panel Buttons */}
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("youtube")} title="YouTube Player" className={activePanel === 'youtube' ? "bg-secondary" : ""}>
                         <Youtube className="h-5 w-5" />
                     </Button>
@@ -303,20 +319,26 @@ const FocusRoom = () => {
             {/* Main Content Area: Video Grid and Workspace */}
             <div className={cn(
                 "flex-1 min-h-[400px]", // Ensure minimum height for the whole area
-                showWorkspace && "flex flex-col gap-4" // If workspace is shown, make it a vertical flex container
+                mainWorkspacePanel && "flex flex-col gap-4" // If any workspace is shown, make it a vertical flex container
             )}>
                 {/* Video Grid */}
                 <div className={cn(
                     "min-h-[400px]", // Minimum height for video grid
-                    showWorkspace && "flex-1" // Take half the space if workspace is open
+                    mainWorkspacePanel && "flex-1" // Take half the space if workspace is open
                 )}>
                     <VideoGrid userId={userId} roomId={roomId} />
                 </div>
                 
                 {/* Conditional Workspace Panels */}
-                {showWorkspace && (
+                {mainWorkspacePanel === 'notes' && (
                     <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
-                        <NotesAndTasksWorkspace />
+                        <NotesAndMediaPanel />
+                    </div>
+                )}
+                
+                {mainWorkspacePanel === 'ai' && (
+                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
+                        <AICoachAndTasksPanel />
                     </div>
                 )}
             </div>
