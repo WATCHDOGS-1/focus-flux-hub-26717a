@@ -3,19 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsUp, Zap, Tag, Clock, User } from "lucide-react";
+import { ThumbsUp, Zap, Tag, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
-
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 type FeedItemRaw = Database["public"]["Tables"]["feed_items"]["Row"] & {
   feed_applauds: { count: number }[];
 };
 
 type FeedItemWithProfile = FeedItemRaw & {
-  profiles: Pick<Profile, 'username' | 'profile_photo_url'> | null;
+  profiles: { username: string } | null;
 };
 
 const FocusFeed = () => {
@@ -26,7 +24,7 @@ const FocusFeed = () => {
   const loadFeed = async () => {
     setIsLoading(true);
     
-    // 1. Fetch raw feed items and applauds
+    // 1. Fetch raw feed items and applauds (excluding profiles join to bypass schema cache issue)
     const { data: rawData, error } = await supabase
       .from("feed_items")
       .select(`
@@ -47,18 +45,18 @@ const FocusFeed = () => {
       const rawItems = rawData as FeedItemRaw[];
       const userIds = Array.from(new Set(rawItems.map(item => item.user_id)));
       
-      // 2. Fetch all required profiles separately, including photo URL
+      // 2. Fetch all required profiles separately
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, username, profile_photo_url")
+        .select("id, username")
         .in("id", userIds);
         
-      const profileMap = new Map(profilesData?.map(p => [p.id, p]));
+      const profileMap = new Map(profilesData?.map(p => [p.id, p.username]));
 
       // 3. Map profiles back onto feed items
       const itemsWithProfiles: FeedItemWithProfile[] = rawItems.map(item => ({
         ...item,
-        profiles: profileMap.get(item.user_id) || { username: "Unknown User", profile_photo_url: null },
+        profiles: { username: profileMap.get(item.user_id) || "Unknown User" },
       }));
       
       setFeedItems(itemsWithProfiles);
@@ -144,7 +142,6 @@ const FocusFeed = () => {
   const renderFeedItem = (item: FeedItemWithProfile) => {
     const { type, data, profiles, created_at } = item;
     const username = profiles?.username || "A user";
-    const profilePhotoUrl = profiles?.profile_photo_url;
     const timeAgo = formatDistanceToNow(new Date(created_at), { addSuffix: true });
 
     let content;
@@ -176,15 +173,9 @@ const FocusFeed = () => {
       <Card key={item.id} className="glass-card hover-lift">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            {/* Profile Picture */}
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mt-1 overflow-hidden flex-shrink-0">
-              {profilePhotoUrl ? (
-                <img src={profilePhotoUrl} alt={username} className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-5 h-5 text-white" />
-              )}
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mt-1">
+              <Zap className="w-5 h-5 text-primary" />
             </div>
-            
             <div className="flex-1">
               <div className="text-sm">{content}</div>
               <div className="flex items-center justify-between mt-3">
