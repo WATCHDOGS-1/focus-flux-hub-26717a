@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Code, MessageSquare, LayoutGrid, Database, Target, Image, X, Lightbulb } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Database, Target, Image, X, Lightbulb, MessageSquare, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
-import { sendGeminiChat, generateFlowchart, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
+import { sendGeminiChat, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
@@ -110,7 +110,8 @@ const AICoachPanel = () => {
 
         try {
             // Send the dataPrompt as the new message parts
-            const responseText = await sendGeminiChat(history, [{ text: dataPrompt }]);
+            const apiContents = [...history, { role: "user" as const, parts: [{ text: dataPrompt }] }];
+            const responseText = await sendGeminiChat(apiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
             // Replace the optimistic message with the actual response
@@ -124,19 +125,20 @@ const AICoachPanel = () => {
         }
     };
     
-    const handleGenerateTip = async () => {
+    const handleGenerateGeneralTip = async () => {
         if (isGenerating) return;
         
         setIsGenerating(true);
         
-        const tipPrompt = `Based on the user's current stats (Total Focused Minutes: ${stats?.total_focused_minutes || 0}, Longest Streak: ${stats?.longest_streak || 0} days) and their long-term goal (${longTermGoal || 'None Set'}), generate one highly specific, actionable productivity tip for their next focus session. Keep it concise.`;
+        const tipPrompt = `Based on the user's current stats (Total Focused Minutes: ${stats?.total_focused_minutes || 0}, Longest Streak: ${stats?.longest_streak || 0} days) and their long-term goal (${longTermGoal || 'None Set'}), generate one highly specific, actionable productivity tip for their next focus session. Keep it concise and motivational.`;
         
         const userMessage: ChatMessage = { role: "user", parts: [{ text: "Requesting a personalized productivity tip..." }] };
         const optimisticHistory = [...history, userMessage];
         setHistory(optimisticHistory);
 
         try {
-            const responseText = await sendGeminiChat(history, [{ text: tipPrompt }]);
+            const apiContents = [...history, { role: "user" as const, parts: [{ text: tipPrompt }] }];
+            const responseText = await sendGeminiChat(apiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
             setHistory(prev => [...prev.slice(0, -1), modelMessage]);
@@ -169,13 +171,18 @@ const AICoachPanel = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (!file.type.startsWith('image/')) {
-                toast.error("Only image files are supported for analysis.");
+            // Allow images, PDFs, and common text/code files
+            const allowedTypes = ['image/', 'application/pdf', 'text/plain', 'text/csv', 'application/json', 'text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            const isAllowed = allowedTypes.some(type => file.type.startsWith(type));
+            
+            if (!isAllowed) {
+                toast.error("Unsupported file type. Please upload an image, PDF, or text/code document.");
                 return;
             }
+            
             setImageFile(file);
             setImagePreviewUrl(URL.createObjectURL(file));
-            toast.info("Image loaded for next prompt.");
+            toast.info(`File loaded for next prompt: ${file.name}`);
         }
     };
 
@@ -185,7 +192,7 @@ const AICoachPanel = () => {
         const contextualMessage = getContextualPromptPrefix() + message;
         
         // 1. Construct the optimistic user message for display
-        const userMessageText = imageFile ? `(Image attached) ${message}` : message;
+        const userMessageText = imageFile ? `(File attached: ${imageFile.name}) ${message}` : message;
         const userMessage: ChatMessage = { role: "user", parts: [{ text: userMessageText }] }; 
         
         // 2. Optimistic update
@@ -195,19 +202,24 @@ const AICoachPanel = () => {
         setIsGenerating(true);
         
         const currentImageFile = imageFile;
-        setImageFile(null); // Clear image immediately
+        setImageFile(null); // Clear file immediately
         setImagePreviewUrl(null);
 
         try {
             // 3. Construct the actual parts payload for the API
             const newParts: ChatPart[] = [{ text: contextualMessage }];
             if (currentImageFile) {
-                const imagePart = await fileToGenerativePart(currentImageFile);
-                newParts.unshift(imagePart);
+                const filePart = await fileToGenerativePart(currentImageFile);
+                newParts.unshift(filePart);
             }
             
-            // 4. Send API call using the previous history state
-            const responseText = await sendGeminiChat(history, newParts);
+            // 4. Send API call using the full history (including the new message)
+            const apiContents = [
+                ...history, // Previous history
+                { role: "user" as const, parts: newParts } // New message parts
+            ];
+            
+            const responseText = await sendGeminiChat(apiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
             // 5. Replace the optimistic message with the final response
@@ -221,42 +233,10 @@ const AICoachPanel = () => {
         }
     };
 
-    const handleFlowchartGeneration = async (prompt: string) => {
-        if (isGenerating) return;
-        
-        const contextualPrompt = getContextualPromptPrefix() + prompt;
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: `Generate a flowchart for: ${prompt}` }] };
-        
-        const optimisticHistory = [...history, userMessage];
-        setHistory(optimisticHistory);
-        setIsGenerating(true);
-
-        try {
-            const mermaidCode = await generateFlowchart(contextualPrompt);
-            
-            const modelMessage: ChatMessage = { 
-                role: "model", 
-                parts: [{ 
-                    text: `Here is the Mermaid flowchart code for your plan. You can copy this code into a Mermaid live editor to visualize it:\n\n\`\`\`mermaid\n${mermaidCode}\n\`\`\`` 
-                }] 
-            };
-            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
-        } catch (error: any) {
-            toast.error(error.message || "Flowchart generation failed.");
-            setHistory(prev => prev.slice(0, -1));
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
     const renderMessage = (msg: ChatMessage, index: number) => {
         const isUser = msg.role === "user";
         const text = msg.parts[0]?.text || "";
         
-        // Check for Mermaid code block
-        const mermaidMatch = text.match(/```mermaid\n([\s\S]*?)\n```/);
-        const isMermaid = !!mermaidMatch;
-
         return (
             <div
                 key={msg.id || index} // Use index as fallback if id is missing
@@ -270,19 +250,7 @@ const AICoachPanel = () => {
                     {isUser ? "You" : "AI Coach"}
                 </div>
                 
-                {isMermaid ? (
-                    <div className="space-y-2">
-                        <p className="text-sm font-medium text-primary">Flowchart Generated (Mermaid Code):</p>
-                        <pre className="bg-background/50 p-2 rounded text-xs overflow-x-auto">
-                            {mermaidMatch![1].trim()}
-                        </pre>
-                        <p className="text-xs text-muted-foreground">
-                            *Note: Visualization requires a Mermaid rendering library (not included). Copy the code above to a Mermaid editor.*
-                        </p>
-                    </div>
-                ) : (
-                    <p className="text-sm whitespace-pre-wrap">{text}</p>
-                )}
+                <p className="text-sm whitespace-pre-wrap">{text}</p>
             </div>
         );
     };
@@ -332,7 +300,7 @@ const AICoachPanel = () => {
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     <Button 
                         variant="outline" 
                         size="sm" 
@@ -345,38 +313,29 @@ const AICoachPanel = () => {
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={handleGenerateTip}
+                        onClick={handleGenerateGeneralTip}
                         disabled={isGenerating}
                         className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Lightbulb className="w-3 h-3 mr-1" /> Get Tip
+                        <Lightbulb className="w-3 h-3 mr-1" /> Get General Tip
                     </Button>
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => handleFlowchartGeneration("Plan my study session for the next 3 hours, including breaks and tasks.")}
+                        onClick={() => handleChat("Give me a motivational quote for deep work.")}
                         disabled={isGenerating}
                         className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Code className="w-3 h-3 mr-1" /> Study Plan
+                        <Zap className="w-3 h-3 mr-1" /> Motivation
                     </Button>
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => handleFlowchartGeneration("Generate a decision tree for handling distractions during deep work.")}
+                        onClick={() => handleChat("What are the best strategies for avoiding distractions?")}
                         disabled={isGenerating}
                         className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Code className="w-3 h-3 mr-1" /> Distraction Flowchart
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleFlowchartGeneration("Create a step-by-step guide for effective note-taking.")}
-                        disabled={isGenerating}
-                        className="text-xs h-9 flex items-center justify-center"
-                    >
-                        <Code className="w-3 h-3 mr-1" /> Note-Taking
+                        <MessageSquare className="w-3 h-3 mr-1" /> Distraction Help
                     </Button>
                 </div>
                 
@@ -433,8 +392,15 @@ const AICoachPanel = () => {
             {/* Input and Image Preview */}
             {imagePreviewUrl && (
                 <div className="relative mb-2 p-2 rounded-lg border border-primary/50 bg-secondary/20">
-                    <img src={imagePreviewUrl} alt="Image for AI analysis" className="h-16 w-auto object-contain rounded" />
-                    <span className="text-xs text-muted-foreground mt-1 block">Image attached for next prompt.</span>
+                    <div className="flex items-center gap-3">
+                        <img 
+                            src={imagePreviewUrl} 
+                            alt="File for AI analysis" 
+                            className="h-16 w-auto object-contain rounded" 
+                        />
+                        <span className="text-sm font-medium truncate">{imageFile?.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground mt-1 block">File attached for next prompt.</span>
                     <Button 
                         variant="destructive" 
                         size="icon" 
@@ -450,7 +416,7 @@ const AICoachPanel = () => {
                 <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*, application/pdf, text/plain, text/csv, application/json, text/markdown, text/html, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={handleFileChange}
                     className="hidden"
                     disabled={isGenerating}
@@ -461,7 +427,7 @@ const AICoachPanel = () => {
                     onClick={() => fileInputRef.current?.click()} 
                     className="dopamine-click flex-shrink-0"
                     disabled={isGenerating}
-                    title="Upload Image for Analysis"
+                    title="Upload Document or Image for Analysis"
                 >
                     <Image className="w-4 h-4" />
                 </Button>

@@ -75,22 +75,15 @@ export interface ChatPart {
 
 /**
  * Sends a chat message to the Gemini model, using the provided history and new parts.
+ * @param contents The full conversation history including the new user message parts.
  */
 export const sendGeminiChat = async (
-    history: { role: "user" | "model", parts: ChatPart[] }[], 
-    newParts: ChatPart[]
+    contents: { role: "user" | "model", parts: ChatPart[] }[]
 ): Promise<string> => {
   const client = initializeGeminiClient();
   if (!client) {
     throw new Error("Gemini API Key is missing. Please configure it in settings.");
   }
-
-  // The history passed here should be the complete previous conversation.
-  // The new message parts are sent as the last entry in the contents array.
-  const contents = [
-      ...history,
-      { role: "user" as const, parts: newParts }
-  ];
 
   const response = await client.models.generateContent({
     model: MODEL_NAME,
@@ -98,38 +91,6 @@ export const sendGeminiChat = async (
   });
   
   return response.text;
-};
-
-/**
- * Generates a flowchart in Mermaid syntax based on a prompt.
- */
-export const generateFlowchart = async (prompt: string): Promise<string> => {
-  const client = initializeGeminiClient();
-  if (!client) {
-    throw new Error("Gemini API Key is missing. Please configure it in settings.");
-  }
-
-  const systemInstruction = `You are an expert productivity coach. Your task is to generate a detailed flowchart in Mermaid syntax based on the user's request. ONLY output the Mermaid code block (starting with \`\`\`mermaid and ending with \`\`\`). Do not include any introductory or explanatory text.`;
-
-  const response = await client.models.generateContent({
-    model: MODEL_NAME,
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.3,
-    }
-  });
-
-  // Extract the Mermaid code block
-  const text = response.text.trim();
-  const match = text.match(/```mermaid\n([\s\S]*?)\n```/);
-  
-  if (match && match[1]) {
-    return match[1].trim();
-  }
-  
-  // If no code block is found, return the raw text
-  return text;
 };
 
 /**
