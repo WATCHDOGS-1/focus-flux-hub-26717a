@@ -5,17 +5,16 @@ import VideoGrid from "@/components/VideoGrid";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import SocialSidebar from "@/components/SocialSidebar";
 import TimeTracker from "@/components/TimeTracker";
-import FocusTimer from "@/components/FocusTimer";
+import FocusTimer from "@/components/FocusTimer"; // Use the new centralized timer UI
 import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import WorkspacePanel from "@/components/WorkspacePanel"; // Use the new WorkspacePanel
-import QuickAskPanel from "@/components/QuickAskPanel"; // Import QuickAskPanel
+import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
-import FocusHUD from "@/components/FocusHUD";
-import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels"; // Import resizable panels
+import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
+import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
 import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useFocusSession } from "@/hooks/use-focus-session";
+import { useUserStats } from "@/hooks/use-user-stats";
+import { useFocusSession } from "@/hooks/use-focus-session"; // Import centralized hook
 import {
   Drawer,
   DrawerContent,
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PREDEFINED_ROOMS } from "@/utils/constants";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"; // Ensure cn is imported
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -47,15 +47,16 @@ const FocusRoom = () => {
     focusTag,
     setFocusTag,
     endCurrentSession,
-    startNewSession,
-    saveFocusTag,
-  } = useFocusSession();
+    currentMode,
+    startNewSession, // Import startNewSession
+    saveFocusTag, // New function from hook
+  } = useFocusSession(); // Use the centralized hook
 
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isZenMode, setIsZenMode] = useState(false);
-  const [showWorkspace, setShowWorkspace] = useState(false); // Controls visibility of the WorkspacePanel
+  const [isZenMode, setIsZenMode] = useState(false); // New Zen Mode state
+  const [showWorkspace, setShowWorkspace] = useState(false); // Combined state for Notes/Tasks/AI Coach
   const [roomTheme, setRoomTheme] = useState("default");
 
   // --- Profile Modal State and Handler ---
@@ -135,7 +136,7 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
-      // Removed 'youtube' case as it's now in the main workspace
+      case "youtube": return <YouTubePanel />; // New YouTube Panel
       default: return null;
     }
   };
@@ -147,6 +148,7 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
+      "youtube": "YouTube Player", // New Title
     };
     return titles[panel] || "";
   };
@@ -174,6 +176,7 @@ const FocusRoom = () => {
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
             <Button onClick={toggleWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes, AI & Media</Button>
+            <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
@@ -248,7 +251,9 @@ const FocusRoom = () => {
                     >
                         <NotebookText className="h-5 w-5" />
                     </Button>
-                    {/* Removed YouTube button as it's now in the workspace */}
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("youtube")} title="YouTube Player" className={activePanel === 'youtube' ? "bg-secondary" : ""}>
+                        <Youtube className="h-5 w-5" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat" className={activePanel === 'global-chat' ? "bg-secondary" : ""}><MessageSquare className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages" className={activePanel === 'social' ? "bg-secondary" : ""}><Users className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard" className={activePanel === 'leaderboard' ? "bg-secondary" : ""}><Trophy className="h-5 w-5" /></Button>
@@ -268,9 +273,8 @@ const FocusRoom = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="flex h-full">
+        <div className="flex h-full"> {/* Added h-full here */}
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
-            
             {/* Focus Tag Input (Always visible in room, unless in Focus Mode) */}
             {!isFocusMode && (
               <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-secondary/50 border-border">
@@ -295,39 +299,28 @@ const FocusRoom = () => {
                 </span>
               </div>
             )}
-            
-            {/* Quick Ask AI Panel (Always visible, above main content) */}
-            {!isFocusMode && (
-                <QuickAskPanel />
-            )}
 
-            {/* Main Content Area: Video Grid and Workspace (Resizable) */}
-            <div className="flex-1 min-h-[400px]">
-                <PanelGroup direction={isMobile ? "vertical" : "horizontal"} className="h-full">
-                    {/* Video Grid Panel */}
-                    <Panel defaultSize={showWorkspace ? 60 : 100} minSize={30}>
-                        <VideoGrid userId={userId} roomId={roomId} />
-                    </Panel>
-                    
-                    {showWorkspace && (
-                        <>
-                            <PanelResizeHandle className={cn(
-                                isMobile ? "h-2 flex items-center justify-center bg-border/50 hover:bg-primary/50 cursor-row-resize" : "w-2 flex items-center justify-center bg-border/50 hover:bg-primary/50 cursor-col-resize"
-                            )}>
-                                <div className={cn(isMobile ? "h-1 w-10" : "w-1 h-10", "bg-primary/50 rounded-full")} />
-                            </PanelResizeHandle>
-                            
-                            {/* Workspace Panel (Notes/Tasks/AI Coach/YouTube) */}
-                            <Panel defaultSize={40} minSize={20}>
-                                <WorkspacePanel />
-                            </Panel>
-                        </>
-                    )}
-                </PanelGroup>
+            {/* Main Content Area: Video Grid and Workspace */}
+            <div className={cn(
+                "flex-1 min-h-[400px]", // Ensure minimum height for the whole area
+                showWorkspace && "flex flex-col gap-4" // If workspace is shown, make it a vertical flex container
+            )}>
+                {/* Video Grid */}
+                <div className={cn(
+                    "min-h-[400px]", // Minimum height for video grid
+                    showWorkspace && "flex-1" // Take half the space if workspace is open
+                )}>
+                    <VideoGrid userId={userId} roomId={roomId} />
+                </div>
+                
+                {/* Conditional Workspace Panels */}
+                {showWorkspace && (
+                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
+                        <NotesAndTasksWorkspace />
+                    </div>
+                )}
             </div>
           </div>
-          
-          {/* Right Sidebar (for Social/Chat/Leaderboard/Profile) */}
           {activePanel && !isFocusMode && !isMobile && (
             <aside className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
               {renderPanelContent(activePanel)}

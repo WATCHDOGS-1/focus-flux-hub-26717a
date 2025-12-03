@@ -1,16 +1,17 @@
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import NotesWorkspace from "./NotesWorkspace";
 import TaskList from "./TaskList";
-import AICoachWorkspace from "./AICoachWorkspace";
-import YouTubePanel from "./YouTubePanel";
+import YouTubeEmbedPanel from "./YouTubeEmbedPanel";
+import AICoachWorkspace from "./AICoachWorkspace"; // Import the new wrapper
+import QuickAskPanel from "./QuickAskPanel"; // Import the new QuickAskPanel
 
-const WorkspacePanel = () => {
+const NotesAndTasksWorkspace = () => {
   return (
     <div className="h-full w-full">
       <PanelGroup direction="vertical" className="h-full">
         
         {/* Top Panel: Notes and Tasks (Resizable Horizontal Split) */}
-        <Panel defaultSize={35} minSize={20}>
+        <Panel defaultSize={33} minSize={20}>
           <PanelGroup direction="horizontal" className="h-full">
             {/* Notes Workspace (70%) */}
             <Panel defaultSize={70} minSize={30}>
@@ -33,7 +34,7 @@ const WorkspacePanel = () => {
         </PanelResizeHandle>
         
         {/* Middle Panel: AI Coach */}
-        <Panel defaultSize={35} minSize={20}>
+        <Panel defaultSize={33} minSize={20}>
           <AICoachWorkspace />
         </Panel>
         
@@ -41,13 +42,13 @@ const WorkspacePanel = () => {
           <div className="h-1 w-10 bg-primary/50 rounded-full" />
         </PanelResizeHandle>
         
-        {/* Bottom Panel: YouTube Player */}
-        <Panel defaultSize={30} minSize={20}>
-          <YouTubePanel />
+        {/* Bottom Panel: Quick Ask AI */}
+        <Panel defaultSize={34} minSize={20}>
+          <QuickAskPanel />
         </Panel>
       </PanelGroup>
     </div>
   );
 };
 
-export default WorkspacePanel;
+export default NotesAndTasksWorkspace;

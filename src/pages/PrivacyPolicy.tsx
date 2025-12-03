@@ -16,7 +16,7 @@ const PrivacyPolicy = () => {
 
       <div className="prose dark:prose-invert max-w-none space-y-6 text-foreground">
         <p className="text-lg font-semibold text-primary">
-          Effective Date: January 1, 2025
+          Effective Date: December 10, 2024
         </p>
 
         <p>
@@ -33,13 +33,13 @@ const PrivacyPolicy = () => {
           <li>**Local Data:** Notes, To-Do lists, and the Gemini API key are stored exclusively in your browser's local storage and are **not** transmitted to our servers.</li>
         </ul>
 
-        <h2 className="2xl font-bold mt-6">2. AI Coach Data Handling (Gemini API)</h2>
+        <h2 className="2xl font-bold mt-6">2. AI Coach Data Handling</h2>
         <p>
           The AI Coach feature uses the Google Gemini API. When you interact with the AI Coach:
         </p>
         <ul>
           <li>Your messages, attached files, and injected context (stats, notes summary) are sent to the Google Gemini API for processing.</li>
-          <li>Your Gemini API key is stored **only** locally in your browser and is used directly for API calls; **it is never sent to OnlyFocus servers.**</li>
+          <li>Your Gemini API key is stored locally in your browser and is used directly for API calls; it is never sent to OnlyFocus servers.</li>
           <li>OnlyFocus does not log or store the content of your AI conversations.</li>
         </ul>
 
