@@ -23,6 +23,24 @@ const RECOMMENDED_TAGS = [
   "Food", "Anime", "Art", "TV series", "Sports", "Culture", "Dance", "Tech"
 ];
 
+// Helper to safely extract tags from the JSON column
+const getTagsFromInterests = (interests: Database["public"]["Tables"]["profiles"]["Row"]["interests"]): string[] => {
+  if (!interests || typeof interests !== 'object' || Array.isArray(interests)) {
+    return [];
+  }
+  const data = interests as Record<string, any>;
+  return Array.isArray(data.tags) ? data.tags as string[] : [];
+};
+
+// Helper to safely update the interests JSON column, preserving other keys (like focus_class)
+const updateInterestsJson = (currentInterests: Database["public"]["Tables"]["profiles"]["Row"]["interests"], newTags: string[]) => {
+  const existingData = (currentInterests || {}) as Record<string, any>;
+  return {
+    ...existingData,
+    tags: newTags,
+  };
+};
+
 const ProfileMenu = () => {
   const { userId, profile, refreshProfile } = useAuth();
   const { stats, levels, isLoading: isLoadingStats, refetch } = useUserStats();
@@ -36,12 +54,8 @@ const ProfileMenu = () => {
   useEffect(() => {
     if (profile) {
       setUsername(profile.username);
-      // Ensure interests are treated as string[]
-      if (Array.isArray(profile.interests)) {
-        setInterests(profile.interests as string[]);
-      } else {
-        setInterests([]);
-      }
+      // Read tags from the 'tags' key inside the interests JSON object
+      setInterests(getTagsFromInterests(profile.interests));
     }
     if (userId) {
       loadGoals(userId);
@@ -71,9 +85,9 @@ const ProfileMenu = () => {
   };
 
   const addInterest = (tag: string) => {
-    const normalizedTag = tag.trim().toLowerCase();
-    if (normalizedTag && !interests.map(t => t.toLowerCase()).includes(normalizedTag)) {
-      setInterests(prev => [...prev, tag.trim()]);
+    const normalizedTag = tag.trim();
+    if (normalizedTag && !interests.map(t => t.toLowerCase()).includes(normalizedTag.toLowerCase())) {
+      setInterests(prev => [...prev, normalizedTag]);
       setNewInterest("");
     }
   };
@@ -94,11 +108,12 @@ const ProfileMenu = () => {
     let allSuccess = true;
 
     // 1. Save username and interests
-    // We explicitly cast interests to Json type to satisfy the Supabase client, 
-    // which should resolve the schema cache issue if it's related to type inference.
+    // Preserve existing interests (like focus_class) and update tags
+    const newInterestsPayload = updateInterestsJson(profile?.interests || null, interests);
+
     const profileUpdatePayload = { 
       username: username, 
-      interests: interests as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
+      interests: newInterestsPayload as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
     };
     
     const { error: profileError } = await supabase
