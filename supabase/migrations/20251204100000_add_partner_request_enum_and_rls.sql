@@ -1,8 +1,17 @@
--- Add 'partner_request' to the feed_item_type enum
+-- 1. Ensure 'user_post' exists (it is required for the Focus Feed posting feature)
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid 
+                   WHERE t.typname = 'feed_item_type' AND e.enumlabel = 'user_post') THEN
+        -- Assuming 'achievement_unlocked' is a stable existing value to anchor the new value
+        ALTER TYPE public.feed_item_type ADD VALUE 'user_post' AFTER 'achievement_unlocked';
+    END IF;
+END $$;
+
+-- 2. Add 'partner_request' to the feed_item_type enum
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid 
                    WHERE t.typname = 'feed_item_type' AND e.enumlabel = 'partner_request') THEN
-        -- Add the new value after 'user_post'
+        -- Now we can safely use 'user_post' as the anchor
         ALTER TYPE public.feed_item_type ADD VALUE 'partner_request' AFTER 'user_post';
     END IF;
 END $$;
