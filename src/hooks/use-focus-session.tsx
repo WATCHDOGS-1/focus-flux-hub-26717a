@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { endFocusSession } from "@/utils/session-management";
 import { useAuth } from "./use-auth";
 import { useUserStats } from "./use-user-stats";
-import { runAIFocusCoach } from "@/utils/ai-coach";
+import { runAIFocusCoach, runAITaskCheckin } from "@/utils/ai-coach"; // Import runAITaskCheckin
 import { supabase } from "@/integrations/supabase/client";
 
 // Session definitions in seconds
@@ -34,6 +34,7 @@ interface UseFocusSessionResult {
 }
 
 const FOCUS_TAG_KEY = "onlyfocus_focus_tag";
+const CHECKIN_INTERVAL_SECONDS = 30 * 60; // 30 minutes
 
 export function useFocusSession(): UseFocusSessionResult {
   const { userId } = useAuth();
@@ -48,6 +49,7 @@ export function useFocusSession(): UseFocusSessionResult {
   const [focusTag, setFocusTagState] = useState(""); // Local state for input field
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCheckinTimeRef = useRef<number>(0); // Tracks time elapsed since last check-in
 
   // Load mode and tag from local storage on mount
   useEffect(() => {
@@ -140,7 +142,34 @@ export function useFocusSession(): UseFocusSessionResult {
     setSessionId(null);
     setTimeLeft(currentMode.work);
     setIsBreak(false);
+    lastCheckinTimeRef.current = 0; // Reset check-in tracker
   }, [userId, sessionId, sessionStartTime, stats, levels, refetchStats, currentMode]);
+
+  const startNewSession = async () => {
+    if (!userId) return;
+    
+    // 1. Create new session record
+    const { data, error } = await supabase
+      .from("focus_sessions")
+      .insert({ user_id: userId, start_time: new Date().toISOString() })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      toast.error("Failed to start session.");
+      console.error("Session start error:", error);
+      return;
+    }
+
+    // 2. Update state
+    setSessionId(data.id);
+    setSessionStartTime(Date.now());
+    setIsActive(true);
+    setIsBreak(false);
+    setTimeLeft(currentMode.work);
+    lastCheckinTimeRef.current = 0; // Reset check-in tracker
+    toast.success(`Focus session started: ${currentMode.name}`);
+  };
 
 
   // Timer logic
@@ -149,7 +178,23 @@ export function useFocusSession(): UseFocusSessionResult {
 
     if (isActive && timeLeft > 0) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft((time) => time - 1);
+        setTimeLeft((time) => {
+          const newTime = time - 1;
+          
+          // --- AI Check-in Logic ---
+          if (!isBreak && newTime % 60 === 0) { // Check every minute during work phase
+            const elapsedSeconds = currentMode.work - newTime;
+            
+            // Check if 30 minutes have passed since the start or last check-in
+            if (elapsedSeconds >= lastCheckinTimeRef.current + CHECKIN_INTERVAL_SECONDS) {
+                runAITaskCheckin(focusTag);
+                lastCheckinTimeRef.current = elapsedSeconds;
+            }
+          }
+          // --- End AI Check-in Logic ---
+
+          return newTime;
+        });
       }, 1000);
     } else if (timeLeft === 0) {
       // Phase transition or session end
@@ -157,15 +202,13 @@ export function useFocusSession(): UseFocusSessionResult {
         toast.success("Break over! Time to focus!");
         setIsBreak(false);
         setTimeLeft(currentMode.work);
-        // Do not call prepareSessionEnd here, as it's a cycle transition, not a full session end.
+        lastCheckinTimeRef.current = 0; // Reset check-in tracker for new work phase
       } else {
         // Work phase ended - automatically trigger session end preparation
         const sessionData = prepareSessionEnd(); 
         
         if (sessionData) {
-            // If session was long enough to save, we need to handle the break logic after saving.
-            // For now, we stop the timer and rely on the user to click 'Save' in the modal.
-            // If the user closes the modal, they must manually restart the timer.
+            // If session was long enough to save, the modal will open in FocusRoom.tsx
             
             // If there is a break, we automatically start it after the work phase ends.
             if (currentMode.break > 0) {
@@ -190,7 +233,7 @@ export function useFocusSession(): UseFocusSessionResult {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive, timeLeft, isBreak, currentMode, prepareSessionEnd]);
+  }, [isActive, timeLeft, isBreak, currentMode, prepareSessionEnd, focusTag, userId]);
 
   const toggleTimer = () => {
     const newState = !isActive;
@@ -229,6 +272,7 @@ export function useFocusSession(): UseFocusSessionResult {
     setTimeLeft(currentMode.work);
     setSessionStartTime(0);
     setSessionId(null);
+    lastCheckinTimeRef.current = 0; // Reset check-in tracker
     toast.info("Timer reset.");
   };
 

@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { initializeGeminiClient, analyzeSession } from "./gemini"; // Import Gemini utilities
+import { getLocalStudyData } from "./local-data"; // Import local data utility
 
 type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
 type UserLevels = Database["public"]["Tables"]["user_levels"]["Row"];
@@ -59,4 +60,40 @@ export const runAIFocusCoach = async (stats: UserStats | null, levels: UserLevel
     toast.info(`As a ${levels.title}. Your focus is legendary. Inspire your peers in the room! ✨`, { duration: 8000 });
     return;
   }
+};
+
+/**
+ * Triggers a task check-in prompt from the AI Coach.
+ */
+export const runAITaskCheckin = async (focusTag: string) => {
+    const client = initializeGeminiClient();
+    if (!client) return; // Do nothing if key is missing
+
+    const localData = getLocalStudyData();
+    const tasksSummary = localData.tasks.length > 0 
+        ? localData.tasks.map(t => t.content).join("; ")
+        : "No incomplete tasks found.";
+    
+    const prompt = `
+    You are the AI Focus Coach. It has been 30 minutes since the user started focusing on "${focusTag}".
+    
+    Current Incomplete Tasks: ${tasksSummary}
+    Current Notes Summary: ${localData.notesSummary || "No notes found."}
+
+    Provide a brief, encouraging check-in message (max 3 sentences). Ask one question related to their progress or suggest a small, immediate next step based on their tasks/notes. Do not mention the 30-minute interval.
+    `;
+
+    try {
+        const response = await client.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: {
+                temperature: 0.8,
+            }
+        });
+        
+        toast.info(`AI Coach Check-in: ${response.text}`, { duration: 15000 });
+    } catch (e) {
+        console.error("AI Check-in failed:", e);
+    }
 };
