@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, subDays, subWeeks, subMonths } from "date-fns";
 
 const XP_PER_MINUTE = 10; // Increased from 1 to 10
 const DAILY_STREAK_MULTIPLIER = 1.2; // 20% bonus for maintaining a streak
@@ -31,24 +31,41 @@ const getTitleByXP = (xp: number) => {
 export const getLevelThresholds = () => LEVEL_THRESHOLDS;
 
 /**
- * Fetches and aggregates focus session data for the last 7 days, grouped by tag.
+ * Fetches and aggregates focus session data for a given time range, grouped by tag.
+ * @param userId The user ID.
+ * @param range 'day', 'week', or 'month'.
  */
-export const getRecentFocusSessions = async (userId: string): Promise<{ tag: string, totalMinutes: number }[]> => {
+export const getRecentFocusSessions = async (userId: string, range: 'day' | 'week' | 'month' = 'week'): Promise<{ tag: string, totalMinutes: number }[]> => {
   const today = new Date();
-  const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setDate(today.getDate() - 7);
-  const sevenDaysAgoISO = sevenDaysAgo.toISOString();
+  let startDate: Date;
+
+  switch (range) {
+    case 'day':
+      startDate = new Date(today);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'week':
+      startDate = subDays(today, 7);
+      break;
+    case 'month':
+      startDate = subMonths(today, 1);
+      break;
+    default:
+      startDate = subDays(today, 7);
+  }
+  
+  const startDateISO = format(startDate, 'yyyy-MM-dd');
 
   const { data: sessions, error } = await supabase
     .from("focus_sessions")
     .select("duration_minutes, tag")
     .eq("user_id", userId)
-    .gte("start_time", sevenDaysAgoISO)
+    .gte("start_time", startDateISO)
     .not("duration_minutes", "is", null)
     .gt("duration_minutes", 0);
 
   if (error) {
-    console.error("Error fetching recent focus sessions:", error);
+    console.error(`Error fetching focus sessions for ${range}:`, error);
     return [];
   }
 

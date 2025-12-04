@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2, NotebookText } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2, NotebookText, CalendarDays, Calendar, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { sendGeminiChat, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
@@ -102,15 +102,15 @@ const AICoachPanel = () => {
     };
 
     // --- Quick Actions ---
-    const handleLoadData = async () => {
+    const handleAnalyzeData = async (range: 'day' | 'week' | 'month') => {
         if (!userId || isGenerating) return;
 
         setIsGenerating(true);
         
-        const sessionData = await getRecentFocusSessions(userId);
+        const sessionData = await getRecentFocusSessions(userId, range);
         const sessionSummary = sessionData.length > 0 
             ? sessionData.map(s => `${s.tag} (${s.totalMinutes} min)`).join(", ")
-            : "No recent focused sessions found.";
+            : `No focused sessions found in the last ${range}.`;
 
         const localData = getLocalStudyData();
         const tasksSummary = localData.tasks.length > 0 
@@ -119,16 +119,16 @@ const AICoachPanel = () => {
         
         const dataPrompt = `
         ${getContextualPromptPrefix()}
-        --- User Study Data ---
-        Recent Focus Sessions (Last 7 days, aggregated by subject/tag): ${sessionSummary}
+        --- User Study Data (Last ${range}) ---
+        Focus Sessions (Aggregated by subject/tag): ${sessionSummary}
         Incomplete To-Do List Items (Local Storage): ${tasksSummary}
         Local Notes Summary (First 200 chars): ${localData.notesSummary || "No notes found."}
         --- End Data ---
         
-        Analyze this data and provide a brief summary of my current focus areas and potential productivity bottlenecks.
+        Analyze this data and provide a brief summary of my focus areas and potential productivity bottlenecks over the last ${range}. Provide one actionable recommendation.
         `;
 
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: "Loading and analyzing study data..." }] };
+        const userMessage: ChatMessage = { role: "user", parts: [{ text: `Requesting analysis for the last ${range}...` }] };
         const optimisticHistory = [...history, userMessage];
         setHistory(optimisticHistory);
 
@@ -138,7 +138,7 @@ const AICoachPanel = () => {
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
             setHistory(prev => [...prev.slice(0, -1), modelMessage]);
-            toast.success("Study data loaded and analyzed.");
+            toast.success(`Analysis for the last ${range} loaded.`);
         } catch (error: any) {
             toast.error(error.message || "AI Coach failed to analyze data.");
             setHistory(prev => prev.slice(0, -1));
@@ -147,32 +147,6 @@ const AICoachPanel = () => {
         }
     };
     
-    const handleGenerateGeneralTip = async () => {
-        if (isGenerating) return;
-        
-        setIsGenerating(true);
-        
-        const tipPrompt = `Based on the user's current stats (Total Focused Minutes: ${stats?.total_focused_minutes || 0}, Longest Streak: ${stats?.longest_streak || 0} days) and their long-term goal (${longTermGoal || 'None Set'}), generate one highly specific, actionable productivity tip for their next focus session. Keep it concise and motivational.`;
-        
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: "Requesting a personalized productivity tip..." }] };
-        const optimisticHistory = [...history, userMessage];
-        setHistory(optimisticHistory);
-
-        try {
-            const apiContents = [...history, { role: "user" as const, parts: [{ text: tipPrompt }] }];
-            const responseText = await sendGeminiChat(apiContents);
-            const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
-            
-            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
-            toast.success("Productivity tip generated.");
-        } catch (error: any) {
-            toast.error(error.message || "AI Coach failed to generate tip.");
-            setHistory(prev => prev.slice(0, -1));
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
     const handleInjectContext = (contextType: 'stats' | 'notes' | 'tasks') => {
         let contextText = "";
         if (contextType === 'stats' && stats) {
@@ -384,42 +358,33 @@ const AICoachPanel = () => {
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
                 </p>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={handleLoadData}
+                        onClick={() => handleAnalyzeData('day')}
                         disabled={isGenerating}
                         className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Database className="w-3 h-3 mr-1" /> Load Study Data
+                        <Clock className="w-3 h-3 mr-1" /> Analyze Day
                     </Button>
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={handleGenerateGeneralTip}
+                        onClick={() => handleAnalyzeData('week')}
                         disabled={isGenerating}
                         className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Lightbulb className="w-3 h-3 mr-1" /> Get General Tip
+                        <CalendarDays className="w-3 h-3 mr-1" /> Analyze Week
                     </Button>
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => handleChat("Give me a motivational quote for deep work.")}
+                        onClick={() => handleAnalyzeData('month')}
                         disabled={isGenerating}
                         className="text-xs h-9 flex items-center justify-center"
                     >
-                        <Zap className="w-3 h-3 mr-1" /> Motivation
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleInjectContext('notes')}
-                        disabled={isGenerating}
-                        className="text-xs h-9 flex items-center justify-center"
-                    >
-                        <NotebookText className="w-3 h-3 mr-1" /> Inject Notes
+                        <Calendar className="w-3 h-3 mr-1" /> Analyze Month
                     </Button>
                 </div>
                 

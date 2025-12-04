@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import ReactQuill from "react-quill";
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
-import { NotebookText, Info } from "lucide-react";
+import { NotebookText, Info, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import PDFViewer from "./PDFViewer"; // Import PDFViewer
 
 const LOCAL_STORAGE_KEY = "onlyfocus_notes_content";
 
 const NotesWorkspace = () => {
   const [content, setContent] = useState("");
+  const [isPdfMode, setIsPdfMode] = useState(false);
 
   // Load content from local storage on mount
   useEffect(() => {
@@ -75,26 +78,50 @@ const NotesWorkspace = () => {
       {/* Style injection for Quill theming */}
       <style dangerouslySetInnerHTML={{ __html: quillStyles }} />
 
-      <h4 className="text-lg font-semibold flex items-center justify-between border-b border-border pb-2">
-        <span className="flex items-center gap-2 text-primary">
-          <NotebookText className="w-5 h-5" />
-          Local Study Notes
-        </span>
-        <span className="text-xs text-muted-foreground flex items-center gap-1">
-          <Info className="w-3 h-3" />
-          Use indentation (Tab) for nested blocks.
-        </span>
-      </h4>
+      <div className="flex items-center justify-between border-b border-border pb-2">
+        <h4 className="text-lg font-semibold flex items-center gap-2 text-primary">
+          {isPdfMode ? <FileText className="w-5 h-5" /> : <NotebookText className="w-5 h-5" />}
+          {isPdfMode ? "Local PDF Viewer" : "Local Study Notes"}
+        </h4>
+        <div className="flex items-center gap-2">
+            {!isPdfMode && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    Use indentation (Tab) for nested blocks.
+                </span>
+            )}
+            <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsPdfMode(prev => !prev)}
+                className="dopamine-click flex items-center gap-1"
+            >
+                {isPdfMode ? (
+                    <>
+                        <NotebookText className="w-4 h-4" /> Switch to Notes
+                    </>
+                ) : (
+                    <>
+                        <FileText className="w-4 h-4" /> Switch to PDF
+                    </>
+                )}
+            </Button>
+        </div>
+      </div>
       
       <div className="flex-1 min-h-0 flex flex-col">
-        <ReactQuill 
-          theme="snow" 
-          value={content} 
-          onChange={handleChange} 
-          modules={modules}
-          placeholder="Start typing your notes here. Use lists and indentation (Tab key) to create nested blocks and toggle lists. This content is saved locally on your device."
-          className="flex-1 flex flex-col"
-        />
+        {isPdfMode ? (
+            <PDFViewer onClose={() => setIsPdfMode(false)} />
+        ) : (
+            <ReactQuill 
+                theme="snow" 
+                value={content} 
+                onChange={handleChange} 
+                modules={modules}
+                placeholder="Start typing your notes here. Use lists and indentation (Tab key) to create nested blocks and toggle lists. This content is saved locally on your device."
+                className="flex-1 flex flex-col"
+            />
+        )}
       </div>
     </div>
   );

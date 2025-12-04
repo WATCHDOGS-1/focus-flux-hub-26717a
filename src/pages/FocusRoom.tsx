@@ -16,6 +16,7 @@ import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
+import SessionSaveModal from "@/components/SessionSaveModal"; // Import the new modal
 import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,18 +48,22 @@ const FocusRoom = () => {
     sessionStartTime,
     focusTag,
     setFocusTag,
-    endCurrentSession,
+    prepareSessionEnd, // New function
+    endCurrentSessionAndSave, // New function
     currentMode,
-    startNewSession, // Import startNewSession
-    saveFocusTag, // New function from hook
+    startNewSession,
   } = useFocusSession(); // Use the centralized hook
 
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isZenMode, setIsZenMode] = useState(false); // New Zen Mode state
-  const [mainWorkspacePanel, setMainWorkspacePanel] = useState<'notes' | 'ai' | null>(null); // Replaced showWorkspace
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [mainWorkspacePanel, setMainWorkspacePanel] = useState<'notes' | 'ai' | null>(null);
   const [roomTheme, setRoomTheme] = useState("default");
+  
+  // --- Session Save Modal State ---
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [sessionToSave, setSessionToSave] = useState<{ durationMinutes: number, defaultTag: string } | null>(null);
 
   // --- Profile Modal State and Handler ---
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
@@ -90,6 +95,18 @@ const FocusRoom = () => {
     }
   }, [userId, isActive, sessionStartTime, startNewSession]);
 
+  // Effect to check if a session needs saving (e.g., timer paused or ended)
+  useEffect(() => {
+    if (!isActive && sessionStartTime !== 0) {
+        const sessionData = prepareSessionEnd();
+        if (sessionData) {
+            setSessionToSave(sessionData);
+            setIsSaveModalOpen(true);
+        }
+    }
+  }, [isActive, sessionStartTime, prepareSessionEnd]);
+
+
   useEffect(() => {
     document.body.className = roomTheme;
     return () => {
@@ -97,10 +114,23 @@ const FocusRoom = () => {
     };
   }, [roomTheme]);
 
+  const handleSaveAndLeave = async (tag: string) => {
+    await endCurrentSessionAndSave(tag);
+    navigate("/explore");
+  };
+  
   const leaveRoom = async () => {
-    if (isActive) {
-      await endCurrentSession(); // End and log the session before leaving
+    if (isActive || sessionStartTime !== 0) {
+        // Trigger the save flow via the modal
+        const sessionData = prepareSessionEnd();
+        if (sessionData) {
+            setSessionToSave(sessionData);
+            setIsSaveModalOpen(true);
+            // The navigation happens inside handleSaveAndLeave
+            return;
+        }
     }
+    // If no active session, just navigate
     navigate("/explore");
   };
 
@@ -197,6 +227,17 @@ const FocusRoom = () => {
   return (
     <div className={`min-h-screen flex flex-col bg-background relative overflow-x-hidden transition-colors duration-500`}>
       <EncouragementToasts />
+
+      {/* Session Save Modal */}
+      {sessionToSave && (
+        <SessionSaveModal
+            isOpen={isSaveModalOpen}
+            onClose={() => setIsSaveModalOpen(false)}
+            onSave={handleSaveAndLeave}
+            defaultTag={sessionToSave.defaultTag}
+            durationMinutes={sessionToSave.durationMinutes}
+        />
+      )}
 
       {/* Zen Mode HUD */}
       <AnimatePresence>
@@ -301,15 +342,6 @@ const FocusRoom = () => {
                   onChange={(e) => setFocusTag(e.target.value)}
                   className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={saveFocusTag} 
-                    title="Save Focus Tag Locally"
-                    className="dopamine-click flex-shrink-0"
-                >
-                    <Save className="w-4 h-4" />
-                </Button>
                 <span className="text-xs text-muted-foreground flex-shrink-0">
                   (Saved locally & for AI Coach)
                 </span>
