@@ -11,7 +11,6 @@ import { useUserStats } from "@/hooks/use-user-stats";
 import { cn } from "@/lib/utils";
 import { getRecentFocusSessions } from "@/utils/session-management";
 import { getLocalStudyData } from "@/utils/local-data";
-import { getCurrentPdfFile } from "@/utils/pdf-store";
 import { AI_COACH_SYSTEM_PROMPT } from "@/utils/ai-coach"; // Import the system prompt
 
 // Define chat history type compatible with Gemini API
@@ -177,29 +176,15 @@ const AICoachPanel = () => {
         }
     };
 
-    // --- Inject PDF Handler ---
-    const handleInjectPdf = () => {
-        const pdfFile = getCurrentPdfFile();
-        if (pdfFile) {
-            setImageFile(pdfFile);
-            // We don't have a simple preview for PDFs, so we'll just show the name.
-            setImagePreviewUrl(null); // Clear any image preview
-            toast.info(`PDF loaded for next prompt: ${pdfFile.name}`);
-            // Add a placeholder to the input to show it's loaded
-            setCurrentMessage(prev => `(Analyzing PDF: ${pdfFile.name}) ${prev}`.trim());
-        } else {
-            toast.warning("No PDF loaded. Please load a PDF in the Notes/Media panel first.");
-        }
-    };
-
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const allowedTypes = ['image/', 'application/pdf', 'text/plain', 'text/csv', 'application/json', 'text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            // Removed PDF from allowed types
+            const allowedTypes = ['image/', 'text/plain', 'text/csv', 'application/json', 'text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
             const isAllowed = allowedTypes.some(type => file.type.startsWith(type));
             
             if (!isAllowed) {
-                toast.error("Unsupported file type. Please upload an image, PDF, or text/code document.");
+                toast.error("Unsupported file type. Please upload an image or text/code document.");
                 return;
             }
             
@@ -424,7 +409,7 @@ const AICoachPanel = () => {
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary pt-3 border-t border-border/50 mt-3">
                     <Target className="w-4 h-4" /> Inject Context
                 </p>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                     <Button 
                         variant="secondary" 
                         size="sm" 
@@ -440,14 +425,6 @@ const AICoachPanel = () => {
                         className="text-xs h-8"
                     >
                         Tasks
-                    </Button>
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={handleInjectPdf}
-                        className="text-xs h-8 flex items-center gap-1"
-                    >
-                        <FileText className="w-3 h-3" /> PDF
                     </Button>
                     <Button 
                         variant="secondary" 
@@ -511,7 +488,7 @@ const AICoachPanel = () => {
                 <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*, application/pdf, text/plain, text/csv, application/json, text/markdown, text/html, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    accept="image/*, text/plain, text/csv, application/json, text/markdown, text/html, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     onChange={handleFileChange}
                     className="hidden"
                     disabled={isGenerating}

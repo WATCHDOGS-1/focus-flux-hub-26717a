@@ -62,7 +62,7 @@ const FocusRoom = () => {
   const [roomTheme, setRoomTheme] = useState("default");
   
   // --- Session Save Modal State ---
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalState] = useState(false);
   const [sessionToSave, setSessionToSave] = useState<{ durationMinutes: number, defaultTag: string } | null>(null);
 
   // --- Profile Modal State and Handler ---
@@ -101,7 +101,7 @@ const FocusRoom = () => {
         const sessionData = prepareSessionEnd();
         if (sessionData) {
             setSessionToSave(sessionData);
-            setIsSaveModalOpen(true);
+            setIsSaveModalState(true);
         }
     }
   }, [isActive, sessionStartTime, prepareSessionEnd]);
@@ -125,7 +125,7 @@ const FocusRoom = () => {
         const sessionData = prepareSessionEnd();
         if (sessionData) {
             setSessionToSave(sessionData);
-            setIsSaveModalOpen(true);
+            setIsSaveModalState(true);
             // The navigation happens inside handleSaveAndLeave
             return;
         }
@@ -206,7 +206,7 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={() => toggleMainWorkspace('notes-media')} className="w-full justify-start gap-2"><NotebookText /> Notes & Media</Button>
+            <Button onClick={() => toggleMainWorkspace('notes-media')} className="w-full justify-start gap-2"><NotebookText /> Notes Workspace</Button>
             <Button onClick={() => toggleMainWorkspace('ai')} className="w-full justify-start gap-2"><Brain /> AI Coach & Tasks</Button>
             <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
@@ -231,8 +231,8 @@ const FocusRoom = () => {
       {/* Session Save Modal */}
       {sessionToSave && (
         <SessionSaveModal
-            isOpen={isSaveModalOpen}
-            onClose={() => setIsSaveModalOpen(false)}
+            isOpen={isSaveModalState}
+            onClose={() => setIsSaveModalState(false)}
             onSave={handleSaveAndLeave}
             defaultTag={sessionToSave.defaultTag}
             durationMinutes={sessionToSave.durationMinutes}
@@ -290,7 +290,7 @@ const FocusRoom = () => {
                         variant="ghost" 
                         size="icon" 
                         onClick={() => toggleMainWorkspace('notes-media')} 
-                        title="Notes & Media Workspace"
+                        title="Notes Workspace"
                         className={mainWorkspacePanel === 'notes-media' ? "bg-secondary" : ""}
                     >
                         <NotebookText className="h-5 w-5" />
