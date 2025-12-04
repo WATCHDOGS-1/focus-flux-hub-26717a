@@ -153,8 +153,7 @@ const AICoachPanel = () => {
             setHistory(prev => [...prev.slice(0, -1), modelMessage]);
             toast.success(`Analysis for the last ${range} loaded.`);
         } catch (error: any) {
-            const errorMessage = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
-            toast.error(errorMessage || "AI Coach failed to analyze data.");
+            toast.error(error.message || "AI Coach failed to analyze data.");
             setHistory(prev => prev.slice(0, -1));
         } finally {
             setIsGenerating(false);
@@ -286,8 +285,7 @@ const AICoachPanel = () => {
             // 5. Replace the optimistic message with the final response
             setHistory(prev => [...prev.slice(0, -1), modelMessage]);
         } catch (error: any) {
-            const errorMessage = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
-            toast.error(errorMessage || "AI Coach failed to respond.");
+            toast.error(error.message || "AI Coach failed to respond.");
             // Remove optimistic message if failed
             setHistory(prev => prev.slice(0, -1));
         } finally {
