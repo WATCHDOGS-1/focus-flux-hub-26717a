@@ -334,8 +334,8 @@ const AICoachPanel = () => {
                 AI Focus Coach
             </h3>
             
-            {/* Long-Term Goal Setting */}
-            <div className="mb-4 space-y-2 p-3 rounded-lg bg-secondary/30">
+            {/* Long-Term Goal Setting (Reduced margin) */}
+            <div className="mb-3 space-y-2 p-3 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <Target className="w-4 h-4" /> Long-Term Focus Goal
                 </p>
@@ -355,8 +355,8 @@ const AICoachPanel = () => {
                 </p>
             </div>
             
-            {/* Persistent Memory Controls */}
-            <div className="mb-4 space-y-2 p-3 rounded-lg bg-secondary/30">
+            {/* Persistent Memory Controls (Reduced margin and button height) */}
+            <div className="mb-3 space-y-2 p-3 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <Lightbulb className="w-4 h-4" /> Persistent Memory
                 </p>
@@ -366,7 +366,7 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={handleSaveContext}
                         disabled={history.length === 0 || isGenerating}
-                        className="flex-1 flex items-center gap-1"
+                        className="flex-1 flex items-center gap-1 h-8"
                     >
                         <Save className="w-4 h-4" /> Save Current Chat
                     </Button>
@@ -375,7 +375,7 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={handleClearContext}
                         disabled={!savedContext || isGenerating}
-                        className="flex-1 flex items-center gap-1"
+                        className="flex-1 flex items-center gap-1 h-8"
                     >
                         <Trash2 className="w-4 h-4" /> Clear Saved Context
                     </Button>
@@ -386,8 +386,8 @@ const AICoachPanel = () => {
             </div>
 
 
-            {/* Quick Actions */}
-            <div className="space-y-3 mb-4 p-4 rounded-lg bg-secondary/30">
+            {/* Quick Actions (Reduced margin and button height) */}
+            <div className="space-y-3 mb-3 p-4 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
                 </p>
@@ -397,7 +397,7 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleAnalyzeData('day')}
                         disabled={isGenerating}
-                        className="text-xs h-9 flex items-center justify-center"
+                        className="text-xs h-8 flex items-center justify-center"
                     >
                         <Clock className="w-3 h-3 mr-1" /> Analyze Day
                     </Button>
@@ -406,7 +406,7 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleAnalyzeData('week')}
                         disabled={isGenerating}
-                        className="text-xs h-9 flex items-center justify-center"
+                        className="text-xs h-8 flex items-center justify-center"
                     >
                         <CalendarDays className="w-3 h-3 mr-1" /> Analyze Week
                     </Button>
@@ -415,7 +415,7 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleAnalyzeData('month')}
                         disabled={isGenerating}
-                        className="text-xs h-9 flex items-center justify-center"
+                        className="text-xs h-8 flex items-center justify-center"
                     >
                         <Calendar className="w-3 h-3 mr-1" /> Analyze Month
                     </Button>
@@ -424,12 +424,12 @@ const AICoachPanel = () => {
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary pt-3 border-t border-border/50 mt-3">
                     <Target className="w-4 h-4" /> Inject Context
                 </p>
-                <div className="grid grid-cols-4 gap-3"> {/* Changed to 4 columns */}
+                <div className="grid grid-cols-4 gap-3">
                     <Button 
                         variant="secondary" 
                         size="sm" 
                         onClick={() => handleInjectContext('stats')}
-                        className="text-xs h-9"
+                        className="text-xs h-8"
                     >
                         Stats
                     </Button>
@@ -437,15 +437,15 @@ const AICoachPanel = () => {
                         variant="secondary" 
                         size="sm" 
                         onClick={() => handleInjectContext('tasks')}
-                        className="text-xs h-9"
+                        className="text-xs h-8"
                     >
                         Tasks
                     </Button>
                     <Button 
                         variant="secondary" 
                         size="sm" 
-                        onClick={handleInjectPdf} // New handler
-                        className="text-xs h-9 flex items-center gap-1"
+                        onClick={handleInjectPdf}
+                        className="text-xs h-8 flex items-center gap-1"
                     >
                         <FileText className="w-3 h-3" /> PDF
                     </Button>
@@ -454,14 +454,14 @@ const AICoachPanel = () => {
                         size="sm" 
                         onClick={() => handleChat("What are the best strategies for avoiding distractions?")}
                         disabled={isGenerating}
-                        className="text-xs h-9"
+                        className="text-xs h-8"
                     >
                         Help
                     </Button>
                 </div>
             </div>
 
-            {/* Chat History */}
+            {/* Chat History (Now takes up more space) */}
             <ScrollArea className="flex-1 space-y-4 overflow-y-auto mb-4 pr-2">
                 <div className="space-y-4">
                     {history.length === 0 && (
