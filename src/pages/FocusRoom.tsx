@@ -356,7 +356,7 @@ const FocusRoom = () => {
                   className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <span className="text-xs text-muted-foreground flex-shrink-0">
-                  (Saved locally & for AI Coach)
+                  (Saved to session on start)
                 </span>
               </div>
             )}

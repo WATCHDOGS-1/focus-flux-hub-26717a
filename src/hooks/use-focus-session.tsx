@@ -33,7 +33,6 @@ interface UseFocusSessionResult {
   progress: number;
 }
 
-const FOCUS_TAG_KEY = "onlyfocus_focus_tag";
 const CHECKIN_INTERVAL_SECONDS = 30 * 60; // 30 minutes
 
 export function useFocusSession(): UseFocusSessionResult {
@@ -51,7 +50,7 @@ export function useFocusSession(): UseFocusSessionResult {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastCheckinTimeRef = useRef<number>(0); // Tracks time elapsed since last check-in
 
-  // Load mode and tag from local storage on mount
+  // Load mode from local storage on mount
   useEffect(() => {
     const storedModeName = localStorage.getItem("focus_session_mode");
     const storedMode = SESSION_MODES.find(m => m.name === storedModeName);
@@ -60,16 +59,13 @@ export function useFocusSession(): UseFocusSessionResult {
       setTimeLeft(storedMode.work);
     }
     
-    const storedTag = localStorage.getItem(FOCUS_TAG_KEY);
-    if (storedTag) {
-        setFocusTagState(storedTag);
-    }
+    // Focus tag starts empty or is set by the user in the room
+    setFocusTagState("");
   }, []);
 
-  // Setter for focus tag that also updates local storage
+  // Setter for focus tag (no longer updates local storage)
   const setFocusTag = (tag: string) => {
     setFocusTagState(tag);
-    localStorage.setItem(FOCUS_TAG_KEY, tag); // Save tag immediately on change
   };
   
   // Reset timer when mode changes
@@ -151,7 +147,7 @@ export function useFocusSession(): UseFocusSessionResult {
     // 1. Create new session record
     const { data, error } = await supabase
       .from("focus_sessions")
-      .insert({ user_id: userId, start_time: new Date().toISOString() })
+      .insert({ user_id: userId, start_time: new Date().toISOString(), tag: focusTag.trim() || null }) // Save initial tag
       .select("id")
       .single();
 

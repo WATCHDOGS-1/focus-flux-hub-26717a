@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import CloudinaryImage from "./CloudinaryImage";
+import DailyWrappedCard from "./DailyWrappedCard"; // Import the new component
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type FeedItemRaw = Database["public"]["Tables"]["feed_items"]["Row"] & {
@@ -314,6 +315,8 @@ const FocusFeed = () => {
 
   return (
     <div className="space-y-4">
+        {userId && <DailyWrappedCard />} {/* Daily Wrapped Card */}
+        
         {userId && (
             <Card className="glass-card p-4">
                 <Button 
