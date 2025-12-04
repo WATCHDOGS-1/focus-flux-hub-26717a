@@ -5,7 +5,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { Button } from "@/components/ui/button";
 import { Loader2, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { setCurrentPdfFile } from "@/utils/pdf-store"; // Import the store setter
+import { setCurrentPdfFile } from "@/utils/pdf-store";
 
 // Configure PDF.js worker source
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -17,14 +17,14 @@ interface PDFViewerProps {
 const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
-    const [pdfFile, setPdfFile] = useState<File | null>(null); // State to hold the File object
+    const [pdfDataUrl, setPdfDataUrl] = useState<string | null>(null); // State for Base64 data URL
     const [scale, setScale] = useState(1.0);
     const [containerWidth, setContainerWidth] = useState(0);
+    const [isLoadingFile, setIsLoadingFile] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // --- Dynamic Width Calculation ---
     useEffect(() => {
         const element = containerRef.current;
         if (!element) return;
@@ -60,18 +60,30 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
             toast.error("Please select a valid PDF file.");
             return;
         }
+
+        // Update the shared store for the AI Coach
+        setCurrentPdfFile(file);
         
-        setPdfFile(file);
-        setCurrentPdfFile(file); // Update the global store
-        toast.info("Loading PDF...");
+        // Convert file to Base64 Data URL for stable rendering
+        setIsLoadingFile(true);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            setPdfDataUrl(dataUrl);
+            setIsLoadingFile(false);
+        };
+        reader.onerror = () => {
+            toast.error("Failed to read the selected file.");
+            setIsLoadingFile(false);
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleClearPdf = () => {
-        setPdfFile(null);
-        setCurrentPdfFile(null); // Clear the global store
+        setPdfDataUrl(null);
+        setCurrentPdfFile(null);
         setNumPages(null);
         setPageNumber(1);
-        // Reset the file input so the same file can be re-selected
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -110,11 +122,13 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                     variant="outline" 
                     size="sm"
                     className="dopamine-click"
+                    disabled={isLoadingFile}
                 >
-                    {pdfFile ? "Change PDF" : "Load PDF"}
+                    {isLoadingFile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {pdfDataUrl ? "Change PDF" : "Load PDF"}
                 </Button>
                 
-                {pdfFile && numPages && (
+                {pdfDataUrl && numPages && (
                     <div className="flex items-center gap-2">
                         <Button size="icon" variant="ghost" onClick={zoomOut} disabled={scale <= 0.5}><ZoomOut className="w-4 h-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={zoomIn} disabled={scale >= 3.0}><ZoomIn className="w-4 h-4" /></Button>
@@ -133,7 +147,7 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
             </div>
 
             <div ref={containerRef} className="flex-1 overflow-auto flex justify-center items-start p-2 bg-card rounded-lg">
-                {!pdfFile ? (
+                {!pdfDataUrl ? (
                     <div className="text-center py-10 text-muted-foreground">
                         <FileText className="w-10 h-10 mx-auto mb-3" />
                         <p>Load a PDF file from your device to view it here.</p>
@@ -141,7 +155,7 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                     </div>
                 ) : (
                     <Document
-                        file={pdfFile}
+                        file={pdfDataUrl}
                         onLoadSuccess={onDocumentLoadSuccess}
                         onLoadError={onDocumentLoadError}
                         loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
