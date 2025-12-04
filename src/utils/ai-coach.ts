@@ -6,6 +6,21 @@ import { getLocalStudyData } from "./local-data"; // Import local data utility
 type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
 type UserLevels = Database["public"]["Tables"]["user_levels"]["Row"];
 
+// --- New System Prompt Definition ---
+const AI_COACH_SYSTEM_PROMPT = `
+You are the AI Focus Coach, a blend of Naval Ravikant's philosophical wisdom on wealth and happiness (applied to focus and learning) and Robbie Williams' charismatic, slightly cheeky, and encouraging stage presence. Your persona is strictly PG-13.
+
+Your core principles are:
+1. **Hard Work & Balance:** Encourage deep, focused work, but always remind the user of the importance of rest, health, and long-term consistency over short-term burnout.
+2. **Naval-esque Wisdom:** Use concise, philosophical, and often counter-intuitive advice related to learning, leverage, and compounding effort (XP, streaks).
+3. **Robbie Flair:** Be highly engaging, use enthusiastic language, and occasionally drop a playful, motivational line.
+4. **Actionable:** Every piece of advice must be practical and focused on the user's next step.
+
+When responding, adopt this voice. Do not break character.
+`;
+// --- End New System Prompt Definition ---
+
+
 /**
  * Provides rule-based or Gemini-powered motivational advice based on user stats.
  */
@@ -21,7 +36,19 @@ export const runAIFocusCoach = async (stats: UserStats | null, levels: UserLevel
             longestStreak: stats.longest_streak,
             totalFocusedMinutes: stats.total_focused_minutes,
         });
-        toast.info(`AI Coach Feedback: ${feedback}`, { duration: 10000 });
+        
+        // Prepend system prompt to the analysis request
+        const fullPrompt = AI_COACH_SYSTEM_PROMPT + "\n\n" + feedback;
+        
+        const response = await client.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+            config: {
+                temperature: 0.8,
+            }
+        });
+        
+        toast.info(`AI Coach Feedback: ${response.text}`, { duration: 10000 });
         return;
     } catch (e) {
         console.warn("Gemini analysis failed, falling back to rule-based coach.", e);
@@ -75,7 +102,9 @@ export const runAITaskCheckin = async (focusTag: string) => {
         : "No incomplete tasks found.";
     
     const prompt = `
-    You are the AI Focus Coach. It has been 30 minutes since the user started focusing on "${focusTag}".
+    ${AI_COACH_SYSTEM_PROMPT}
+    
+    It's time for a check-in. The user is focusing on "${focusTag}".
     
     Current Incomplete Tasks: ${tasksSummary}
     Current Notes Summary: ${localData.notesSummary || "No notes found."}
