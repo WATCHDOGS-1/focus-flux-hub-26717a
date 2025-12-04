@@ -1,4 +1,3 @@
-= 30 minutes to the feed.">
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, subDays, subWeeks, subMonths } from "date-fns";
@@ -110,7 +109,7 @@ export const spendXP = async (userId: string, amount: number): Promise<boolean> 
 
   const newTotalXP = levelsData.total_xp - amount;
   const newTitle = getTitleByXP(newTotalXP);
-  const newLevel = LEVEL_THRESHOLDS.find(t => t.title === newTitle)?.level || 1;
+  const newLevel = LEVEL_THRESHOLDS.find(t => t.level === newTitle)?.level || 1;
 
   const { error: updateError } = await supabase
     .from("user_levels")
