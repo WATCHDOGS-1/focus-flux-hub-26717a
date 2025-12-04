@@ -7,7 +7,7 @@ type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
 type UserLevels = Database["public"]["Tables"]["user_levels"]["Row"];
 
 // --- New System Prompt Definition ---
-const AI_COACH_SYSTEM_PROMPT = `
+export const AI_COACH_SYSTEM_PROMPT = `
 You are the AI Focus Coach, a blend of Naval Ravikant's philosophical wisdom on wealth and happiness (applied to focus and learning) and Robbie Williams' charismatic, slightly cheeky, and encouraging stage presence. Your persona is strictly PG-13.
 
 Your core principles are:

@@ -11,7 +11,8 @@ import { useUserStats } from "@/hooks/use-user-stats";
 import { cn } from "@/lib/utils";
 import { getRecentFocusSessions } from "@/utils/session-management";
 import { getLocalStudyData } from "@/utils/local-data";
-import { getCurrentPdfFile } from "@/utils/pdf-store"; // Import the PDF store getter
+import { getCurrentPdfFile } from "@/utils/pdf-store";
+import { AI_COACH_SYSTEM_PROMPT } from "@/utils/ai-coach"; // Import the system prompt
 
 // Define chat history type compatible with Gemini API
 interface ChatMessage {
@@ -64,7 +65,7 @@ const AICoachPanel = () => {
                 localStorage.removeItem(SAVED_CONTEXT_KEY);
             }
         }
-    }, [history.length]); // Dependency on history.length ensures this runs only on initial load or when history clears
+    }, [history.length]);
 
     // --- Persistent Memory Handlers ---
     const handleSaveLongTermGoal = () => {
@@ -102,7 +103,8 @@ const AICoachPanel = () => {
             prefix += `[LONG-TERM GOAL: ${longTermGoal.trim()}] `;
         }
         if (stats) {
-            prefix += `[USER STATS: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days] `;
+            // Stats are now just context, not the main focus
+            prefix += `[USER STATS: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days, Total XP=${levels?.total_xp || 0}] `;
         }
         return prefix;
     };
@@ -124,7 +126,6 @@ const AICoachPanel = () => {
             : "No incomplete tasks found.";
         
         const dataPrompt = `
-        ${getContextualPromptPrefix()}
         --- User Study Data (Last ${range}) ---
         Focus Sessions (Aggregated by subject/tag): ${sessionSummary}
         Incomplete To-Do List Items (Local Storage): ${tasksSummary}
@@ -133,6 +134,10 @@ const AICoachPanel = () => {
         
         Analyze this data and provide a brief summary of my focus areas and potential productivity bottlenecks over the last ${range}. Provide one actionable recommendation.
         `;
+        
+        // Combine all preprompts
+        const fullPreprompt = `${AI_COACH_SYSTEM_PROMPT}\n\n${getContextualPromptPrefix()}\n\nUSER REQUEST: ${dataPrompt}`;
+
 
         const userMessage: ChatMessage = { role: "user", parts: [{ text: `Requesting analysis for the last ${range}...` }] };
         const optimisticHistory = [...history, userMessage];
@@ -140,7 +145,7 @@ const AICoachPanel = () => {
 
         try {
             // If saved context exists, inject it into the API call for the analysis
-            const apiContents = savedContext ? [...savedContext, ...history, { role: "user" as const, parts: [{ text: dataPrompt }] }] : [...history, { role: "user" as const, parts: [{ text: dataPrompt }] }];
+            const apiContents = savedContext ? [...savedContext, ...history, { role: "user" as const, parts: [{ text: fullPreprompt }] }] : [...history, { role: "user" as const, parts: [{ text: fullPreprompt }] }];
             
             const responseText = await sendGeminiChat(apiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
@@ -158,7 +163,7 @@ const AICoachPanel = () => {
     const handleInjectContext = (contextType: 'stats' | 'notes' | 'tasks') => {
         let contextText = "";
         if (contextType === 'stats' && stats) {
-            contextText = `[STATS CONTEXT: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days]`;
+            contextText = `[STATS CONTEXT: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days, Total XP=${levels?.total_xp || 0}]`;
         } else if (contextType === 'notes') {
             const notesSummary = getLocalStudyData().notesSummary;
             contextText = `[NOTES CONTEXT: ${notesSummary || "No notes found."}]`;
@@ -211,13 +216,14 @@ const AICoachPanel = () => {
     const handleChat = async (message: string) => {
         if (!message.trim() && !imageFile || isGenerating) return;
         
-        const contextualMessage = getContextualPromptPrefix() + message;
+        // 1. Construct the full preprompt: Personality + Stats Context + User Message
+        const fullPreprompt = `${AI_COACH_SYSTEM_PROMPT}\n\n${getContextualPromptPrefix()}\n\nUSER MESSAGE: ${message}`;
         
-        // 1. Construct the optimistic user message for display
+        // 2. Construct the optimistic user message for display
         const userMessageText = imageFile ? `(File attached: ${imageFile.name}) ${message}` : message;
         const userMessage: ChatMessage = { role: "user", parts: [{ text: userMessageText }] }; 
         
-        // 2. Optimistic update
+        // 3. Optimistic update
         const optimisticHistory = [...history, userMessage];
         setHistory(optimisticHistory);
         setCurrentMessage("");
@@ -228,7 +234,7 @@ const AICoachPanel = () => {
         setImagePreviewUrl(null);
 
         let apiContents: ChatMessage[] = [...history];
-        let finalUserMessageParts: ChatPart[] = [{ text: contextualMessage }];
+        let finalUserMessageParts: ChatPart[] = [{ text: fullPreprompt }]; // Start with the full preprompt
 
         // --- Persistent Context Injection Logic (Only on first message of new session) ---
         if (history.length === 0 && savedContext) {
@@ -269,7 +275,7 @@ const AICoachPanel = () => {
             
             // 4. Send API call using the full history (including the new message)
             const finalApiContents = [
-                ...apiContents, // Includes injected context if applicable, or is just the current session history
+                ...apiContents, 
                 { role: "user" as const, parts: finalUserMessageParts } 
             ];
             

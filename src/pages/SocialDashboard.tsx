@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home, User, Brain, Crown, UserPlus } from "lucide-react";
+import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home, User, Brain, Crown, UserPlus, Globe } from "lucide-react";
 import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
@@ -13,7 +13,8 @@ import StudyCircles from "@/components/StudyCircles";
 import ProfileMenu from "@/components/ProfileMenu";
 import AICoachPanel from "@/components/AICoachPanel";
 import UpgradePanel from "@/components/UpgradePanel";
-import PartnerRequestPanel from "@/components/PartnerRequestPanel"; // Import new component
+import PartnerRequestPanel from "@/components/PartnerRequestPanel";
+import DigitalPlanetDashboard from "@/components/DigitalPlanetDashboard"; // Import new component
 
 const SocialDashboard = () => {
     const navigate = useNavigate();
@@ -73,10 +74,14 @@ const SocialDashboard = () => {
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
                 <Tabs defaultValue={defaultTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-9 mb-8"> {/* Increased grid size */}
+                    <TabsList className="grid w-full grid-cols-10 mb-8"> {/* Updated grid size to 10 */}
                         <TabsTrigger value="feed" className="flex items-center gap-2">
                             <Rss className="h-4 w-4" />
                             Feed
+                        </TabsTrigger>
+                        <TabsTrigger value="planets" className="flex items-center gap-2"> {/* New Tab */}
+                            <Globe className="h-4 w-4" />
+                            Planets
                         </TabsTrigger>
                         <TabsTrigger value="partner" className="flex items-center gap-2">
                             <UserPlus className="h-4 w-4" />
@@ -116,6 +121,12 @@ const SocialDashboard = () => {
                         <FocusFeed />
                     </TabsContent>
                     
+                    <TabsContent value="planets"> {/* New Content */}
+                        <div className="h-[80vh]">
+                            <DigitalPlanetDashboard />
+                        </div>
+                    </TabsContent>
+
                     <TabsContent value="partner">
                         <PartnerRequestPanel onProfileClick={handleProfileClick} />
                     </TabsContent>
