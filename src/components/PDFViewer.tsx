@@ -1,17 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Button } from "@/components/ui/button";
 import { Loader2, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 // Configure PDF.js worker source
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-const PDF_URL_KEY = "onlyfocus_pdf_url";
-const MAX_PAGE_WIDTH = 800; // Max width for the page rendering
+const PDF_DATA_KEY = "onlyfocus_pdf_base64"; // Storing base64 data for reliability
 
 interface PDFViewerProps {
     onClose: () => void;
@@ -20,28 +18,29 @@ interface PDFViewerProps {
 const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
-    const [pdfUrl, setPdfUrl] = useState<string | null>(localStorage.getItem(PDF_URL_KEY));
+    const [pdfData, setPdfData] = useState<string | null>(localStorage.getItem(PDF_DATA_KEY));
     const [scale, setScale] = useState(1.0);
-    const [containerWidth, setContainerWidth] = useState(MAX_PAGE_WIDTH);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const [isLoadingFile, setIsLoadingFile] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // --- Dynamic Width Calculation ---
     useEffect(() => {
-        if (!containerRef.current) return;
+        const element = containerRef.current;
+        if (!element) return;
 
         const observer = new ResizeObserver(entries => {
-            const { width } = entries[0].contentRect;
-            // Set the container width, capped at MAX_PAGE_WIDTH for performance
-            setContainerWidth(Math.min(width, MAX_PAGE_WIDTH));
+            if (entries[0]) {
+                const { width } = entries[0].contentRect;
+                setContainerWidth(width);
+            }
         });
 
-        observer.observe(containerRef.current);
-
+        observer.observe(element);
         return () => observer.disconnect();
     }, []);
-    // --- End Dynamic Width Calculation ---
 
     const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
         setNumPages(numPages);
@@ -49,30 +48,48 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
         toast.success(`PDF loaded successfully! ${numPages} pages found.`);
     };
 
+    const onDocumentLoadError = (error: Error) => {
+        console.error("PDF Load Error:", error);
+        toast.error(`Failed to load PDF: ${error.message}. The file might be corrupted or unsupported.`);
+        handleClearPdf(); // Clear the corrupted data
+    };
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file && file.type === 'application/pdf') {
-            // Revoke previous URL if it exists to prevent memory leaks
-            if (pdfUrl) {
-                URL.revokeObjectURL(pdfUrl);
-            }
-            const url = URL.createObjectURL(file);
-            setPdfUrl(url);
-            localStorage.setItem(PDF_URL_KEY, url);
-            toast.info("Loading PDF...");
-        } else {
+        if (!file) return;
+
+        if (file.type !== 'application/pdf') {
             toast.error("Please select a valid PDF file.");
+            return;
         }
+
+        setIsLoadingFile(true);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            try {
+                localStorage.setItem(PDF_DATA_KEY, dataUrl);
+                setPdfData(dataUrl);
+                toast.info("PDF ready to display.");
+            } catch (error) {
+                console.error("Local storage error:", error);
+                toast.error("Failed to save PDF. It might be too large for your browser's storage.");
+            } finally {
+                setIsLoadingFile(false);
+            }
+        };
+        reader.onerror = () => {
+            toast.error("Failed to read the selected file.");
+            setIsLoadingFile(false);
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleClearPdf = () => {
-        if (pdfUrl) {
-            URL.revokeObjectURL(pdfUrl);
-        }
-        setPdfUrl(null);
+        setPdfData(null);
         setNumPages(null);
         setPageNumber(1);
-        localStorage.removeItem(PDF_URL_KEY);
+        localStorage.removeItem(PDF_DATA_KEY);
         toast.info("PDF cleared from viewer.");
     };
 
@@ -81,8 +98,7 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
     const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
     
-    // Calculate the width to pass to the Page component
-    const pageRenderWidth = containerWidth * scale;
+    const pageRenderWidth = containerWidth > 0 ? containerWidth * scale : undefined;
 
     return (
         <div className="h-full flex flex-col">
@@ -109,20 +125,22 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                     variant="outline" 
                     size="sm"
                     className="dopamine-click"
+                    disabled={isLoadingFile}
                 >
-                    {pdfUrl ? "Change PDF" : "Load PDF"}
+                    {isLoadingFile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {pdfData ? "Change PDF" : "Load PDF"}
                 </Button>
                 
-                {pdfUrl && (
+                {pdfData && numPages && (
                     <div className="flex items-center gap-2">
                         <Button size="icon" variant="ghost" onClick={zoomOut} disabled={scale <= 0.5}><ZoomOut className="w-4 h-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={zoomIn} disabled={scale >= 3.0}><ZoomIn className="w-4 h-4" /></Button>
                         
                         <Button size="icon" variant="ghost" onClick={goToPrevPage} disabled={pageNumber <= 1}><ChevronLeft className="w-4 h-4" /></Button>
                         <span className="text-sm font-medium w-20 text-center">
-                            Page {pageNumber} of {numPages || '?'}
+                            Page {pageNumber} of {numPages}
                         </span>
-                        <Button size="icon" variant="ghost" onClick={goToNextPage} disabled={pageNumber >= (numPages || 1)}><ChevronRight className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={goToNextPage} disabled={pageNumber >= numPages}><ChevronRight className="w-4 h-4" /></Button>
                         
                         <Button size="icon" variant="destructive" onClick={handleClearPdf} title="Clear PDF">
                             <Trash2 className="w-4 h-4" />
@@ -131,29 +149,31 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                 )}
             </div>
 
-            {/* PDF Container: Use ref to measure width for dynamic page rendering */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto flex justify-center items-start p-2 bg-card rounded-lg">
-                {!pdfUrl ? (
+            <div ref={containerRef} className="flex-1 overflow-auto flex justify-center items-start p-2 bg-card rounded-lg">
+                {!pdfData ? (
                     <div className="text-center py-10 text-muted-foreground">
                         <FileText className="w-10 h-10 mx-auto mb-3" />
                         <p>Load a PDF file from your device to view it here.</p>
+                        <p className="text-xs mt-2">(All data is stored locally in your browser)</p>
                     </div>
                 ) : (
                     <Document
-                        file={pdfUrl}
+                        file={pdfData}
                         onLoadSuccess={onDocumentLoadSuccess}
-                        loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Loading Document...</div>}
-                        error={<div className="text-destructive">Failed to load PDF.</div>}
-                        className="w-full h-full overflow-auto flex justify-center"
+                        onLoadError={onDocumentLoadError}
+                        loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
+                        className="w-full h-full flex justify-center"
                     >
-                        <Page 
-                            pageNumber={pageNumber} 
-                            width={pageRenderWidth} // Use calculated width
-                            renderAnnotationLayer={true} 
-                            renderTextLayer={true}
-                            renderMode="canvas" 
-                            className="shadow-lg my-4"
-                        />
+                        {containerWidth > 0 && (
+                            <Page 
+                                pageNumber={pageNumber} 
+                                width={pageRenderWidth}
+                                renderAnnotationLayer={true} 
+                                renderTextLayer={true}
+                                renderMode="canvas" 
+                                className="shadow-lg my-4"
+                            />
+                        )}
                     </Document>
                 )}
             </div>
