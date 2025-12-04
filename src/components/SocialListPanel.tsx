@@ -93,7 +93,8 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
 
   const handleUserClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
     if (view === 'dms') {
-      const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
+      // This path is only hit when searching in the DM view.
+      const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
       if (conversationId) {
         onSelectConversation(conversationId, targetUser.username, targetUser.id);
       }
@@ -104,7 +105,8 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
   };
   
   const handleConversationClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
-    const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
+    // This is used when clicking an existing conversation item in the DM list
+    const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
     if (conversationId) {
       onSelectConversation(conversationId, targetUser.username, targetUser.id);
     }
