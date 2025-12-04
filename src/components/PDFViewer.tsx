@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Loader2, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const PDF_URL_KEY = "onlyfocus_pdf_url";
+const MAX_PAGE_WIDTH = 800; // Max width for the page rendering
 
 interface PDFViewerProps {
     onClose: () => void;
@@ -21,8 +22,26 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const [pageNumber, setPageNumber] = useState(1);
     const [pdfUrl, setPdfUrl] = useState<string | null>(localStorage.getItem(PDF_URL_KEY));
     const [scale, setScale] = useState(1.0);
+    const [containerWidth, setContainerWidth] = useState(MAX_PAGE_WIDTH);
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // --- Dynamic Width Calculation ---
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const observer = new ResizeObserver(entries => {
+            const { width } = entries[0].contentRect;
+            // Set the container width, capped at MAX_PAGE_WIDTH for performance
+            setContainerWidth(Math.min(width, MAX_PAGE_WIDTH));
+        });
+
+        observer.observe(containerRef.current);
+
+        return () => observer.disconnect();
+    }, []);
+    // --- End Dynamic Width Calculation ---
 
     const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
         setNumPages(numPages);
@@ -33,6 +52,10 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file && file.type === 'application/pdf') {
+            // Revoke previous URL if it exists to prevent memory leaks
+            if (pdfUrl) {
+                URL.revokeObjectURL(pdfUrl);
+            }
             const url = URL.createObjectURL(file);
             setPdfUrl(url);
             localStorage.setItem(PDF_URL_KEY, url);
@@ -57,6 +80,9 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const goToNextPage = () => setPageNumber(prev => Math.min(numPages || 1, prev + 1));
     const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
     const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
+    
+    // Calculate the width to pass to the Page component
+    const pageRenderWidth = containerWidth * scale;
 
     return (
         <div className="h-full flex flex-col">
@@ -120,15 +146,12 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                         error={<div className="text-destructive">Failed to load PDF.</div>}
                         className="w-full h-full overflow-auto flex justify-center"
                     >
-                        {/* We use a fixed width for the page to ensure it renders, 
-                            but since we don't have a dynamic width hook, we rely on the scale property. 
-                            The default width of the Page component is often 600px. */}
                         <Page 
                             pageNumber={pageNumber} 
-                            scale={scale} 
+                            width={pageRenderWidth} // Use calculated width
                             renderAnnotationLayer={true} 
                             renderTextLayer={true}
-                            renderMode="canvas" // Use canvas mode for better compatibility
+                            renderMode="canvas" 
                             className="shadow-lg my-4"
                         />
                     </Document>
