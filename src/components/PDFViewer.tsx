@@ -22,6 +22,7 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const [pdfUrl, setPdfUrl] = useState<string | null>(localStorage.getItem(PDF_URL_KEY));
     const [scale, setScale] = useState(1.0);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
         setNumPages(numPages);
@@ -46,9 +47,9 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
             URL.revokeObjectURL(pdfUrl);
         }
         setPdfUrl(null);
-        localStorage.removeItem(PDF_URL_KEY);
         setNumPages(null);
         setPageNumber(1);
+        localStorage.removeItem(PDF_URL_KEY);
         toast.info("PDF cleared from viewer.");
     };
 
@@ -104,7 +105,8 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto flex justify-center items-start p-2 bg-card rounded-lg">
+            {/* PDF Container: Use ref to measure width for dynamic page rendering */}
+            <div ref={containerRef} className="flex-1 overflow-y-auto flex justify-center items-start p-2 bg-card rounded-lg">
                 {!pdfUrl ? (
                     <div className="text-center py-10 text-muted-foreground">
                         <FileText className="w-10 h-10 mx-auto mb-3" />
@@ -116,13 +118,17 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                         onLoadSuccess={onDocumentLoadSuccess}
                         loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Loading Document...</div>}
                         error={<div className="text-destructive">Failed to load PDF.</div>}
-                        className="w-full h-full overflow-auto"
+                        className="w-full h-full overflow-auto flex justify-center"
                     >
+                        {/* We use a fixed width for the page to ensure it renders, 
+                            but since we don't have a dynamic width hook, we rely on the scale property. 
+                            The default width of the Page component is often 600px. */}
                         <Page 
                             pageNumber={pageNumber} 
                             scale={scale} 
                             renderAnnotationLayer={true} 
                             renderTextLayer={true}
+                            renderMode="canvas" // Use canvas mode for better compatibility
                             className="shadow-lg my-4"
                         />
                     </Document>
