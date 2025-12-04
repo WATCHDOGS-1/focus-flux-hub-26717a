@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2, NotebookText, CalendarDays, Calendar, Clock } from "lucide-react";
+import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2, NotebookText, CalendarDays, Calendar, Clock, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { sendGeminiChat, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
@@ -11,6 +11,7 @@ import { useUserStats } from "@/hooks/use-user-stats";
 import { cn } from "@/lib/utils";
 import { getRecentFocusSessions } from "@/utils/session-management";
 import { getLocalStudyData } from "@/utils/local-data";
+import { getCurrentPdfFile } from "@/utils/pdf-store"; // Import the PDF store getter
 
 // Define chat history type compatible with Gemini API
 interface ChatMessage {
@@ -164,6 +165,21 @@ const AICoachPanel = () => {
         }
     };
 
+    // --- NEW: Inject PDF Handler ---
+    const handleInjectPdf = () => {
+        const pdfFile = getCurrentPdfFile();
+        if (pdfFile) {
+            setImageFile(pdfFile);
+            // We don't have a simple preview for PDFs, so we'll just show the name.
+            setImagePreviewUrl(null); // Clear any image preview
+            toast.info(`PDF loaded for next prompt: ${pdfFile.name}`);
+            // Add a placeholder to the input to show it's loaded
+            setCurrentMessage(prev => `(Analyzing PDF: ${pdfFile.name}) ${prev}`.trim());
+        } else {
+            toast.warning("No PDF loaded. Please load a PDF in the Notes/Media panel first.");
+        }
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -176,7 +192,11 @@ const AICoachPanel = () => {
             }
             
             setImageFile(file);
-            setImagePreviewUrl(URL.createObjectURL(file));
+            if (file.type.startsWith('image/')) {
+                setImagePreviewUrl(URL.createObjectURL(file));
+            } else {
+                setImagePreviewUrl(null); // No preview for non-image files
+            }
             toast.info(`File loaded for next prompt: ${file.name}`);
         }
     };
@@ -266,7 +286,7 @@ const AICoachPanel = () => {
         
         return (
             <div
-                key={msg.id || index} // Use index as fallback if id is missing
+                key={index} // Use index as key
                 className={cn(
                     "p-3 rounded-lg max-w-[90%] flex flex-col",
                     isUser ? "bg-primary/20 ml-auto" : "bg-secondary/20 mr-auto"
@@ -391,14 +411,14 @@ const AICoachPanel = () => {
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary pt-3 border-t border-border/50 mt-3">
                     <Target className="w-4 h-4" /> Inject Context
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3"> {/* Changed to 4 columns */}
                     <Button 
                         variant="secondary" 
                         size="sm" 
                         onClick={() => handleInjectContext('stats')}
                         className="text-xs h-9"
                     >
-                        Inject Stats
+                        Stats
                     </Button>
                     <Button 
                         variant="secondary" 
@@ -406,7 +426,15 @@ const AICoachPanel = () => {
                         onClick={() => handleInjectContext('tasks')}
                         className="text-xs h-9"
                     >
-                        Inject Tasks
+                        Tasks
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={handleInjectPdf} // New handler
+                        className="text-xs h-9 flex items-center gap-1"
+                    >
+                        <FileText className="w-3 h-3" /> PDF
                     </Button>
                     <Button 
                         variant="secondary" 
@@ -415,7 +443,7 @@ const AICoachPanel = () => {
                         disabled={isGenerating}
                         className="text-xs h-9"
                     >
-                        Distraction Help
+                        Help
                     </Button>
                 </div>
             </div>
@@ -440,15 +468,19 @@ const AICoachPanel = () => {
             </ScrollArea>
 
             {/* Input and File Preview */}
-            {imagePreviewUrl && (
+            {imageFile && ( // Only show preview if a file is actively staged
                 <div className="relative mb-2 p-2 rounded-lg border border-primary/50 bg-secondary/20">
                     <div className="flex items-center gap-3">
-                        <img 
-                            src={imagePreviewUrl} 
-                            alt="File for AI analysis" 
-                            className="h-16 w-auto object-contain rounded" 
-                        />
-                        <span className="text-sm font-medium truncate">{imageFile?.name}</span>
+                        {imagePreviewUrl ? (
+                            <img 
+                                src={imagePreviewUrl} 
+                                alt="File for AI analysis" 
+                                className="h-16 w-auto object-contain rounded" 
+                            />
+                        ) : (
+                            <FileText className="w-10 h-10 text-primary" />
+                        )}
+                        <span className="text-sm font-medium truncate">{imageFile.name}</span>
                     </div>
                     <span className="text-xs text-muted-foreground mt-1 block">File attached for next prompt.</span>
                     <Button 
