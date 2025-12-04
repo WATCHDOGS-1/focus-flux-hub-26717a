@@ -82,6 +82,7 @@ const PDFViewer = () => {
         setCurrentPdfFile(null);
         setNumPages(null);
         setPageNumber(1);
+        setScale(1.0); // Reset scale
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -93,7 +94,8 @@ const PDFViewer = () => {
     const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
     const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
     
-    // Pass width only if containerWidth > 0, otherwise pass undefined to let react-pdf use default sizing
+    // Calculate the width to pass to the Page component
+    // We use containerWidth * scale, ensuring we don't pass 0 or undefined if the container hasn't measured yet.
     const pageRenderWidth = containerWidth > 0 ? containerWidth * scale : undefined;
 
     return (
@@ -103,7 +105,6 @@ const PDFViewer = () => {
                     <FileText className="w-5 h-5" />
                     Local PDF Viewer
                 </h4>
-                {/* Removed Close PDF button */}
             </div>
 
             <div className="flex-shrink-0 flex items-center justify-between p-2 bg-secondary/50 rounded-lg mb-3">
@@ -157,10 +158,12 @@ const PDFViewer = () => {
                         onLoadError={onDocumentLoadError}
                         loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
                         className="w-full h-full flex justify-center"
+                        // Explicitly set width and height to ensure the container is recognized by react-pdf
+                        style={{ width: '100%', height: '100%' }} 
                     >
                         <Page 
                             pageNumber={pageNumber} 
-                            width={pageRenderWidth} // Pass undefined if containerWidth is 0
+                            width={pageRenderWidth} // Use calculated width
                             renderAnnotationLayer={true} 
                             renderTextLayer={true}
                             renderMode="canvas" 
