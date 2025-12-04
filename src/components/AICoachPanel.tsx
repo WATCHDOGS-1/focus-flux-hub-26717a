@@ -54,13 +54,17 @@ const AICoachPanel = () => {
         const storedContext = localStorage.getItem(SAVED_CONTEXT_KEY);
         if (storedContext) {
             try {
-                setSavedContext(JSON.parse(storedContext));
+                // Only load the context if the current history is empty (i.e., starting a new chat session)
+                if (history.length === 0) {
+                    const parsedContext = JSON.parse(storedContext);
+                    setSavedContext(parsedContext);
+                }
             } catch (e) {
                 console.error("Failed to parse saved context:", e);
                 localStorage.removeItem(SAVED_CONTEXT_KEY);
             }
         }
-    }, []);
+    }, [history.length]); // Dependency on history.length ensures this runs only on initial load or when history clears
 
     // --- Persistent Memory Handlers ---
     const handleSaveLongTermGoal = () => {
@@ -79,6 +83,7 @@ const AICoachPanel = () => {
             toast.warning("Start a conversation before saving context.");
             return;
         }
+        // Save the current history as the new context
         localStorage.setItem(SAVED_CONTEXT_KEY, JSON.stringify(history));
         setSavedContext(history);
         toast.success("Chat context saved for future sessions!");
@@ -134,7 +139,9 @@ const AICoachPanel = () => {
         setHistory(optimisticHistory);
 
         try {
-            const apiContents = [...history, { role: "user" as const, parts: [{ text: dataPrompt }] }];
+            // If saved context exists, inject it into the API call for the analysis
+            const apiContents = savedContext ? [...savedContext, ...history, { role: "user" as const, parts: [{ text: dataPrompt }] }] : [...history, { role: "user" as const, parts: [{ text: dataPrompt }] }];
+            
             const responseText = await sendGeminiChat(apiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
@@ -165,7 +172,7 @@ const AICoachPanel = () => {
         }
     };
 
-    // --- NEW: Inject PDF Handler ---
+    // --- Inject PDF Handler ---
     const handleInjectPdf = () => {
         const pdfFile = getCurrentPdfFile();
         if (pdfFile) {

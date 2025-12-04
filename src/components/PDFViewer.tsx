@@ -30,6 +30,7 @@ const PDFViewer = () => {
         const observer = new ResizeObserver(entries => {
             if (entries[0]) {
                 const { width } = entries[0].contentRect;
+                // Subtract padding/margin if necessary, but use raw width for now
                 setContainerWidth(width);
             }
         });
@@ -41,6 +42,7 @@ const PDFViewer = () => {
     const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
         setNumPages(numPages);
         setPageNumber(1);
+        setScale(1.0); // Reset scale on new document load
         toast.success(`PDF loaded successfully! ${numPages} pages found.`);
     };
 
@@ -95,8 +97,10 @@ const PDFViewer = () => {
     const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
     
     // Calculate the width to pass to the Page component
-    // We use containerWidth * scale, ensuring we don't pass 0 or undefined if the container hasn't measured yet.
+    // If scale is 1.0, use the container width directly. If scaled, use the calculated width.
     const pageRenderWidth = containerWidth > 0 ? containerWidth * scale : undefined;
+    const pageDisplayWidth = scale === 1.0 && containerWidth > 0 ? containerWidth : pageRenderWidth;
+
 
     return (
         <div className="h-full flex flex-col">
@@ -152,24 +156,29 @@ const PDFViewer = () => {
                         <p className="text-xs mt-2">(The file is processed locally and not uploaded)</p>
                     </div>
                 ) : (
-                    <Document
-                        file={pdfDataUrl}
-                        onLoadSuccess={onDocumentLoadSuccess}
-                        onLoadError={onDocumentLoadError}
-                        loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
-                        className="w-full h-full flex justify-center"
-                        // Explicitly set width and height to ensure the container is recognized by react-pdf
-                        style={{ width: '100%', height: '100%' }} 
-                    >
-                        <Page 
-                            pageNumber={pageNumber} 
-                            width={pageRenderWidth} // Use calculated width
-                            renderAnnotationLayer={true} 
-                            renderTextLayer={true}
-                            renderMode="canvas" 
-                            className="shadow-lg my-4"
-                        />
-                    </Document>
+                    // Only render Document if we have a measured container width
+                    containerWidth > 0 ? (
+                        <Document
+                            file={pdfDataUrl}
+                            onLoadSuccess={onDocumentLoadSuccess}
+                            onLoadError={onDocumentLoadError}
+                            loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
+                            className="w-full h-full flex justify-center"
+                            // Explicitly set width and height to ensure the container is recognized by react-pdf
+                            style={{ width: '100%', height: '100%' }} 
+                        >
+                            <Page 
+                                pageNumber={pageNumber} 
+                                width={pageDisplayWidth} // Use the adjusted width
+                                renderAnnotationLayer={true} 
+                                renderTextLayer={true}
+                                renderMode="canvas" 
+                                className="shadow-lg my-4"
+                            />
+                        </Document>
+                    ) : (
+                        <div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Measuring container...</div>
+                    )
                 )}
             </div>
         </div>
