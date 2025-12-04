@@ -1,6 +1,8 @@
+= 30 minutes to the feed.">
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, subDays, subWeeks, subMonths } from "date-fns";
+import type { Database } from "@/integrations/supabase/types"; // Ensure Database type is imported
 
 const XP_PER_MINUTE = 10; // Increased from 1 to 10
 const DAILY_STREAK_MULTIPLIER = 1.2; // 20% bonus for maintaining a streak
@@ -81,6 +83,47 @@ export const getRecentFocusSessions = async (userId: string, range: 'day' | 'wee
     tag,
     totalMinutes,
   }));
+};
+
+/**
+ * Simulates spending XP by updating the user_levels table.
+ * NOTE: In a production environment, this should be handled by a secure Supabase RPC function
+ * to ensure atomic transactions and prevent cheating.
+ */
+export const spendXP = async (userId: string, amount: number): Promise<boolean> => {
+  const { data: levelsData, error: fetchError } = await supabase
+    .from("user_levels")
+    .select("total_xp")
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError || !levelsData) {
+    console.error("Failed to fetch XP for spending:", fetchError);
+    toast.error("Failed to process transaction: XP data missing.");
+    return false;
+  }
+
+  if (levelsData.total_xp < amount) {
+    toast.error("Insufficient XP for this purchase.");
+    return false;
+  }
+
+  const newTotalXP = levelsData.total_xp - amount;
+  const newTitle = getTitleByXP(newTotalXP);
+  const newLevel = LEVEL_THRESHOLDS.find(t => t.title === newTitle)?.level || 1;
+
+  const { error: updateError } = await supabase
+    .from("user_levels")
+    .update({ total_xp: newTotalXP, level: newLevel, title: newTitle })
+    .eq("user_id", userId);
+
+  if (updateError) {
+    console.error("Failed to update XP after spending:", updateError);
+    toast.error("Transaction failed due to database error.");
+    return false;
+  }
+
+  return true;
 };
 
 
@@ -238,6 +281,24 @@ export const endFocusSession = async (
     await supabase
       .from("weekly_stats")
       .insert({ user_id: userId, week_start: weekStart.toISOString(), total_minutes: minutes });
+  }
+  
+  // --- 8. Create Feed Item (Only if session >= 30 minutes) ---
+  if (minutes >= 30) {
+    const feedItemData = {
+      duration: minutes,
+      tag: focusTag || "General Focus",
+    };
+    
+    const { error: feedError } = await supabase
+      .from("feed_items")
+      .insert({
+        user_id: userId,
+        type: 'session_completed',
+        data: feedItemData,
+      });
+      
+    if (feedError) console.error("Error creating feed item:", feedError);
   }
 
   return { message: `Session saved! +${xpEarned} XP${bonusDescription}. Streak: ${newStreak} days.`, durationMinutes: minutes, focusTag };

@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useCivilization } from "@/hooks/use-civilization";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
 const THEME_COLORS = {
     blue: { primary: "hsl(217 91% 60%)", secondary: "hsl(210 40% 98%)", glow: "shadow-blue-500/50" },
@@ -12,13 +14,34 @@ const THEME_COLORS = {
     purple: { primary: "hsl(250 70% 70%)", secondary: "hsl(210 40% 98%)", glow: "shadow-purple-500/50" },
 };
 
+const PURCHASED_UPGRADES_KEY = "civilization_upgrades";
+
 const DigitalPlanetView = () => {
     const { data: civData, isLoading } = useCivilization();
+    const [planetSizeModifier, setPlanetSizeModifier] = useState(0);
+    const [isSolarTravelUnlocked, setIsSolarTravelUnlocked] = useState(false);
+
+    useEffect(() => {
+        const stored = localStorage.getItem(PURCHASED_UPGRADES_KEY);
+        let modifier = 0;
+        let solarTravel = false;
+        
+        if (stored) {
+            const purchasedUpgrades: string[] = JSON.parse(stored);
+            
+            if (purchasedUpgrades.includes("planet_size_2")) modifier += 1;
+            if (purchasedUpgrades.includes("planet_size_3")) modifier += 1;
+            if (purchasedUpgrades.includes("planet_size_4")) modifier += 1;
+            if (purchasedUpgrades.includes("solar_travel_1")) solarTravel = true;
+        }
+        setPlanetSizeModifier(modifier);
+        setIsSolarTravelUnlocked(solarTravel);
+    }, [civData]); // Re-run when civData updates (e.g., after XP is spent and refetched)
 
     if (isLoading || !civData) {
         // If loading, or if loading finished but no data was returned (should be rare after hook fix)
         return (
-            <Card className="glass-card p-4 rounded-xl space-y-4 text-center">
+            <Card className="glass-card p-4 rounded-xl space-y-4 text-center h-full flex flex-col justify-center">
                 <div className="flex items-center justify-center h-24 text-muted-foreground">
                     {isLoading ? (
                         <Loader2 className="w-6 h-6 animate-spin mr-2" />
@@ -33,7 +56,8 @@ const DigitalPlanetView = () => {
     }
 
     const theme = THEME_COLORS[civData.planetTheme] || THEME_COLORS.blue;
-    const planetSize = 100 + (civData.level * 10); // Planet grows with level
+    // Base size 100 + 10 per level + 20 per size upgrade
+    const planetSize = 100 + (civData.level * 10) + (planetSizeModifier * 20); 
 
     // Animation variants for the planet and buildings
     const planetVariants = {
@@ -68,19 +92,19 @@ const DigitalPlanetView = () => {
     };
 
     return (
-        <Card className="glass-card p-4 rounded-xl space-y-4 overflow-hidden">
+        <Card className="glass-card p-4 rounded-xl space-y-4 overflow-hidden h-full flex flex-col">
             <CardHeader className="p-0">
                 <CardTitle className="text-xl font-bold flex items-center gap-2">
                     <Rocket className="w-5 h-5 text-accent" /> Digital Planet: Level {civData.level}
                 </CardTitle>
             </CardHeader>
             
-            <CardContent className="p-0 flex flex-col items-center">
+            <CardContent className="p-0 flex flex-col items-center flex-1">
                 {/* Animated Planet Visualization */}
-                <div className="relative flex items-center justify-center my-6">
+                <div className="relative flex items-center justify-center my-6 flex-1 w-full">
                     <motion.div
                         className={cn(
-                            "rounded-full shadow-2xl",
+                            "rounded-full shadow-2xl transition-all duration-500",
                             theme.glow
                         )}
                         style={{ 
@@ -119,7 +143,7 @@ const DigitalPlanetView = () => {
                 </div>
 
                 {/* Growth Status */}
-                <div className="w-full space-y-2">
+                <div className="w-full space-y-2 flex-shrink-0">
                     <div className="text-center">
                         <h3 className="text-lg font-semibold text-foreground">{civData.name}</h3>
                         <p className="text-sm text-muted-foreground">Growth Points: {civData.growthPoints} XP</p>
@@ -141,6 +165,14 @@ const DigitalPlanetView = () => {
                             />
                         </div>
                     </div>
+                    
+                    {isSolarTravelUnlocked && (
+                        <div className="text-center pt-2">
+                            <Badge className="bg-accent/20 text-accent font-semibold flex items-center justify-center gap-1">
+                                <Globe className="w-3 h-3" /> Solar Travel Unlocked!
+                            </Badge>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

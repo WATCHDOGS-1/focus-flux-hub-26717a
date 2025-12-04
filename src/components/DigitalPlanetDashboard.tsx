@@ -1,8 +1,9 @@
 import DigitalPlanetView from "./DigitalPlanetView";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, TrendingUp, Loader2 } from "lucide-react";
+import { TrendingUp, Loader2 } from "lucide-react";
 import { useUserStats } from "@/hooks/use-user-stats";
 import WeeklyFocusChart from "./WeeklyFocusChart";
+import PlanetUpgradePanel from "./PlanetUpgradePanel"; // Import new panel
 
 const DigitalPlanetDashboard = () => {
     const { stats, levels, isLoading: isLoadingStats } = useUserStats();
@@ -45,12 +46,8 @@ const DigitalPlanetDashboard = () => {
                     </CardContent>
                 </Card>
                 
-                {/* Placeholder for future mini-game/interaction */}
-                <Card className="glass-card p-4 text-center">
-                    <Globe className="w-8 h-8 text-primary mx-auto mb-2" />
-                    <h4 className="font-semibold">Planet Interaction Hub</h4>
-                    <p className="text-sm text-muted-foreground">Future updates will allow you to manage resources and unlock planet features based on your focus achievements!</p>
-                </Card>
+                {/* Planet Upgrade Panel */}
+                <PlanetUpgradePanel />
             </div>
         </div>
     );
