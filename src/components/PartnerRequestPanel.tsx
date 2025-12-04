@@ -72,7 +72,8 @@ const PartnerRequestPanel = ({ onProfileClick }: PartnerRequestPanelProps) => {
 
         if (error) {
             console.error("Error loading partner requests:", error);
-            toast.error("Failed to load partner requests.");
+            // Display the exact error message in the toast
+            toast.error(`Failed to load partner requests: ${error.message}`);
         } else {
             setRequests(data as PartnerRequest[]);
         }
