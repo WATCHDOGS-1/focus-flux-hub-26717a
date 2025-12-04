@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "./use-auth";
 import { useUserStats } from "./use-user-stats";
+import { getLevelThresholds } from "@/utils/session-management";
 
 interface CivilizationData {
     name: string;
@@ -21,37 +22,35 @@ export function useCivilization(): { data: CivilizationData | null, isLoading: b
     const [civilizationData, setCivilizationData] = useState<CivilizationData | null>(null);
 
     useEffect(() => {
-        if (isLoadingStats || !levels) {
+        if (isLoadingStats) {
             setCivilizationData(null);
             return;
         }
+        
+        const thresholds = getLevelThresholds();
+        const defaultLevelData = thresholds[0];
 
-        // Map existing level data to the new civilization model
-        const currentXP = levels.total_xp;
-        const currentLevel = levels.level;
+        // Use default data if levels is null (new user)
+        const currentLevels = levels || { 
+            total_xp: defaultLevelData.xp, 
+            level: defaultLevelData.level, 
+            title: defaultLevelData.title 
+        };
+
+        const currentXP = currentLevels.total_xp;
+        const currentLevel = currentLevels.level;
         
         // Simple logic to determine planet theme based on level parity
-        const planetTheme = currentLevel % 3 === 0 ? 'purple' : currentLevel % 2 === 0 ? 'green' : 'blue';
+        const planetTheme = (currentLevel % 4 === 0 ? 'purple' : currentLevel % 3 === 0 ? 'red' : currentLevel % 2 === 0 ? 'green' : 'blue') as CivilizationData['planetTheme'];
 
-        // Placeholder calculation for XP progression (copied from ProfileMenu logic)
-        const LEVEL_THRESHOLDS = [
-            { level: 1, xp: 0, title: "Novice" },
-            { level: 2, xp: 500, title: "Apprentice" },
-            { level: 3, xp: 1500, title: "Adept" },
-            { level: 4, xp: 3000, title: "Expert" },
-            { level: 5, xp: 5000, title: "Master" },
-            { level: 6, xp: 8000, title: "Grandmaster" },
-            { level: 7, xp: 12000, title: "Legend" },
-            { level: 8, xp: 20000, title: "Ascended" },
-        ];
-        
-        const nextLevelData = LEVEL_THRESHOLDS.find(t => t.level === currentLevel + 1);
+        // Placeholder calculation for XP progression
+        const nextLevelData = thresholds.find(t => t.level === currentLevel + 1);
         let progressPercent = 0;
         let xpToNextLevel = 0;
         let currentLevelXPBase = 0;
 
         if (nextLevelData) {
-            currentLevelXPBase = LEVEL_THRESHOLDS.find(t => t.level === currentLevel)?.xp || 0;
+            currentLevelXPBase = thresholds.find(t => t.level === currentLevel)?.xp || 0;
             const nextLevelXP = nextLevelData.xp;
             
             const xpInCurrentLevel = currentXP - currentLevelXPBase;
@@ -64,7 +63,7 @@ export function useCivilization(): { data: CivilizationData | null, isLoading: b
         }
 
         setCivilizationData({
-            name: levels.title || "Novice Civilization",
+            name: currentLevels.title || "Novice Civilization",
             level: currentLevel,
             growthPoints: currentXP,
             planetTheme,

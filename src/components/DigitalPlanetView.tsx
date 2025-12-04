@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Zap, Globe, Rocket, TrendingUp } from "lucide-react";
+import { Zap, Globe, Rocket, TrendingUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCivilization } from "@/hooks/use-civilization";
 import { Progress } from "@/components/ui/progress";
@@ -16,11 +16,18 @@ const DigitalPlanetView = () => {
     const { data: civData, isLoading } = useCivilization();
 
     if (isLoading || !civData) {
+        // If loading, or if loading finished but no data was returned (should be rare after hook fix)
         return (
-            <Card className="glass-card p-4 rounded-xl space-y-4">
+            <Card className="glass-card p-4 rounded-xl space-y-4 text-center">
                 <div className="flex items-center justify-center h-24 text-muted-foreground">
-                    <Loader2 className="w-6 h-6 animate-spin mr-2" /> Initializing Civilization...
+                    {isLoading ? (
+                        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                    ) : (
+                        <Globe className="w-10 h-10 mx-auto" />
+                    )}
                 </div>
+                <p className="font-semibold">{isLoading ? "Initializing Civilization..." : "Start Focusing to Build Your Planet!"}</p>
+                <p className="text-sm text-muted-foreground">Log your first session to begin your civilization's growth.</p>
             </Card>
         );
     }
@@ -84,6 +91,8 @@ const DigitalPlanetView = () => {
                         variants={planetVariants}
                         initial="initial"
                         animate="animate"
+                        // Ensure the planet doesn't spin if it's level 1 (static starting point)
+                        transition={civData.level > 1 ? planetVariants.animate.transition : { duration: 0 }}
                     >
                         {/* Civilization Buildings (Simulated) */}
                         <motion.div 
