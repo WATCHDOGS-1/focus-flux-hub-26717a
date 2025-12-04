@@ -6,44 +6,44 @@ import { Button } from "@/components/ui/button";
 import { Loader2, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { setCurrentPdfFile } from "@/utils/pdf-store";
+import { uploadFileToSupabase, deleteFileFromSupabase } from "@/utils/supabase-storage";
+import { useAuth } from "@/hooks/use-auth";
 
 // Configure PDF.js worker source
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-// Removed PDFViewerProps interface
+interface PDFViewerProps {
+    onClose: () => void; // New prop to handle panel closure
+}
 
-const PDFViewer = () => {
+const PDFViewer = ({ onClose }: PDFViewerProps) => {
+    const { userId } = useAuth();
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
-    const [pdfDataUrl, setPdfDataUrl] = useState<string | null>(null); // State for Base64 data URL
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null); // Now stores the public Supabase URL
     const [scale, setScale] = useState(1.0);
-    const [containerWidth, setContainerWidth] = useState(0);
     const [isLoadingFile, setIsLoadingFile] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const uploadedFileUrlRef = useRef<string | null>(null); // Track URL for cleanup
 
+    // Cleanup effect: Delete file from Supabase when component unmounts or pdfUrl changes to null
     useEffect(() => {
-        const element = containerRef.current;
-        if (!element) return;
-
-        const observer = new ResizeObserver(entries => {
-            if (entries[0]) {
-                const { width } = entries[0].contentRect;
-                // Subtract padding/margin if necessary, but use raw width for now
-                setContainerWidth(width);
+        return () => {
+            if (uploadedFileUrlRef.current) {
+                deleteFileFromSupabase(uploadedFileUrlRef.current);
+                uploadedFileUrlRef.current = null;
             }
-        });
-
-        observer.observe(element);
-        return () => observer.disconnect();
+        };
     }, []);
 
     const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
         setNumPages(numPages);
         setPageNumber(1);
-        setScale(1.0); // Reset scale on new document load
+        setScale(1.0);
         toast.success(`PDF loaded successfully! ${numPages} pages found.`);
+        setIsLoadingFile(false);
     };
 
     const onDocumentLoadError = (error: Error) => {
@@ -52,43 +52,53 @@ const PDFViewer = () => {
         handleClearPdf();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file || !userId) return;
 
         if (file.type !== 'application/pdf') {
             toast.error("Please select a valid PDF file.");
             return;
         }
 
-        // Update the shared store for the AI Coach
-        setCurrentPdfFile(file);
-        
-        // Convert file to Base64 Data URL for stable rendering
+        // Clear any previous file first
+        if (uploadedFileUrlRef.current) {
+            await deleteFileFromSupabase(uploadedFileUrlRef.current);
+            uploadedFileUrlRef.current = null;
+        }
+
         setIsLoadingFile(true);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target?.result as string;
-            setPdfDataUrl(dataUrl);
+        toast.loading("Uploading PDF for viewing...", { id: 'pdf-upload' });
+
+        try {
+            const publicUrl = await uploadFileToSupabase(file, userId);
+            
+            // Update the shared store for the AI Coach
+            setCurrentPdfFile(file);
+            
+            setPdfUrl(publicUrl);
+            uploadedFileUrlRef.current = publicUrl;
+            toast.success("PDF uploaded and ready to view.", { id: 'pdf-upload' });
+        } catch (e: any) {
+            toast.error(e.message || "Failed to upload PDF.", { id: 'pdf-upload' });
             setIsLoadingFile(false);
-        };
-        reader.onerror = () => {
-            toast.error("Failed to read the selected file.");
-            setIsLoadingFile(false);
-        };
-        reader.readAsDataURL(file);
+        }
     };
 
-    const handleClearPdf = () => {
-        setPdfDataUrl(null);
+    const handleClearPdf = async () => {
+        if (uploadedFileUrlRef.current) {
+            await deleteFileFromSupabase(uploadedFileUrlRef.current);
+            uploadedFileUrlRef.current = null;
+        }
+        setPdfUrl(null);
         setCurrentPdfFile(null);
         setNumPages(null);
         setPageNumber(1);
-        setScale(1.0); // Reset scale
+        setScale(1.0);
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
-        toast.info("PDF cleared from viewer.");
+        toast.info("PDF cleared and deleted from server.");
     };
 
     const goToPrevPage = () => setPageNumber(prev => Math.max(1, prev - 1));
@@ -96,18 +106,15 @@ const PDFViewer = () => {
     const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
     const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
     
-    // Calculate the width to pass to the Page component
-    // If scale is 1.0, use the container width directly. If scaled, use the calculated width.
-    const pageRenderWidth = containerWidth > 0 ? containerWidth * scale : undefined;
-    const pageDisplayWidth = scale === 1.0 && containerWidth > 0 ? containerWidth : pageRenderWidth;
-
+    // Determine the width based on the container size (fixed to 100% of parent)
+    const containerWidth = containerRef.current?.clientWidth || 600; // Fallback width
 
     return (
         <div className="h-full flex flex-col">
             <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
                 <h4 className="text-lg font-semibold flex items-center gap-2 text-primary">
                     <FileText className="w-5 h-5" />
-                    Local PDF Viewer
+                    Cloud PDF Viewer
                 </h4>
             </div>
 
@@ -127,10 +134,10 @@ const PDFViewer = () => {
                     disabled={isLoadingFile}
                 >
                     {isLoadingFile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    {pdfDataUrl ? "Change PDF" : "Load PDF"}
+                    {pdfUrl ? "Change PDF" : "Load PDF"}
                 </Button>
                 
-                {pdfDataUrl && numPages && (
+                {pdfUrl && numPages && (
                     <div className="flex items-center gap-2">
                         <Button size="icon" variant="ghost" onClick={zoomOut} disabled={scale <= 0.5}><ZoomOut className="w-4 h-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={zoomIn} disabled={scale >= 3.0}><ZoomIn className="w-4 h-4" /></Button>
@@ -149,36 +156,32 @@ const PDFViewer = () => {
             </div>
 
             <div ref={containerRef} className="flex-1 overflow-auto flex justify-center items-start p-2 bg-card rounded-lg">
-                {!pdfDataUrl ? (
+                {!pdfUrl ? (
                     <div className="text-center py-10 text-muted-foreground">
                         <FileText className="w-10 h-10 mx-auto mb-3" />
                         <p>Load a PDF file from your device to view it here.</p>
-                        <p className="text-xs mt-2">(The file is processed locally and not uploaded)</p>
+                        <p className="text-xs mt-2">(File is temporarily stored on the server for viewing and deleted on clear/close.)</p>
                     </div>
                 ) : (
-                    // Only render Document if we have a measured container width
-                    containerWidth > 0 ? (
-                        <Document
-                            file={pdfDataUrl}
-                            onLoadSuccess={onDocumentLoadSuccess}
-                            onLoadError={onDocumentLoadError}
-                            loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
-                            className="w-full h-full flex justify-center"
-                            // Explicitly set width and height to ensure the container is recognized by react-pdf
-                            style={{ width: '100%', height: '100%' }} 
-                        >
-                            <Page 
-                                pageNumber={pageNumber} 
-                                width={pageDisplayWidth} // Use the adjusted width
-                                renderAnnotationLayer={true} 
-                                renderTextLayer={true}
-                                renderMode="canvas" 
-                                className="shadow-lg my-4"
-                            />
-                        </Document>
-                    ) : (
-                        <div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Measuring container...</div>
-                    )
+                    <Document
+                        file={pdfUrl}
+                        onLoadSuccess={onDocumentLoadSuccess}
+                        onLoadError={onDocumentLoadError}
+                        loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
+                        className="w-full h-full flex justify-center"
+                        // We use a fixed width based on the container for stability
+                        style={{ width: '100%', height: '100%' }} 
+                    >
+                        <Page 
+                            pageNumber={pageNumber} 
+                            scale={scale}
+                            width={containerWidth * scale} // Use calculated width for scaling
+                            renderAnnotationLayer={true} 
+                            renderTextLayer={true}
+                            renderMode="canvas" 
+                            className="shadow-lg my-4"
+                        />
+                    </Document>
                 )}
             </div>
         </div>
