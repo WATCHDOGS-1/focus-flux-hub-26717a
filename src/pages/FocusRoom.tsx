@@ -10,14 +10,15 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import NotesAndMediaPanel from "@/components/NotesAndMediaPanel"; // Updated import
+import NotesAndTasksPanel from "@/components/NotesAndTasksPanel"; // Updated import name
 import AICoachAndTasksPanel from "@/components/AICoachAndTasksPanel"; // New import
+import MediaAndTasksPanel from "@/components/MediaAndTasksPanel"; // New import
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
 import SessionSaveModal from "@/components/SessionSaveModal"; // Import the new modal
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,7 +59,7 @@ const FocusRoom = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
-  const [mainWorkspacePanel, setMainWorkspacePanel] = useState<'notes' | 'ai' | null>(null);
+  const [mainWorkspacePanel, setMainWorkspacePanel] = useState<'notes' | 'ai' | 'media' | null>(null); // Added 'media'
   const [roomTheme, setRoomTheme] = useState("default");
   
   // --- Session Save Modal State ---
@@ -143,7 +144,7 @@ const FocusRoom = () => {
     setIsMobileMenuOpen(false);
   };
   
-  const toggleMainWorkspace = (panel: 'notes' | 'ai') => {
+  const toggleMainWorkspace = (panel: 'notes' | 'ai' | 'media') => { // Updated type
     setMainWorkspacePanel(mainWorkspacePanel === panel ? null : panel);
     if (mainWorkspacePanel !== panel) {
         setActivePanel(null); // Close sidebar panels when opening a main workspace panel
@@ -206,8 +207,9 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={() => toggleMainWorkspace('notes')} className="w-full justify-start gap-2"><NotebookText /> Notes, Tasks & Media</Button>
+            <Button onClick={() => toggleMainWorkspace('notes')} className="w-full justify-start gap-2"><NotebookText /> Notes & Tasks</Button>
             <Button onClick={() => toggleMainWorkspace('ai')} className="w-full justify-start gap-2"><Brain /> AI Coach & Tasks</Button>
+            <Button onClick={() => toggleMainWorkspace('media')} className="w-full justify-start gap-2"><FileText /> PDF & Media</Button> {/* New Button */}
             <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
@@ -285,18 +287,18 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
-                    {/* Notes/Media Button */}
+                    {/* Notes/Tasks Button */}
                     <Button 
                         variant="ghost" 
                         size="icon" 
                         onClick={() => toggleMainWorkspace('notes')} 
-                        title="Notes, Tasks & Media Workspace"
+                        title="Notes & Tasks Workspace"
                         className={mainWorkspacePanel === 'notes' ? "bg-secondary" : ""}
                     >
                         <NotebookText className="h-5 w-5" />
                     </Button>
                     
-                    {/* AI Coach Button (New) */}
+                    {/* AI Coach Button */}
                     <Button 
                         variant="ghost" 
                         size="icon" 
@@ -305,6 +307,17 @@ const FocusRoom = () => {
                         className={mainWorkspacePanel === 'ai' ? "bg-secondary" : ""}
                     >
                         <Brain className="h-5 w-5" />
+                    </Button>
+                    
+                    {/* Media/PDF Button (New) */}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => toggleMainWorkspace('media')} 
+                        title="PDF Viewer & Media Panel"
+                        className={mainWorkspacePanel === 'media' ? "bg-secondary" : ""}
+                    >
+                        <FileText className="h-5 w-5" />
                     </Button>
                     
                     {/* Sidebar Panel Buttons */}
@@ -364,13 +377,19 @@ const FocusRoom = () => {
                 {/* Conditional Workspace Panels */}
                 {mainWorkspacePanel === 'notes' && (
                     <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
-                        <NotesAndMediaPanel />
+                        <NotesAndTasksPanel />
                     </div>
                 )}
                 
                 {mainWorkspacePanel === 'ai' && (
                     <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
                         <AICoachAndTasksPanel />
+                    </div>
+                )}
+                
+                {mainWorkspacePanel === 'media' && (
+                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
+                        <MediaAndTasksPanel />
                     </div>
                 )}
             </div>

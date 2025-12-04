@@ -3,18 +3,16 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, Trash2 } from "lucide-react";
+import { Loader2, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { setCurrentPdfFile } from "@/utils/pdf-store";
 
 // Configure PDF.js worker source
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-interface PDFViewerProps {
-    onClose: () => void;
-}
+// Removed PDFViewerProps interface
 
-const PDFViewer = ({ onClose }: PDFViewerProps) => {
+const PDFViewer = () => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [pdfDataUrl, setPdfDataUrl] = useState<string | null>(null); // State for Base64 data URL
@@ -105,9 +103,7 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                     <FileText className="w-5 h-5" />
                     Local PDF Viewer
                 </h4>
-                <Button variant="ghost" size="sm" onClick={onClose} className="text-sm">
-                    <X className="w-4 h-4 mr-1" /> Close PDF
-                </Button>
+                {/* Removed Close PDF button */}
             </div>
 
             <div className="flex-shrink-0 flex items-center justify-between p-2 bg-secondary/50 rounded-lg mb-3">

@@ -4,18 +4,26 @@ import { PREDEFINED_ROOMS } from "@/utils/constants";
 import { useRoomPresence } from "@/hooks/use-room-presence";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Video, Zap, Search, Shield, Home } from "lucide-react";
+import { Users, Video, Zap, Search, Shield, Home, Lock } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
+// Placeholder for premium status check (assuming false for now)
+const useIsPremium = () => false; 
+
 const ExploreRooms = () => {
   const navigate = useNavigate();
   const presence = useRoomPresence();
   const [searchTerm, setSearchTerm] = useState("");
+  const isPremium = useIsPremium(); // Placeholder check
 
-  const handleJoinRoom = (roomId: string) => {
+  const handleJoinRoom = (roomId: string, isPremiumRoom: boolean) => {
+    if (isPremiumRoom && !isPremium) {
+        navigate("/social?tab=upgrade"); // Redirect to upgrade tab
+        return;
+    }
     navigate(`/focus-room/${roomId}`);
   };
 
@@ -74,13 +82,15 @@ const ExploreRooms = () => {
             const currentUsers = presence[room.id] || 0;
             const isFull = currentUsers >= room.maxCapacity;
             const progressValue = (currentUsers / room.maxCapacity) * 100;
+            const isPremiumRoom = room.isPremium || false;
+            const isLocked = isPremiumRoom && !isPremium;
 
             return (
               <AnimatedSection key={room.id} delay={index * 0.1} className="h-full">
-                <Card className={cn("glass-card hover-lift h-full flex flex-col", isFull && "opacity-70")}>
+                <Card className={cn("glass-card hover-lift h-full flex flex-col", (isFull || isLocked) && "opacity-70")}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-3">
-                      <Zap className="w-6 h-6 text-primary" />
+                      {isLocked ? <Lock className="w-6 h-6 text-yellow-500" /> : <Zap className="w-6 h-6 text-primary" />}
                       {room.name}
                     </CardTitle>
                   </CardHeader>
@@ -97,16 +107,26 @@ const ExploreRooms = () => {
                       </div>
                       <Progress value={progressValue} className="h-2" />
                       <p className="text-sm text-muted-foreground">
-                        {room.maxCapacity} user limit ensures low-latency P2P video.
+                        {isPremiumRoom ? "Premium access for massive co-working sessions." : `${room.maxCapacity} user limit ensures low-latency P2P video.`}
                       </p>
                     </div>
                     <Button
-                      onClick={() => handleJoinRoom(room.id)}
-                      disabled={isFull}
+                      onClick={() => handleJoinRoom(room.id, isPremiumRoom)}
+                      disabled={isFull || isLocked}
                       className="w-full dopamine-click"
                     >
-                      {isFull ? "Room Full" : "Join Room"}
-                      <Video className="w-4 h-4 ml-2" />
+                      {isLocked ? (
+                        <>
+                            <Lock className="w-4 h-4 mr-2" /> Unlock with Premium
+                        </>
+                      ) : isFull ? (
+                        "Room Full"
+                      ) : (
+                        <>
+                            Join Room
+                            <Video className="w-4 h-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </CardContent>
                 </Card>

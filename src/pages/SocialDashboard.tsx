@@ -1,22 +1,25 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home, User, Brain } from "lucide-react";
+import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home, User, Brain, Crown } from "lucide-react";
 import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusFeed from "@/components/FocusFeed";
 import StudyCircles from "@/components/StudyCircles";
-import ProfileMenu from "@/components/ProfileMenu"; // Import ProfileMenu
-import AICoachPanel from "@/components/AICoachPanel"; // Import AICoachPanel
+import ProfileMenu from "@/components/ProfileMenu";
+import AICoachPanel from "@/components/AICoachPanel";
+import UpgradePanel from "@/components/UpgradePanel"; // Import UpgradePanel
 
 const SocialDashboard = () => {
     const navigate = useNavigate();
     const { userId } = useAuth();
     const [targetUserId, setTargetUserId] = useState<string | null>(null);
+    const [searchParams] = useSearchParams();
+    const defaultTab = searchParams.get('tab') || 'feed';
 
     const handleProfileClick = (id: string) => {
         setTargetUserId(id);
@@ -68,8 +71,8 @@ const SocialDashboard = () => {
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
-                <Tabs defaultValue="feed" className="w-full">
-                    <TabsList className="grid w-full grid-cols-7 mb-8">
+                <Tabs defaultValue={defaultTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-8 mb-8">
                         <TabsTrigger value="feed" className="flex items-center gap-2">
                             <Rss className="h-4 w-4" />
                             Feed
@@ -97,6 +100,10 @@ const SocialDashboard = () => {
                         <TabsTrigger value="profile" className="flex items-center gap-2">
                             <User className="h-4 w-4" />
                             Profile
+                        </TabsTrigger>
+                        <TabsTrigger value="upgrade" className="flex items-center gap-2 text-yellow-500">
+                            <Crown className="h-4 w-4" />
+                            Upgrade
                         </TabsTrigger>
                     </TabsList>
 
@@ -136,6 +143,10 @@ const SocialDashboard = () => {
                         <div className="max-w-md mx-auto glass-card p-4 rounded-xl">
                             <ProfileMenu />
                         </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="upgrade">
+                        <UpgradePanel />
                     </TabsContent>
                 </Tabs>
             </main>

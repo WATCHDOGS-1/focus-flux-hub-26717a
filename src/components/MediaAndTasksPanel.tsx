@@ -1,14 +1,15 @@
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import NotesWorkspace from "./NotesWorkspace";
+import PDFViewer from "./PDFViewer";
 import TaskList from "./TaskList";
 
-const NotesAndMediaPanel = () => {
+const MediaAndTasksPanel = () => {
   return (
     <div className="h-full w-full">
       <PanelGroup direction="horizontal" className="h-full">
-        {/* Notes Workspace (70%) */}
+        {/* PDF Viewer (70%) */}
         <Panel defaultSize={70} minSize={30}>
-          <NotesWorkspace />
+          {/* PDFViewer no longer needs onClose since the parent panel handles closing */}
+          <PDFViewer /> 
         </Panel>
         
         <PanelResizeHandle className="w-2 flex items-center justify-center bg-border/50 hover:bg-primary/50 transition-colors cursor-col-resize">
@@ -24,4 +25,4 @@ const NotesAndMediaPanel = () => {
   );
 };
 
-export default NotesAndMediaPanel;
+export default MediaAndTasksPanel;
