@@ -95,6 +95,7 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
     const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
     const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
     
+    // Pass width only if containerWidth > 0, otherwise pass undefined to let react-pdf use default sizing
     const pageRenderWidth = containerWidth > 0 ? containerWidth * scale : undefined;
 
     return (
@@ -161,16 +162,14 @@ const PDFViewer = ({ onClose }: PDFViewerProps) => {
                         loading={<div className="flex items-center gap-2 text-primary"><Loader2 className="w-5 h-5 animate-spin" /> Preparing Document...</div>}
                         className="w-full h-full flex justify-center"
                     >
-                        {containerWidth > 0 && (
-                            <Page 
-                                pageNumber={pageNumber} 
-                                width={pageRenderWidth}
-                                renderAnnotationLayer={true} 
-                                renderTextLayer={true}
-                                renderMode="canvas" 
-                                className="shadow-lg my-4"
-                            />
-                        )}
+                        <Page 
+                            pageNumber={pageNumber} 
+                            width={pageRenderWidth} // Pass undefined if containerWidth is 0
+                            renderAnnotationLayer={true} 
+                            renderTextLayer={true}
+                            renderMode="canvas" 
+                            className="shadow-lg my-4"
+                        />
                     </Document>
                 )}
             </div>
