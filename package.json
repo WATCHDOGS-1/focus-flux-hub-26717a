@@ -12,8 +12,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@blocknote/core": "^0.44.0",
+    "@blocknote/mantine": "^0.44.0",
+    "@blocknote/react": "^0.44.0",
     "@cloudinary/react": "^1.14.3",
     "@cloudinary/url-gen": "^1.22.0",
+    "@excalidraw/excalidraw": "^0.18.0",
     "@google/genai": "^1.30.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",

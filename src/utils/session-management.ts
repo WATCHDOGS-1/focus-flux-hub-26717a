@@ -1,10 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, subDays, subWeeks, subMonths } from "date-fns";
+import { format, subDays, subMonths } from "date-fns";
 import type { Database } from "@/integrations/supabase/types"; // Ensure Database type is imported
 
 const XP_PER_MINUTE = 10; // Increased from 1 to 10
 const DAILY_STREAK_MULTIPLIER = 1.2; // 20% bonus for maintaining a streak
+const STARDUST_PER_POMODORO = 10; // 10 Stardust for every 25 minutes
 
 // Simple XP to Level mapping (can be expanded later)
 const LEVEL_THRESHOLDS = [
@@ -85,50 +86,24 @@ export const getRecentFocusSessions = async (userId: string, range: 'day' | 'wee
 };
 
 /**
- * Simulates spending XP by updating the user_levels table.
- * NOTE: In a production environment, this should be handled by a secure Supabase RPC function
- * to ensure atomic transactions and prevent cheating.
+ * Simulates spending Stardust by updating localStorage.
  */
-export const spendXP = async (userId: string, amount: number): Promise<boolean> => {
-  const { data: levelsData, error: fetchError } = await supabase
-    .from("user_levels")
-    .select("total_xp")
-    .eq("user_id", userId)
-    .single();
-
-  if (fetchError || !levelsData) {
-    console.error("Failed to fetch XP for spending:", fetchError);
-    toast.error("Failed to process transaction: XP data missing.");
+export const spendStardust = async (userId: string, amount: number): Promise<boolean> => {
+  const currentStardust = parseInt(localStorage.getItem(`stardust_${userId}`) || '0');
+  
+  if (currentStardust < amount) {
     return false;
   }
-
-  if (levelsData.total_xp < amount) {
-    toast.error("Insufficient XP for this purchase.");
-    return false;
-  }
-
-  const newTotalXP = levelsData.total_xp - amount;
-  const newTitle = getTitleByXP(newTotalXP);
-  const newLevel = LEVEL_THRESHOLDS.find(t => t.level === newTitle)?.level || 1;
-
-  const { error: updateError } = await supabase
-    .from("user_levels")
-    .update({ total_xp: newTotalXP, level: newLevel, title: newTitle })
-    .eq("user_id", userId);
-
-  if (updateError) {
-    console.error("Failed to update XP after spending:", updateError);
-    toast.error("Transaction failed due to database error.");
-    return false;
-  }
-
+  
+  const newStardust = currentStardust - amount;
+  localStorage.setItem(`stardust_${userId}`, newStardust.toString());
   return true;
 };
 
 
 /**
  * Handles all post-session logic: saving session, updating weekly stats,
- * calculating streaks, updating longest session, and calculating XP/levels.
+ * calculating streaks, updating longest session, and calculating XP/levels/Stardust.
  */
 export const endFocusSession = async (
   userId: string,
@@ -233,8 +208,18 @@ export const endFocusSession = async (
   const newTotalXP = currentLevels.total_xp + xpEarned;
   const newTitle = getTitleByXP(newTotalXP);
   const newLevel = LEVEL_THRESHOLDS.find(t => t.title === newTitle)?.level || currentLevels.level;
+  
+  // --- 5. Stardust Calculation ---
+  const pomodorosCompleted = Math.floor(minutes / 25);
+  const stardustEarned = pomodorosCompleted * STARDUST_PER_POMODORO;
+  
+  // Mock: Update Stardust in localStorage
+  const currentStardust = parseInt(localStorage.getItem(`stardust_${userId}`) || '0');
+  const finalStardust = currentStardust + stardustEarned;
+  localStorage.setItem(`stardust_${userId}`, finalStardust.toString());
 
-  // --- 5. Update User Stats Table ---
+
+  // --- 6. Update User Stats Table ---
   const updatedStats = {
     longest_streak: Math.max(currentStats.longest_streak, newStreak),
     longest_session_minutes: Math.max(currentStats.longest_session_minutes, minutes),
@@ -247,7 +232,7 @@ export const endFocusSession = async (
     .upsert({ user_id: userId, ...updatedStats }, { onConflict: 'user_id' });
   if (statsUpdateError) console.error("Error updating user stats:", statsUpdateError);
 
-  // --- 6. Update User Levels Table ---
+  // --- 7. Update User Levels Table ---
   const updatedLevels = {
     total_xp: newTotalXP,
     level: newLevel,
@@ -259,7 +244,7 @@ export const endFocusSession = async (
     .upsert({ user_id: userId, ...updatedLevels }, { onConflict: 'user_id' });
   if (levelsUpdateError) console.error("Error updating user levels:", levelsUpdateError);
 
-  // --- 7. Update Weekly Stats (Existing Logic) ---
+  // --- 8. Update Weekly Stats (Existing Logic) ---
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - today.getDay());
   weekStart.setHours(0, 0, 0, 0);
@@ -282,7 +267,7 @@ export const endFocusSession = async (
       .insert({ user_id: userId, week_start: weekStart.toISOString(), total_minutes: minutes });
   }
   
-  // --- 8. Create Feed Item (Only if session >= 30 minutes) ---
+  // --- 9. Create Feed Item (Only if session >= 30 minutes) ---
   if (minutes >= 30) {
     const feedItemData = {
       duration: minutes,
@@ -300,5 +285,5 @@ export const endFocusSession = async (
     if (feedError) console.error("Error creating feed item:", feedError);
   }
 
-  return { message: `Session saved! +${xpEarned} XP${bonusDescription}. Streak: ${newStreak} days.`, durationMinutes: minutes, focusTag };
+  return { message: `Session saved! +${xpEarned} XP${bonusDescription}, +${stardustEarned} Stardust. Streak: ${newStreak} days.`, durationMinutes: minutes, focusTag };
 };

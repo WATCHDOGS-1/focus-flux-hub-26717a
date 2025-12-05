@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Loader2 } from "lucide-react";
 import { useUserStats } from "@/hooks/use-user-stats";
 import WeeklyFocusChart from "./WeeklyFocusChart";
-import PlanetUpgradePanel from "./PlanetUpgradePanel"; // Import new panel
+import PlanetShop from "./PlanetShop";
 
 const DigitalPlanetDashboard = () => {
     const { stats, levels, isLoading: isLoadingStats } = useUserStats();
@@ -23,7 +23,7 @@ const DigitalPlanetDashboard = () => {
                 <DigitalPlanetView />
             </div>
             
-            {/* Stats and Goals (2/3) */}
+            {/* Stats and Shop (2/3) */}
             <div className="lg:col-span-2 space-y-6">
                 <Card className="glass-card p-4">
                     <CardHeader className="p-0 pb-2">
@@ -46,8 +46,8 @@ const DigitalPlanetDashboard = () => {
                     </CardContent>
                 </Card>
                 
-                {/* Planet Upgrade Panel */}
-                <PlanetUpgradePanel />
+                {/* Planet Shop Panel */}
+                <PlanetShop />
             </div>
         </div>
     );

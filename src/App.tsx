@@ -4,14 +4,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/use-auth";
-import Home from "./pages/Home";
+import { KnowledgeProvider } from "@/hooks/use-knowledge";
+import Landing from "./pages/Landing";
+import ProductivityDashboard from "./pages/ProductivityDashboard";
 import Auth from "./pages/Auth";
 import ExploreRooms from "./pages/ExploreRooms";
 import FocusRoom from "./pages/FocusRoom";
 import SocialDashboard from "./pages/SocialDashboard";
 import CircleDetail from "./pages/CircleDetail";
-import TermsOfService from "./pages/TermsOfService"; // Import new page
-import PrivacyPolicy from "./pages/PrivacyPolicy"; // Import new page
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import KnowledgeBase from "./pages/KnowledgeBase";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 
@@ -24,19 +27,23 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/explore" element={<ExploreRooms />} />
-            <Route path="/social" element={<SocialDashboard />} />
-            <Route path="/circle/:circleId" element={<CircleDetail />} />
-            <Route path="/terms" element={<TermsOfService />} /> {/* New Route */}
-            <Route path="/privacy" element={<PrivacyPolicy />} /> {/* New Route */}
-            <Route path="/focus-room/:roomId" element={<FocusRoom />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <KnowledgeProvider>
+            <Routes>
+              <Route path="/" element={<ProductivityDashboard />} />
+              <Route path="/landing" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/explore" element={<ExploreRooms />} />
+              <Route path="/social" element={<SocialDashboard />} />
+              <Route path="/circle/:circleId" element={<CircleDetail />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/knowledge" element={<KnowledgeBase />} />
+              <Route path="/focus-room/:roomId" element={<FocusRoom />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </KnowledgeProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
