@@ -1,5 +1,5 @@
 -- =================================================================================
--- FULL SCHEMA RESET AND RECREATION
+-- FULL SCHEMA RESET AND RECREATION (CORRECTED)
 -- This script drops all existing tables, enums, and functions in the public schema
 -- and recreates the entire structure with robust Row Level Security (RLS).
 -- =================================================================================
@@ -157,7 +157,7 @@ ALTER TABLE public.dm_messages ENABLE ROW LEVEL SECURITY;
 
 -- Global Chat Messages
 CREATE TABLE public.chat_messages (
-    id uuid DEFAULT gen_random_uuid() PRIMARY aKEY,
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     message text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
