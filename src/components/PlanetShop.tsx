@@ -20,7 +20,7 @@ interface Construction {
 const CONSTRUCTIONS: Construction[] = [
     { id: "satellite", name: "Orbital Satellite", cost: 500, icon: Satellite, effect: "Adds a visual satellite to your planet." },
     { id: "lighthouse", name: "Focus Lighthouse", cost: 1000, icon: Landmark, effect: "Beams light into space, symbolizing deep work." },
-    { id: "biodome", id: "biodome", cost: 2000, icon: Leaf, effect: "Adds vegetation and life to your planet surface." },
+    { id: "biodome", name: "Bio-Dome Construction", cost: 2000, icon: Leaf, effect: "Adds vegetation and life to your planet surface." },
 ];
 
 const PURCHASED_CONSTRUCTIONS_KEY = "civilization_constructions";

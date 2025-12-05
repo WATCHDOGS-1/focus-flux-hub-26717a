@@ -1,4 +1,4 @@
-import { useBlockNote, BlockNoteView } from "@blocknote/mantine";
+import { useBlockNote, BlockNoteView } from "@blocknote/react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import "@blocknote/core/style.css";
 import { useEffect, useState } from "react";
