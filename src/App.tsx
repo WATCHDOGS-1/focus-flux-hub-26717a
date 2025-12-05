@@ -29,8 +29,8 @@ const App = () => (
         <AuthProvider>
           <KnowledgeProvider>
             <Routes>
-              <Route path="/" element={<ProductivityDashboard />} />
-              <Route path="/landing" element={<Landing />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/productivity" element={<ProductivityDashboard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/explore" element={<ExploreRooms />} />
