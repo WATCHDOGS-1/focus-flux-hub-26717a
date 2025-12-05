@@ -1,9 +1,8 @@
-import { useBlockNote } from "@blocknote/react";
+import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import "@blocknote/core/style.css";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import "@blocknote/mantine/style.css"; // Updated CSS import for Mantine theme
+import { useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 interface BlockEditorProps {
@@ -15,17 +14,26 @@ interface BlockEditorProps {
 
 const BlockEditor = ({ documentId, initialContent, onContentChange, isEditable = true }: BlockEditorProps) => {
   const [isSaving, setIsSaving] = useState(false);
+  // Use a ref to manage the debounce timer so it persists across renders
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const editor: BlockNoteEditor = useBlockNote({
+  // useCreateBlockNote creates the editor instance. 
+  // 'editable' is now handled by the View component, not the hook.
+  const editor: BlockNoteEditor = useCreateBlockNote({
     initialContent: initialContent.length > 0 ? initialContent : undefined,
-    editable: isEditable,
   });
 
-  // Handle content changes and auto-save
-  useEffect(() => {
+  // Handle content changes with a debounce function
+  const handleChange = () => {
     if (!isEditable) return;
-    
-    const timeout = setTimeout(async () => {
+
+    // Clear existing timer
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new timer for auto-save
+    saveTimeoutRef.current = setTimeout(async () => {
       setIsSaving(true);
       const content = editor.document;
       onContentChange(content);
@@ -33,17 +41,16 @@ const BlockEditor = ({ documentId, initialContent, onContentChange, isEditable =
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 500));
       setIsSaving(false);
-      // toast.success(`Document ${documentId} saved.`, { duration: 1500 }); // Disabled frequent toast
     }, 1500); // Auto-save after 1.5 seconds of inactivity
-
-    return () => clearTimeout(timeout);
-  }, [editor.document, documentId, onContentChange, isEditable]);
+  };
 
   return (
     <div className="relative h-full w-full">
       <BlockNoteView 
         editor={editor} 
-        theme="dark" // Assuming dark mode preference
+        editable={isEditable} // Pass editable state here
+        onChange={handleChange} // Trigger save logic on change
+        theme="dark" 
         className="h-full w-full"
       />
       {isSaving && (
