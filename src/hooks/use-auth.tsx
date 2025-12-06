@@ -26,13 +26,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .from("profiles")
       .select("*")
       .eq("id", id)
-      .maybeSingle(); // Changed to maybeSingle()
+      .single();
 
     if (error) {
       console.error("Error fetching profile:", error);
       toast.error(`Failed to load user profile: ${error.message}`);
       setProfile(null);
-    } else if (data) {
+    } else {
       // --- Moderation Check ---
       const sanitizedUsername = await sanitizeUsername(id, data.username);
       
@@ -41,10 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         username: sanitizedUsername,
       };
       setProfile(finalProfile);
-    } else {
-        // Profile not found (data is null). This is expected if the profile trigger hasn't fired yet.
-        console.warn("Profile not found for user ID:", id);
-        setProfile(null);
     }
   };
 

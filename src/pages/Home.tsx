@@ -9,7 +9,7 @@ import AnimatedSection from "@/components/AnimatedSection";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 
-const Landing = () => {
+const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -144,4 +144,4 @@ const Landing = () => {
   );
 };
 
-export default Landing;
+export default Home;
