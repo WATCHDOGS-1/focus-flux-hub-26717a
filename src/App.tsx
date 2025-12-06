@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/use-auth";
 import { KnowledgeProvider } from "@/hooks/use-knowledge";
-import Landing from "./pages/Landing";
+import MarketingLanding from "./pages/MarketingLanding"; // Renamed import
+import MainDashboard from "./pages/MainDashboard"; // New import
 import ProductivityDashboard from "./pages/ProductivityDashboard";
 import Auth from "./pages/Auth";
 import ExploreRooms from "./pages/ExploreRooms";
@@ -29,7 +30,8 @@ const App = () => (
         <AuthProvider>
           <KnowledgeProvider>
             <Routes>
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={<MainDashboard />} /> {/* New Main Dashboard at root */}
+              <Route path="/landing" element={<MarketingLanding />} /> {/* Marketing page moved */}
               <Route path="/productivity" element={<ProductivityDashboard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
