@@ -7,10 +7,12 @@ import RemoteVideo from "@/components/RemoteVideo";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getOptimizedPeerList } from "@/utils/bandwidth-optimization"; // Import optimization utility
+import { cn } from "@/lib/utils";
 
 interface VideoGridProps {
   userId: string;
   roomId: string;
+  layoutMode: 'grid-1' | 'grid-2' | 'grid-3'; // New prop for layout control
 }
 
 interface VideoDevice {
@@ -18,7 +20,7 @@ interface VideoDevice {
   label: string;
 }
 
-const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
+const VideoGrid = ({ userId, roomId, layoutMode }: VideoGridProps) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [pinnedVideos, setPinnedVideos] = useState<Set<number>>(new Set());
   const [remoteStreams, setRemoteStreams] = new useState<Map<string, { stream: MediaStream; username: string }>>(new Map());
@@ -237,6 +239,13 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   
   // Determine the number of videos currently displayed (local + filtered remote)
   const displayedVideoCount = 1 + filteredRemoteStreams.length;
+  
+  // Determine grid classes based on layoutMode
+  const gridClasses = {
+    'grid-1': 'grid-cols-1',
+    'grid-2': 'sm:grid-cols-2',
+    'grid-3': 'sm:grid-cols-2 lg:grid-cols-3',
+  }[layoutMode];
 
   return (
     <div className="h-full flex flex-col gap-4">
@@ -291,7 +300,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       </div>
 
       {/* Video Grid */}
-      <div className="flex-1 grid gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2">
+      <div className={cn("flex-1 grid gap-4 auto-rows-fr grid-cols-1", gridClasses)}>
         {/* Local Video */}
         <div className={`relative glass-card rounded-2xl overflow-hidden group aspect-video hover-lift ${pinnedVideos.has(0) ? 'ring-2 ring-primary animate-breathing-pulse' : ''}`}>
           <video

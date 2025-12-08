@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QuestSystemPanel from "@/components/QuestSystemPanel";
 import { Task } from "@/types/productivity";
 import { toast } from "sonner";
+import DigitalPlanetView from "@/components/DigitalPlanetView";
 
 const ProductivityDashboardContent = () => {
     const navigate = useNavigate();
@@ -40,8 +41,15 @@ const ProductivityDashboardContent = () => {
             </header>
 
             <main className="flex-1 container mx-auto p-4 space-y-6">
-                {/* Quest System Panel (Top Priority) */}
-                <QuestSystemPanel />
+                
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <QuestSystemPanel />
+                    </div>
+                    <div className="lg:col-span-1 h-full">
+                        <DigitalPlanetView />
+                    </div>
+                </div>
 
                 {/* Removed DragDropContext wrapper */}
                 <Tabs defaultValue="kanban">
