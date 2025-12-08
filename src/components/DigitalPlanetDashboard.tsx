@@ -1,9 +1,11 @@
 import DigitalPlanetView from "./DigitalPlanetView";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Loader2 } from "lucide-react";
+import { TrendingUp, Loader2, Star, Zap } from "lucide-react";
 import { useUserStats } from "@/hooks/use-user-stats";
 import WeeklyFocusChart from "./WeeklyFocusChart";
 import PlanetShop from "./PlanetShop";
+import PlanetUpgradePanel from "./PlanetUpgradePanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DigitalPlanetDashboard = () => {
     const { stats, levels, isLoading: isLoadingStats } = useUserStats();
@@ -23,7 +25,7 @@ const DigitalPlanetDashboard = () => {
                 <DigitalPlanetView />
             </div>
             
-            {/* Stats and Shop (2/3) */}
+            {/* Stats and Shops (2/3) */}
             <div className="lg:col-span-2 space-y-6">
                 <Card className="glass-card p-4">
                     <CardHeader className="p-0 pb-2">
@@ -46,8 +48,23 @@ const DigitalPlanetDashboard = () => {
                     </CardContent>
                 </Card>
                 
-                {/* Planet Shop Panel */}
-                <PlanetShop />
+                {/* Shops Tabs */}
+                <Tabs defaultValue="upgrades">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="upgrades" className="flex items-center gap-2">
+                            <Zap className="h-4 w-4" /> XP Upgrades
+                        </TabsTrigger>
+                        <TabsTrigger value="shop" className="flex items-center gap-2">
+                            <Star className="h-4 w-4" /> Stardust Shop
+                        </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="upgrades">
+                        <PlanetUpgradePanel />
+                    </TabsContent>
+                    <TabsContent value="shop">
+                        <PlanetShop />
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     );

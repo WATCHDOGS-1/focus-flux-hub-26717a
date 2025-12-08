@@ -86,9 +86,16 @@ const NotesBase = () => {
     if (!selectedDocument) return;
     setIsSaving(true);
     
-    let newUrl = file ? URL.createObjectURL(file) : null; // Mock upload
+    let newUrl = null;
+    if (file) {
+        // Mock upload: Use a placeholder URL that simulates persistence, since useKnowledge is mocked.
+        newUrl = `https://mock-storage.com/covers/${selectedDocument.id}-${Date.now()}`;
+        toast.info("Cover image uploaded (mocked).");
+    } else {
+        toast.info("Cover image removed.");
+    }
     
-    // Simulate upload delay and cleanup
+    // Simulate upload delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     updateDocument(selectedDocument.id, { coverImageUrl: newUrl });
