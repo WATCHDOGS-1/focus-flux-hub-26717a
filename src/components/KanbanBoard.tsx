@@ -99,9 +99,8 @@ const KanbanBoard = () => {
     const navigate = useNavigate();
 
     const handleFocusNow = (task: Task) => {
-        localStorage.setItem('next_focus_tag', task.title);
-        toast.info(`Focus tag set to: "${task.title}". Redirecting to room...`);
-        navigate("/focus-room/room-1");
+        // Navigate to Zen Mode with the task title as the focus tag
+        navigate(`/zen-mode?tag=${encodeURIComponent(task.title)}`);
     };
 
     const tasksByStatus = Object.keys(columns).reduce((acc, status) => {

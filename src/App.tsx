@@ -18,6 +18,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
+import ZenMode from "./pages/ZenMode"; // Import new ZenMode page
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/knowledge" element={<KnowledgeBase />} />
               <Route path="/focus-room/:roomId" element={<FocusRoom />} />
+              <Route path="/zen-mode" element={<ZenMode />} /> {/* NEW ZEN MODE ROUTE */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
