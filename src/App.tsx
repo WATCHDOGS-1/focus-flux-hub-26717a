@@ -21,41 +21,44 @@ import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import ZenMode from "./pages/ZenMode";
 import OnboardingTour from "./components/OnboardingTour";
+import ErrorBoundary from "./components/ErrorBoundary"; // Import ErrorBoundary
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <KnowledgeProvider>
-            <TaskProvider> {/* Moved TaskProvider here to make tasks global */}
-              <OnboardingTour />
-              <Routes>
-                <Route path="/" element={<MainDashboard />} />
-                <Route path="/landing" element={<MarketingLanding />} />
-                <Route path="/productivity" element={<ProductivityDashboard />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/explore" element={<ExploreRooms />} />
-                <Route path="/social" element={<SocialDashboard />} />
-                <Route path="/circle/:circleId" element={<CircleDetail />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/notes" element={<NotesBase />} />
-                <Route path="/focus-room/:roomId" element={<FocusRoom />} />
-                <Route path="/zen-mode" element={<ZenMode />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </TaskProvider>
-          </KnowledgeProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <KnowledgeProvider>
+              <TaskProvider>
+                <OnboardingTour />
+                <Routes>
+                  <Route path="/" element={<MainDashboard />} />
+                  <Route path="/landing" element={<MarketingLanding />} />
+                  <Route path="/productivity" element={<ProductivityDashboard />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/explore" element={<ExploreRooms />} />
+                  <Route path="/social" element={<SocialDashboard />} />
+                  <Route path="/circle/:circleId" element={<CircleDetail />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/notes" element={<NotesBase />} />
+                  <Route path="/focus-room/:roomId" element={<FocusRoom />} />
+                  <Route path="/zen-mode" element={<ZenMode />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </TaskProvider>
+            </KnowledgeProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
