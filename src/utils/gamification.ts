@@ -9,6 +9,7 @@ export interface Quest {
     rewardXP: number;
     rewardStardust: number; // New currency
     isCompleted: boolean;
+    isClaimed?: boolean; // Added to track if reward has been claimed
     type: 'tag_completion' | 'pomodoro_goal' | 'streak_maintenance';
 }
 

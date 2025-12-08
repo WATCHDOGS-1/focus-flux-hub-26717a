@@ -8,10 +8,25 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+const CLAIMED_QUESTS_KEY = "claimed_daily_quests";
+
 const QuestSystemPanel = () => {
     const { tasks } = useTasks();
     const [quests, setQuests] = useState<Quest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        // Load claimed IDs from local storage on mount
+        const storedClaims = localStorage.getItem(CLAIMED_QUESTS_KEY);
+        if (storedClaims) {
+            try {
+                setClaimedIds(new Set(JSON.parse(storedClaims)));
+            } catch (e) {
+                console.error("Failed to parse claimed quests from local storage:", e);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         // Simulate loading/checking external stats (like total poms logged today)
@@ -20,6 +35,14 @@ const QuestSystemPanel = () => {
         
         // Mock update for external tracking (Pomodoro/Streak)
         const updatedQuests = generatedQuests.map(quest => {
+            // Check if already claimed
+            const isClaimed = claimedIds.has(quest.id);
+            
+            if (isClaimed) {
+                return { ...quest, isCompleted: true, isClaimed: true };
+            }
+            
+            // Mock update for completion status
             if (quest.type === 'pomodoro_goal') {
                 // Mock: Assume 2 poms logged today
                 return { ...quest, currentCount: 2, isCompleted: 2 >= quest.targetCount };
@@ -33,16 +56,30 @@ const QuestSystemPanel = () => {
         
         setQuests(updatedQuests);
         setIsLoading(false);
-    }, [tasks]);
+    }, [tasks, claimedIds]); // Depend on claimedIds to re-evaluate quests
 
     const handleClaimReward = (questId: string) => {
+        // 1. Check if already claimed (client-side check)
+        if (claimedIds.has(questId)) {
+            toast.warning("Reward already claimed.");
+            return;
+        }
+        
         // NOTE: In a real app, this would call a Supabase RPC function to verify completion,
         // grant XP/Stardust, and mark the quest as claimed in the database.
         
         toast.success("Quest rewards claimed! +XP and Stardust added to your planet.");
         
-        // Mock: Remove claimed quest
-        setQuests(prev => prev.filter(q => q.id !== questId));
+        // 2. Update local storage and state to prevent infinite claiming
+        setClaimedIds(prev => {
+            const newSet = new Set(prev);
+            newSet.add(questId);
+            localStorage.setItem(CLAIMED_QUESTS_KEY, JSON.stringify(Array.from(newSet)));
+            return newSet;
+        });
+        
+        // 3. Mark as claimed in local state (will trigger useEffect re-run)
+        setQuests(prev => prev.map(q => q.id === questId ? { ...q, isClaimed: true } : q));
     };
 
     if (isLoading) {
@@ -53,14 +90,14 @@ const QuestSystemPanel = () => {
         );
     }
 
-    const activeQuests = quests.filter(q => !q.isCompleted);
-    const completedQuests = quests.filter(q => q.isCompleted);
+    const activeQuests = quests.filter(q => !q.isCompleted && !q.isClaimed);
+    const completedQuests = quests.filter(q => q.isCompleted && !q.isClaimed);
 
     return (
         <Card className="glass-card p-4 rounded-xl space-y-4">
             <CardHeader className="p-0 pb-2 border-b border-border">
                 <CardTitle className="text-xl flex items-center gap-2 text-accent">
-                    <Star className="w-6 h-6" /> Daily Quests ({activeQuests.length})
+                    <Star className="w-6 h-6" /> Daily Quests ({activeQuests.length + completedQuests.length})
                 </CardTitle>
             </CardHeader>
             
