@@ -53,12 +53,10 @@ const ProductivityDashboardContent = () => {
             <header className="glass-card border-b border-border sticky top-0 z-10">
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-accent flex items-center gap-2">
-                        <Target className="w-6 h-6" /> Productivity Dashboard
+                        <LayoutGrid className="w-6 h-6" /> Productivity Dashboard
                     </h1>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => navigate("/knowledge")} className="dopamine-click">
-                            <LayoutGrid className="w-4 h-4 mr-2" /> Knowledge
-                        </Button>
+                        {/* Removed Notes/Knowledge button */}
                         <Button variant="default" onClick={() => navigate("/explore")} className="dopamine-click">
                             <Zap className="w-4 h-4 mr-2" /> Focus Rooms
                         </Button>

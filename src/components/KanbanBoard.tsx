@@ -4,19 +4,91 @@ import { Task } from "@/types/productivity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Clock, CheckCircle, Loader2, ListChecks } from "lucide-react";
+import { Play, Clock, CheckCircle, Loader2, ListChecks, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+
+// --- Task Creation Modal Component ---
+const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: number, tags: string[]) => void }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [title, setTitle] = useState("");
+    const [poms, setPoms] = useState(1);
+    const [tagsInput, setTagsInput] = useState("");
+
+    const handleSubmit = () => {
+        if (!title.trim()) {
+            toast.error("Task title is required.");
+            return;
+        }
+        const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        onAddTask(title.trim(), poms, tags);
+        
+        // Reset state
+        setTitle("");
+        setPoms(1);
+        setTagsInput("");
+        setIsOpen(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm" className="w-full dopamine-click mb-4">
+                    <Plus className="w-4 h-4 mr-1" /> Add New Task
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] glass-card">
+                <DialogHeader>
+                    <DialogTitle>Create New Task</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <Input 
+                        placeholder="Task Title (e.g., 'Finish Project Report')" 
+                        value={title} 
+                        onChange={e => setTitle(e.target.value)} 
+                    />
+                    <Input 
+                        type="number"
+                        min={1}
+                        placeholder="Estimated Pomodoros (25 min blocks)" 
+                        value={poms} 
+                        onChange={e => setPoms(parseInt(e.target.value) || 1)} 
+                    />
+                    <Input 
+                        placeholder="Tags (e.g., Coding, Design, Math - separated by commas)" 
+                        value={tagsInput} 
+                        onChange={e => setTagsInput(e.target.value)} 
+                    />
+                    <Button onClick={handleSubmit} className="w-full dopamine-click">
+                        Create Task
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+// --- End Task Creation Modal Component ---
+
 
 interface KanbanCardProps {
     task: Task;
     index: number;
     onFocusNow: (task: Task) => void;
+    onDelete: (taskId: string) => void;
 }
 
-const KanbanCard = ({ task, index, onFocusNow }: KanbanCardProps) => {
+const KanbanCard = ({ task, index, onFocusNow, onDelete }: KanbanCardProps) => {
     return (
         <Draggable draggableId={task.id} index={index}>
             {(provided, snapshot) => (
@@ -25,12 +97,22 @@ const KanbanCard = ({ task, index, onFocusNow }: KanbanCardProps) => {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     className={cn(
-                        "glass-card p-3 mb-3 transition-all hover-lift cursor-grab",
+                        "glass-card p-3 mb-3 transition-all hover-lift cursor-grab group relative",
                         snapshot.isDragging && "ring-2 ring-primary/50 shadow-lg",
                         task.status === 'done' && "opacity-70"
                     )}
                 >
-                    <div className="flex flex-col gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                        onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+                        title="Delete Task"
+                    >
+                        <X className="w-4 h-4" />
+                    </Button>
+                    
+                    <div className="flex flex-col gap-2 pr-6">
                         <div className="flex items-center justify-between">
                             <h4 className="font-semibold text-sm truncate">{task.title}</h4>
                             <Badge variant="secondary" className="text-xs flex items-center gap-1">
@@ -62,9 +144,10 @@ interface KanbanColumnProps {
     title: string;
     tasks: Task[];
     onFocusNow: (task: Task) => void;
+    onDelete: (taskId: string) => void;
 }
 
-const KanbanColumn = ({ columnId, title, tasks, onFocusNow }: KanbanColumnProps) => {
+const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete }: KanbanColumnProps) => {
     return (
         <Droppable droppableId={columnId}>
             {(provided, snapshot) => (
@@ -84,7 +167,13 @@ const KanbanColumn = ({ columnId, title, tasks, onFocusNow }: KanbanColumnProps)
                     </h3>
                     <ScrollArea className="flex-1 pr-2">
                         {tasks.map((task, index) => (
-                            <KanbanCard key={task.id} task={task} index={index} onFocusNow={onFocusNow} />
+                            <KanbanCard 
+                                key={task.id} 
+                                task={task} 
+                                index={index} 
+                                onFocusNow={onFocusNow} 
+                                onDelete={onDelete}
+                            />
                         ))}
                         {provided.placeholder}
                     </ScrollArea>
@@ -95,7 +184,7 @@ const KanbanColumn = ({ columnId, title, tasks, onFocusNow }: KanbanColumnProps)
 };
 
 const KanbanBoard = () => {
-    const { tasks, columns } = useTasks();
+    const { tasks, columns, addTask, deleteTask } = useTasks();
     const navigate = useNavigate();
 
     const handleFocusNow = (task: Task) => {
@@ -109,16 +198,20 @@ const KanbanBoard = () => {
     }, {} as Record<string, Task[]>);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
-            {Object.entries(columns).map(([id, column]) => (
-                <KanbanColumn
-                    key={id}
-                    columnId={id as Task['status']}
-                    title={column.title}
-                    tasks={tasksByStatus[id]}
-                    onFocusNow={handleFocusNow}
-                />
-            ))}
+        <div className="h-full flex flex-col">
+            <TaskCreationModal onAddTask={addTask} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+                {Object.entries(columns).map(([id, column]) => (
+                    <KanbanColumn
+                        key={id}
+                        columnId={id as Task['status']}
+                        title={column.title}
+                        tasks={tasksByStatus[id]}
+                        onFocusNow={handleFocusNow}
+                        onDelete={deleteTask}
+                    />
+                ))}
+            </div>
         </div>
     );
 };

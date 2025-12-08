@@ -8,6 +8,7 @@ interface TaskContextType {
     updateTaskStatus: (taskId: string, newStatus: Task['status']) => void;
     addTask: (title: string, estimatedPomodoros: number, tags: string[]) => void;
     updateTask: (task: Task) => void;
+    deleteTask: (taskId: string) => void; // Added deleteTask
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -44,9 +45,14 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
             )
         );
     }, []);
+    
+    const deleteTask = useCallback((taskId: string) => {
+        setTasks(prev => prev.filter(task => task.id !== taskId));
+        toast.info("Task deleted.");
+    }, []);
 
     return (
-        <TaskContext.Provider value={{ tasks, columns: KANBAN_COLUMNS, updateTaskStatus, addTask, updateTask }}>
+        <TaskContext.Provider value={{ tasks, columns: KANBAN_COLUMNS, updateTaskStatus, addTask, updateTask, deleteTask }}>
             {children}
         </TaskContext.Provider>
     );

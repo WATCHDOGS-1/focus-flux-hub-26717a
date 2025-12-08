@@ -25,9 +25,8 @@ const TimeBlockCalendar = () => {
     });
 
     const handleFocusNow = (taskTitle: string) => {
-        localStorage.setItem('next_focus_tag', taskTitle);
-        toast.info(`Focus tag set to: "${taskTitle}". Redirecting to room...`);
-        navigate("/focus-room/room-1");
+        // Navigate to Zen Mode with the task title as the focus tag
+        navigate(`/zen-mode?tag=${encodeURIComponent(taskTitle)}`);
     };
 
     return (
