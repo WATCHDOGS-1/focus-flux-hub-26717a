@@ -22,14 +22,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (id: string) => {
-    // Use limit(1).maybeSingle() to handle potential duplicate profile entries 
-    // (which should not happen but causes the "Cannot coerce..." error if it does)
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", id)
-      .limit(1)
-      .maybeSingle();
+      .maybeSingle(); // Changed to maybeSingle()
 
     if (error) {
       console.error("Error fetching profile:", error);
@@ -45,7 +42,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       setProfile(finalProfile);
     } else {
-        // No profile found (e.g., user just signed up and trigger hasn't run yet)
+        // Profile not found (data is null). This is expected if the profile trigger hasn't fired yet.
+        console.warn("Profile not found for user ID:", id);
         setProfile(null);
     }
   };

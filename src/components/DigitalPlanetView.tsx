@@ -1,42 +1,31 @@
 import { motion } from "framer-motion";
-import { Zap, Globe, Rocket, TrendingUp, Loader2 } from "lucide-react";
+import { Zap, Globe, Rocket, TrendingUp, Loader2, Satellite, Landmark, Leaf, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCivilization } from "@/hooks/use-civilization";
+import { useCivilization, PlanetTheme } from "@/hooks/use-civilization";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 
-const THEME_COLORS = {
-    blue: { primary: "hsl(217 91% 60%)", secondary: "hsl(210 40% 98%)", glow: "shadow-blue-500/50" },
-    green: { primary: "hsl(142 76% 41%)", secondary: "hsl(210 40% 98%)", glow: "shadow-green-500/50" },
-    red: { primary: "hsl(0 84.2% 60.2%)", secondary: "hsl(210 40% 98%)", glow: "shadow-red-500/50" },
-    purple: { primary: "hsl(250 70% 70%)", secondary: "hsl(210 40% 98%)", glow: "shadow-purple-500/50" },
+const BIOME_STYLES: Record<PlanetTheme, { primary: string, secondary: string, glow: string, name: string }> = {
+    'default': { primary: "hsl(217 91% 60%)", secondary: "hsl(210 40% 98%)", glow: "shadow-blue-500/50", name: "Default Focus" },
+    'cyberpunk': { primary: "hsl(280 90% 65%)", secondary: "hsl(180 90% 60%)", glow: "shadow-purple-500/50", name: "Cyberpunk City" },
+    'library': { primary: "hsl(40 50% 35%)", secondary: "hsl(30 20% 98%)", glow: "shadow-yellow-700/50", name: "Mystic Library" },
+    'arena': { primary: "hsl(0 84.2% 60.2%)", secondary: "hsl(40 100% 95%)", glow: "shadow-red-500/50", name: "Spartan Arena" },
 };
 
-const PURCHASED_UPGRADES_KEY = "civilization_upgrades";
+const PURCHASED_CONSTRUCTIONS_KEY = "civilization_constructions";
 
 const DigitalPlanetView = () => {
     const { data: civData, isLoading } = useCivilization();
-    const [planetSizeModifier, setPlanetSizeModifier] = useState(0);
-    const [isSolarTravelUnlocked, setIsSolarTravelUnlocked] = useState(false);
+    const [purchasedConstructions, setPurchasedConstructions] = useState<string[]>([]);
 
     useEffect(() => {
-        const stored = localStorage.getItem(PURCHASED_UPGRADES_KEY);
-        let modifier = 0;
-        let solarTravel = false;
-        
+        const stored = localStorage.getItem(PURCHASED_CONSTRUCTIONS_KEY);
         if (stored) {
-            const purchasedUpgrades: string[] = JSON.parse(stored);
-            
-            if (purchasedUpgrades.includes("planet_size_2")) modifier += 1;
-            if (purchasedUpgrades.includes("planet_size_3")) modifier += 1;
-            if (purchasedUpgrades.includes("planet_size_4")) modifier += 1;
-            if (purchasedUpgrades.includes("solar_travel_1")) solarTravel = true;
+            setPurchasedConstructions(JSON.parse(stored));
         }
-        setPlanetSizeModifier(modifier);
-        setIsSolarTravelUnlocked(solarTravel);
-    }, [civData]); // Re-run when civData updates (e.g., after XP is spent and refetched)
+    }, [civData]);
 
     if (isLoading || !civData) {
         // If loading, or if loading finished but no data was returned (should be rare after hook fix)
@@ -55,9 +44,8 @@ const DigitalPlanetView = () => {
         );
     }
 
-    const theme = THEME_COLORS[civData.planetTheme] || THEME_COLORS.blue;
-    // Base size 100 + 10 per level + 20 per size upgrade
-    const planetSize = 100 + (civData.level * 10) + (planetSizeModifier * 20); 
+    const theme = BIOME_STYLES[civData.planetTheme] || BIOME_STYLES.default;
+    const planetSize = 150; // Fixed base size for visual consistency
 
     // Animation variants for the planet and buildings
     const planetVariants = {
@@ -73,38 +61,54 @@ const DigitalPlanetView = () => {
         },
     };
 
-    const buildingVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: (i: number) => ({
-            opacity: 1,
-            y: 0,
-            transition: {
-                delay: i * 0.1 + 0.5,
-                type: "spring",
-                stiffness: 100,
-            },
-        }),
-    };
+    const SatelliteComponent = ({ index }: { index: number }) => (
+        <motion.div
+            key={`sat-${index}`}
+            className="absolute w-3 h-3 rounded-full shadow-lg"
+            style={{ 
+                top: '50%', 
+                left: '50%', 
+                transformOrigin: 'center',
+                // Orbit radius increases slightly with index
+                transform: `rotate(${index * 45}deg) translateX(${planetSize / 2 + 20 + index * 5}px) translateY(-50%)`,
+                backgroundColor: theme.secondary,
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 10 + index * 5, ease: "linear", repeat: Infinity }}
+        >
+            <Rocket className="w-3 h-3 text-primary" />
+        </motion.div>
+    );
     
-    const growthVariants = {
-        initial: { width: 0 },
-        animate: { width: `${civData.progressPercent}%` },
+    const renderConstruction = (id: string) => {
+        if (!purchasedConstructions.includes(id)) return null;
+        
+        switch (id) {
+            case 'lighthouse': return <Landmark className="absolute top-1/4 left-1/4 w-8 h-8 text-yellow-400 drop-shadow-lg" />;
+            case 'biodome': return <Leaf className="absolute bottom-1/4 right-1/4 w-8 h-8 text-green-500 drop-shadow-lg" />;
+            default: return null;
+        }
     };
 
     return (
         <Card className="glass-card p-4 rounded-xl space-y-4 overflow-hidden h-full flex flex-col">
             <CardHeader className="p-0">
                 <CardTitle className="text-xl font-bold flex items-center gap-2">
-                    <Rocket className="w-5 h-5 text-accent" /> Digital Planet: Level {civData.level}
+                    <Globe className="w-5 h-5 text-accent" /> {theme.name} (Lvl {civData.level})
                 </CardTitle>
             </CardHeader>
             
             <CardContent className="p-0 flex flex-col items-center flex-1">
                 {/* Animated Planet Visualization */}
                 <div className="relative flex items-center justify-center my-6 flex-1 w-full">
+                    {/* Satellites (Based on Streaks) */}
+                    {[...Array(civData.satelliteCount)].map((_, i) => (
+                        <SatelliteComponent key={i} index={i} />
+                    ))}
+                    
                     <motion.div
                         className={cn(
-                            "rounded-full shadow-2xl transition-all duration-500",
+                            "rounded-full shadow-2xl transition-all duration-500 relative",
                             theme.glow
                         )}
                         style={{ 
@@ -115,9 +119,12 @@ const DigitalPlanetView = () => {
                         variants={planetVariants}
                         initial="initial"
                         animate="animate"
-                        // Ensure the planet doesn't spin if it's level 1 (static starting point)
                         transition={civData.level > 1 ? planetVariants.animate.transition : { duration: 0 }}
                     >
+                        {/* Construction Buildings */}
+                        {renderConstruction('lighthouse')}
+                        {renderConstruction('biodome')}
+                        
                         {/* Civilization Buildings (Simulated) */}
                         <motion.div 
                             className="absolute inset-0 flex items-center justify-center"
@@ -128,7 +135,7 @@ const DigitalPlanetView = () => {
                                 <motion.div
                                     key={i}
                                     custom={i}
-                                    variants={buildingVariants}
+                                    // Removed buildingVariants for simplicity, using static placement
                                     className="absolute w-2 h-2 rounded-full bg-white/80 shadow-lg"
                                     style={{
                                         top: `${20 + (i * 10) % 60}%`,
@@ -158,21 +165,23 @@ const DigitalPlanetView = () => {
                             <motion.div
                                 className="absolute top-0 left-0 h-full rounded-full"
                                 style={{ backgroundColor: theme.primary }}
-                                variants={growthVariants}
-                                initial="initial"
-                                animate="animate"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${civData.progressPercent}%` }}
                                 transition={{ duration: 1.5, ease: "easeOut" }}
                             />
                         </div>
                     </div>
                     
-                    {isSolarTravelUnlocked && (
-                        <div className="text-center pt-2">
-                            <Badge className="bg-accent/20 text-accent font-semibold flex items-center justify-center gap-1">
-                                <Globe className="w-3 h-3" /> Solar Travel Unlocked!
+                    <div className="text-center pt-2 flex items-center justify-center gap-2">
+                        <Badge className="bg-yellow-500/20 text-yellow-400 font-semibold flex items-center gap-1">
+                            <Star className="w-3 h-3" /> Stardust: {civData.stardust}
+                        </Badge>
+                        {civData.satelliteCount > 0 && (
+                            <Badge className="bg-primary/20 text-primary font-semibold flex items-center gap-1">
+                                <Satellite className="w-3 h-3" /> Satellites: {civData.satelliteCount}
                             </Badge>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </CardContent>
         </Card>
