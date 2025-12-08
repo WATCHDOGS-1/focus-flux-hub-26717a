@@ -13,6 +13,44 @@ import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
+// Define the wrapper component outside the main component body
+const ClientOnlyEditorWrapper = ({ selectedDocument, handleContentUpdate }: { selectedDocument: Document, handleContentUpdate: (content: any) => void }) => {
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => { setIsMounted(true); }, []);
+
+    if (!isMounted) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="ml-3 text-muted-foreground">Loading editor...</p>
+            </div>
+        );
+    }
+    
+    if (selectedDocument.type === 'text') {
+        return (
+            <BlockEditor
+                documentId={selectedDocument.id}
+                initialContent={selectedDocument.content as any}
+                onContentChange={handleContentUpdate}
+            />
+        );
+    }
+    
+    if (selectedDocument.type === 'canvas') {
+        return (
+            <Whiteboard
+                documentId={selectedDocument.id}
+                initialContent={selectedDocument.content as string}
+                onContentChange={handleContentUpdate}
+            />
+        );
+    }
+    
+    return null;
+};
+
+
 const NotesBase = () => {
   const navigate = useNavigate();
   const { documents, updateDocument, createDocument, deleteDocument } = useKnowledge();
@@ -73,27 +111,12 @@ const NotesBase = () => {
         updateDocument(selectedDocument.id, { content });
     };
 
-    if (selectedDocument.type === 'text') {
-      return (
-        <BlockEditor
-          documentId={selectedDocument.id}
-          initialContent={selectedDocument.content as any}
-          onContentChange={handleContentUpdate}
+    return (
+        <ClientOnlyEditorWrapper 
+            selectedDocument={selectedDocument} 
+            handleContentUpdate={handleContentUpdate} 
         />
-      );
-    }
-    
-    if (selectedDocument.type === 'canvas') {
-      return (
-        <Whiteboard
-          documentId={selectedDocument.id}
-          initialContent={selectedDocument.content as string}
-          onContentChange={handleContentUpdate}
-        />
-      );
-    }
-    
-    return null;
+    );
   };
   
   // --- Zen Mode Logic ---

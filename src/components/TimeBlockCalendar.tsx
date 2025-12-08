@@ -204,7 +204,7 @@ const TimeBlockCalendar = () => {
                                                                 variant="ghost" 
                                                                 size="icon" 
                                                                 className="w-4 h-4 p-0 opacity-0 group-hover:opacity-100 text-white/80 hover:text-destructive"
-                                                                onClick={() => handleRemoveSchedule(event.id)}
+                                                                onClick={(e) => { e.stopPropagation(); handleRemoveSchedule(event.id); }}
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
                                                             </Button>
