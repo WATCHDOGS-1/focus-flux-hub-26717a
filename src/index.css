@@ -40,9 +40,7 @@
   }
 
   /* Force dark mode for Zen Cyberpunk aesthetic */
-  .light {
-    @apply dark;
-  }
+  /* Removed the problematic @apply dark here */
   
   body {
     /* Deep Radial Gradient Background */
