@@ -5,7 +5,7 @@ import { Document, MOCK_DOCUMENTS } from "@/types/knowledge";
 
 interface KnowledgeContextType {
     documents: Document[];
-    updateDocumentContent: (id: string, newContent: any) => void;
+    updateDocument: (id: string, update: Partial<Document>) => void;
     createDocument: (type: 'text' | 'canvas', title: string) => Document;
     deleteDocument: (id: string) => void;
 }
@@ -16,10 +16,10 @@ export const KnowledgeProvider = ({ children }: { children: ReactNode }) => {
     const [documents, setDocuments] = useState<Document[]>(MOCK_DOCUMENTS);
     const [nextId, setNextId] = useState(MOCK_DOCUMENTS.length + 1);
 
-    const updateDocumentContent = useCallback((id: string, newContent: any) => {
+    const updateDocument = useCallback((id: string, update: Partial<Document>) => {
         setDocuments(prev => 
             prev.map(doc => 
-                doc.id === id ? { ...doc, content: newContent } : doc
+                doc.id === id ? { ...doc, ...update } : doc
             )
         );
     }, []);
@@ -30,6 +30,8 @@ export const KnowledgeProvider = ({ children }: { children: ReactNode }) => {
             title: title,
             content: type === 'text' ? [] : '{"elements":[]}',
             type: type,
+            icon: null,
+            coverImageUrl: null,
         };
         setDocuments(prev => [...prev, newDoc]);
         setNextId(nextId + 1);
@@ -42,7 +44,7 @@ export const KnowledgeProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <KnowledgeContext.Provider value={{ documents, updateDocumentContent, createDocument, deleteDocument }}>
+        <KnowledgeContext.Provider value={{ documents, updateDocument, createDocument, deleteDocument }}>
             {children}
         </KnowledgeContext.Provider>
     );
