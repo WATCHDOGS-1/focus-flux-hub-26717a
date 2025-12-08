@@ -55,7 +55,7 @@ const MainDashboard = () => {
                         Your Productivity Command Center
                     </h2>
                     <p className="text-xl text-muted-foreground text-center max-w-3xl mx-auto mb-12">
-                        Navigate between your tasks, knowledge base, and live focus rooms.
+                        Navigate between your tasks, notes, and live focus rooms.
                     </p>
                 </AnimatedSection>
 
@@ -79,10 +79,10 @@ const MainDashboard = () => {
                     </AnimatedSection>
                     <AnimatedSection delay={0.3}>
                         <DashboardCard 
-                            title="Knowledge Base" 
+                            title="Notes Base" 
                             description="Organize your notes, diagrams, and study materials using the powerful Block Editor and Whiteboard." 
                             icon={BookOpen} 
-                            link="/knowledge" 
+                            link="/notes" 
                         />
                     </AnimatedSection>
                 </div>

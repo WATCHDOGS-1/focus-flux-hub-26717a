@@ -15,7 +15,7 @@ import SocialDashboard from "./pages/SocialDashboard";
 import CircleDetail from "./pages/CircleDetail";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import KnowledgeBase from "./pages/KnowledgeBase";
+import NotesBase from "./pages/NotesBase"; // Renamed import
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import ZenMode from "./pages/ZenMode"; // Import new ZenMode page
@@ -41,7 +41,7 @@ const App = () => (
               <Route path="/circle/:circleId" element={<CircleDetail />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/knowledge" element={<KnowledgeBase />} />
+              <Route path="/notes" element={<NotesBase />} /> {/* Updated route path */}
               <Route path="/focus-room/:roomId" element={<FocusRoom />} />
               <Route path="/zen-mode" element={<ZenMode />} /> {/* NEW ZEN MODE ROUTE */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

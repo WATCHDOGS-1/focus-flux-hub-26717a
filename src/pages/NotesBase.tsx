@@ -4,7 +4,7 @@ import { useKnowledge, Document } from "@/hooks/use-knowledge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, LayoutGrid, Plus, Home, Trash2, Video, Edit } from "lucide-react";
+import { FileText, LayoutGrid, Plus, Home, Trash2, Video, Edit, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BlockEditor from "@/components/editor/BlockEditor";
 import Whiteboard from "@/components/editor/Whiteboard";
@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-const KnowledgeBase = () => {
+const NotesBase = () => {
   const navigate = useNavigate();
   const { documents, updateDocumentContent, createDocument, deleteDocument } = useKnowledge();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(documents[0]?.id || null);
@@ -87,7 +87,7 @@ const KnowledgeBase = () => {
       <header className="glass-card border-b border-border sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-            <LayoutGrid className="w-6 h-6" /> Knowledge Base
+            <BookOpen className="w-6 h-6" /> Notes Base
           </h1>
           <Button variant="outline" onClick={() => navigate("/")} className="dopamine-click">
             <Home className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -169,4 +169,4 @@ const KnowledgeBase = () => {
   );
 };
 
-export default KnowledgeBase;
+export default NotesBase;

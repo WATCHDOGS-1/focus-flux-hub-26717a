@@ -36,7 +36,7 @@ interface UseFocusSessionResult {
 const CHECKIN_INTERVAL_SECONDS = 30 * 60; // 30 minutes
 
 export function useFocusSession(): UseFocusSessionResult {
-  const { userId } = useAuth();
+  const { userId, profile } = useAuth();
   const { stats, levels, refetch: refetchStats } = useUserStats();
 
   const [currentMode, setCurrentMode] = useState(SESSION_MODES[0]);
@@ -142,7 +142,10 @@ export function useFocusSession(): UseFocusSessionResult {
   }, [userId, sessionId, sessionStartTime, stats, levels, refetchStats, currentMode]);
 
   const startNewSession = async () => {
-    if (!userId) return;
+    if (!userId || !profile) {
+        toast.error("Authentication incomplete. Please wait for profile to load or re-login.");
+        return;
+    }
     
     // 1. Create new session record
     const { data, error } = await supabase
@@ -229,7 +232,7 @@ export function useFocusSession(): UseFocusSessionResult {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive, timeLeft, isBreak, currentMode, prepareSessionEnd, focusTag, userId]);
+  }, [isActive, timeLeft, isBreak, currentMode, prepareSessionEnd, focusTag, userId, profile]);
 
   const toggleTimer = () => {
     const newState = !isActive;
