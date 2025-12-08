@@ -19,26 +19,9 @@ import NotesBase from "./pages/NotesBase";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import ZenMode from "./pages/ZenMode";
-import { AudioProvider, useAudioFeedback } from "./hooks/useAudioFeedback";
 import OnboardingTour from "./components/OnboardingTour";
 
 const queryClient = new QueryClient();
-
-// Component to handle global click audio
-const GlobalAudioWrapper = ({ children }: { children: React.ReactNode }) => {
-    const { play } = useAudioFeedback();
-
-    const handleClick = (e: React.MouseEvent) => {
-        const target = e.target as HTMLElement;
-        // Check if the clicked element or its parent has the dopamine-click class
-        if (target.closest('.dopamine-click')) {
-            play('click');
-        }
-    };
-
-    return <div onClick={handleClick}>{children}</div>;
-};
-
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -47,29 +30,25 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AudioProvider>
-            <GlobalAudioWrapper>
-              <KnowledgeProvider>
-                <OnboardingTour />
-                <Routes>
-                  <Route path="/" element={<MainDashboard />} />
-                  <Route path="/landing" element={<MarketingLanding />} />
-                  <Route path="/productivity" element={<ProductivityDashboard />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="/explore" element={<ExploreRooms />} />
-                  <Route path="/social" element={<SocialDashboard />} />
-                  <Route path="/circle/:circleId" element={<CircleDetail />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/notes" element={<NotesBase />} />
-                  <Route path="/focus-room/:roomId" element={<FocusRoom />} />
-                  <Route path="/zen-mode" element={<ZenMode />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </KnowledgeProvider>
-            </GlobalAudioWrapper>
-          </AudioProvider>
+          <KnowledgeProvider>
+            <OnboardingTour />
+            <Routes>
+              <Route path="/" element={<MainDashboard />} />
+              <Route path="/landing" element={<MarketingLanding />} />
+              <Route path="/productivity" element={<ProductivityDashboard />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/explore" element={<ExploreRooms />} />
+              <Route path="/social" element={<SocialDashboard />} />
+              <Route path="/circle/:circleId" element={<CircleDetail />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/notes" element={<NotesBase />} />
+              <Route path="/focus-room/:roomId" element={<FocusRoom />} />
+              <Route path="/zen-mode" element={<ZenMode />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </KnowledgeProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

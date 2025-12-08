@@ -20,7 +20,6 @@ import {
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useAudioFeedback } from "@/hooks/useAudioFeedback";
 
 // --- Task Creation Modal Component ---
 const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: number, tags: string[]) => void }) => {
@@ -188,7 +187,6 @@ const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete, updateTask
 
 const KanbanBoard = () => {
     const { tasks, columns, addTask, deleteTask, updateTaskStatus, isLoading } = useTasks();
-    const { play } = useAudioFeedback();
     const navigate = useNavigate();
     
     const sensors = useSensors(
@@ -219,9 +217,7 @@ const KanbanBoard = () => {
         if (currentTask && currentTask.status !== newStatus) {
             updateTaskStatus(taskId, newStatus);
             
-            if (newStatus === 'done') {
-                play('pop');
-            }
+            // Removed audio feedback here
         }
     };
     
