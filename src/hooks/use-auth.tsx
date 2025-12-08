@@ -22,17 +22,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (id: string) => {
+    // Use limit(1).maybeSingle() to handle potential duplicate profile entries 
+    // (which should not happen but causes the "Cannot coerce..." error if it does)
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", id)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching profile:", error);
       toast.error(`Failed to load user profile: ${error.message}`);
       setProfile(null);
-    } else {
+    } else if (data) {
       // --- Moderation Check ---
       const sanitizedUsername = await sanitizeUsername(id, data.username);
       
@@ -41,6 +44,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         username: sanitizedUsername,
       };
       setProfile(finalProfile);
+    } else {
+        // No profile found (e.g., user just signed up and trigger hasn't run yet)
+        setProfile(null);
     }
   };
 
