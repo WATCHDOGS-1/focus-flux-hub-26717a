@@ -13,7 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { sendGeminiChat, AI_COACH_SYSTEM_PROMPT } from "@/utils/gemini"; // Assuming sendGeminiChat is updated to handle system prompt
+import { sendGeminiChat } from "@/utils/gemini";
+import { AI_COACH_SYSTEM_PROMPT } from "@/utils/ai-coach"; // Corrected import path
 import { cn } from "@/lib/utils";
 
 interface BlockEditorProps {
