@@ -4,9 +4,7 @@ import { cn } from "@/lib/utils";
 import { useCivilization, PlanetTheme } from "@/hooks/use-civilization";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import ClientOnlyPlanet3D from "./ClientOnlyPlanet3D"; // Import the new client-only wrapper
 
 const BIOME_STYLES: Record<PlanetTheme, { primary: string, secondary: string, glow: string, name: string }> = {
     'default': { primary: "hsl(217 91% 60%)", secondary: "hsl(210 40% 98%)", glow: "shadow-blue-500/50", name: "Default Focus" },
@@ -19,7 +17,6 @@ const DigitalPlanetView = () => {
     const { data: civData, isLoading } = useCivilization();
 
     if (isLoading || !civData) {
-        // If loading, or if loading finished but no data was returned (should be rare after hook fix)
         return (
             <Card className="glass-card p-4 rounded-xl space-y-4 text-center h-full flex flex-col justify-center">
                 <div className="flex items-center justify-center h-24 text-muted-foreground">
@@ -36,7 +33,6 @@ const DigitalPlanetView = () => {
     }
 
     const theme = BIOME_STYLES[civData.planetTheme] || BIOME_STYLES.default;
-    const planetSize = 2; // Size for the 3D model
 
     return (
         <Card className="glass-card p-4 rounded-xl space-y-4 overflow-hidden h-full flex flex-col">
@@ -47,15 +43,10 @@ const DigitalPlanetView = () => {
             </CardHeader>
             
             <CardContent className="p-0 flex flex-col items-center flex-1 min-h-[250px]">
-                {/* Animated Planet Visualization (3D) */}
-                <div id="digital-planet-3d" className="relative flex items-center justify-center my-6 flex-1 w-full h-full min-h-[250px]">
-                    <ClientOnlyPlanet3D 
-                        level={civData.level}
-                        theme={civData.planetTheme}
-                        satelliteCount={civData.satelliteCount}
-                        progressPercent={civData.progressPercent}
-                        size={planetSize}
-                    />
+                {/* Placeholder for 3D Planet */}
+                <div id="digital-planet-3d" className="relative flex items-center justify-center my-6 flex-1 w-full h-full min-h-[250px] bg-secondary/50 rounded-xl">
+                    <Rocket className="w-16 h-16 text-primary/50 animate-pulse" />
+                    <p className="absolute bottom-4 text-xs text-muted-foreground">3D Visualization Temporarily Disabled</p>
                 </div>
 
                 {/* Growth Status */}
