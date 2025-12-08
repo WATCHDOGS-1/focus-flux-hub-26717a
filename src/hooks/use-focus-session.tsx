@@ -129,7 +129,7 @@ export function useFocusSession(): UseFocusSessionResult {
       },
       error: (message) => {
         console.error("Session save failed:", message);
-        return "Failed to save session. Check console for details.";
+        return `Failed to save session: ${message}`;
       },
     });
 
@@ -152,7 +152,7 @@ export function useFocusSession(): UseFocusSessionResult {
       .single();
 
     if (error || !data) {
-      toast.error("Failed to start session.");
+      toast.error(`Failed to start session: ${error?.message || 'Unknown database error'}`);
       console.error("Session start error:", error);
       return;
     }

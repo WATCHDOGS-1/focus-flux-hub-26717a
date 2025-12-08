@@ -43,7 +43,7 @@ const DailyWrappedCard = () => {
 
         if (error) {
             console.error("Error fetching daily summary:", error);
-            toast.error("Failed to load yesterday's focus summary.");
+            toast.error(`Failed to load yesterday's focus summary: ${error.message}`);
             setIsLoading(false);
             return;
         }
