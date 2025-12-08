@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import Planet3D from "./three/Planet3D"; // Import the new 3D component
+import ClientOnlyPlanet3D from "./ClientOnlyPlanet3D"; // Import the new client-only wrapper
 
 const BIOME_STYLES: Record<PlanetTheme, { primary: string, secondary: string, glow: string, name: string }> = {
     'default': { primary: "hsl(217 91% 60%)", secondary: "hsl(210 40% 98%)", glow: "shadow-blue-500/50", name: "Default Focus" },
@@ -49,7 +49,7 @@ const DigitalPlanetView = () => {
             <CardContent className="p-0 flex flex-col items-center flex-1 min-h-[250px]">
                 {/* Animated Planet Visualization (3D) */}
                 <div id="digital-planet-3d" className="relative flex items-center justify-center my-6 flex-1 w-full h-full min-h-[250px]">
-                    <Planet3D 
+                    <ClientOnlyPlanet3D 
                         level={civData.level}
                         theme={civData.planetTheme}
                         satelliteCount={civData.satelliteCount}
