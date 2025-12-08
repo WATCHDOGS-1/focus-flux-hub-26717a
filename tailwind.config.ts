@@ -31,7 +31,7 @@ export default {
         // Secondary Accent: Electric Cyan
         accent: {
           DEFAULT: "hsl(185 90% 60%)", // #00f0ff
-          foreground: "hsl(224 71% 4%)",
+          foreground: "hsl(224 71% 4%",
         },
         
         // Muted/Secondary UI elements
@@ -50,23 +50,23 @@ export default {
         ring: "hsl(280 90% 60%)",
         card: {
           DEFAULT: "hsl(230 10% 10%)",
-          foreground: "hsl(210 40% 98%)",
+          foreground: "hsl(210 40% 98%",
         },
         popover: {
           DEFAULT: "hsl(230 10% 10%)",
-          foreground: "hsl(210 40% 98%)",
+          foreground: "hsl(210 40% 98%",
         },
         destructive: {
           DEFAULT: "hsl(0 84.2% 60.2%)",
-          foreground: "hsl(210 40% 98%)",
+          foreground: "hsl(210 40% 98%",
         },
         success: {
           DEFAULT: "hsl(142 76% 36%)",
-          foreground: "hsl(210 40% 98%)",
+          foreground: "hsl(210 40% 98%",
         },
         warning: {
           DEFAULT: "hsl(45 93% 47%)",
-          foreground: "hsl(224 71% 4%)",
+          foreground: "hsl(224 71% 4%",
         },
       },
       borderRadius: {
@@ -91,12 +91,31 @@ export default {
             height: "0",
           },
         },
+        "blob-movement": {
+          "0%": { transform: "translate(0, 0) scale(1)" },
+          "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+          "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+          "100%": { transform: "translate(0, 0) scale(1)" },
+        },
+        "timer-breathing": {
+          "0%, 100%": { "stroke-width": "8px", opacity: "1" },
+          "50%": { "stroke-width": "12px", opacity: "0.8" },
+        },
+        "background-pulse": {
+          "0%, 100%": { opacity: "0.5" },
+          "50%": { opacity: "0.7" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "blob-1": "blob-movement 12s infinite alternate ease-in-out",
+        "blob-2": "blob-movement 15s infinite alternate-reverse ease-in-out",
+        "blob-3": "blob-movement 10s infinite alternate ease-in-out",
+        "timer-breathing": "timer-breathing 4s ease-in-out infinite",
+        "background-pulse": "background-pulse 4s ease-in-out infinite",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;

@@ -151,13 +151,15 @@ interface KanbanColumnProps {
     tasks: Task[];
     onFocusNow: (task: Task) => void;
     onDelete: (taskId: string) => void;
+    updateTaskStatus: (taskId: string, newStatus: Task['status']) => Promise<void>;
 }
 
-const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete }: KanbanColumnProps) => {
+const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete, updateTaskStatus }: KanbanColumnProps) => {
     const taskIds = useMemo(() => tasks.map(task => task.id), [tasks]);
 
     return (
         <div
+            id={columnId} // Added ID for DndContext to identify droppable area
             className={cn(
                 "p-4 rounded-xl flex flex-col h-full min-h-[300px] bg-secondary/20"
             )}
@@ -232,7 +234,7 @@ const KanbanBoard = () => {
     }
 
     return (
-        <div className="h-full flex flex-col">
+        <div id="kanban-board" className="h-full flex flex-col">
             <TaskCreationModal onAddTask={addTask} />
             <DndContext 
                 sensors={sensors}
@@ -248,6 +250,7 @@ const KanbanBoard = () => {
                             tasks={tasksByStatus[id]}
                             onFocusNow={handleFocusNow}
                             onDelete={deleteTask}
+                            updateTaskStatus={updateTaskStatus}
                         />
                     ))}
                 </div>

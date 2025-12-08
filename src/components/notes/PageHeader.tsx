@@ -42,7 +42,8 @@ const PageHeader = ({ title, onTitleChange, icon, onIconChange, coverImageUrl, o
         maxFiles: 1,
     });
 
-    const handleRemoveCover = async () => {
+    const handleRemoveCover = async (e: React.MouseEvent) => {
+        e.stopPropagation();
         setIsUploading(true);
         try {
             await onCoverImageChange(null);

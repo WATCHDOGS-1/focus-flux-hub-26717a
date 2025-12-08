@@ -49,7 +49,7 @@ const FocusTimer = () => {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center">
+    <div id="focus-timer-card" className="h-full flex flex-col items-center justify-center">
       <div className="flex items-center justify-between w-full max-w-xs mb-4">
         <h3 className="text-xl font-bold truncate text-accent">
           {isBreak ? "Break Time" : currentMode.name}

@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Video, Plus, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
+import { FileText, Video, Plus, ChevronDown, ChevronRight, BookOpen, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useKnowledge, Document } from '@/hooks/use-knowledge';
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
@@ -17,35 +11,39 @@ interface NotesSidebarProps {
     selectedDocId: string | null;
     onSelectDoc: (id: string) => void;
     onCreateNew: (type: 'text' | 'canvas', title: string) => void;
+    onDeleteDoc: (id: string) => void;
 }
 
-// Mock File Tree Structure (for visualization)
-const MOCK_TREE = [
-    { id: 'doc-1', title: 'Project Alpha Notes', type: 'text', children: [
-        { id: 'doc-3', title: 'Daily Journal Entry', type: 'text' },
-    ]},
-    { id: 'doc-2', title: 'System Architecture Diagram', type: 'canvas', children: [] },
-];
-
-const DocumentItem = ({ doc, selectedDocId, onSelectDoc }: { doc: Document, selectedDocId: string | null, onSelectDoc: (id: string) => void }) => {
+const DocumentItem = ({ doc, selectedDocId, onSelectDoc, onDeleteDoc }: { doc: Document, selectedDocId: string | null, onSelectDoc: (id: string) => void, onDeleteDoc: (id: string) => void }) => {
     const Icon = doc.type === 'text' ? FileText : Video;
     const isSelected = doc.id === selectedDocId;
 
     return (
         <div
             className={cn(
-                "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors truncate",
+                "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors truncate group",
                 isSelected ? "bg-primary/20 font-semibold text-primary" : "hover:bg-secondary/50 text-foreground"
             )}
             onClick={() => onSelectDoc(doc.id)}
         >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate text-sm">{doc.title}</span>
+            <div className="flex items-center gap-2 truncate flex-1">
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate text-sm">{doc.title}</span>
+            </div>
+            <Button
+                variant="ghost"
+                size="icon"
+                className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive flex-shrink-0"
+                onClick={(e) => { e.stopPropagation(); onDeleteDoc(doc.id); }}
+                title="Delete Document"
+            >
+                <Trash2 className="w-4 h-4" />
+            </Button>
         </div>
     );
 };
 
-const NotesSidebar = ({ selectedDocId, onSelectDoc, onCreateNew }: NotesSidebarProps) => {
+const NotesSidebar = ({ selectedDocId, onSelectDoc, onCreateNew, onDeleteDoc }: NotesSidebarProps) => {
     const { documents } = useKnowledge();
     const [newTitle, setNewTitle] = useState('');
 
@@ -54,8 +52,9 @@ const NotesSidebar = ({ selectedDocId, onSelectDoc, onCreateNew }: NotesSidebarP
             toast.error("Title cannot be empty.");
             return;
         }
-        onCreateNew(type, newTitle.trim());
+        const newDoc = onCreateNew(type, newTitle.trim());
         setNewTitle('');
+        onSelectDoc(newDoc.id);
     };
 
     return (
@@ -74,6 +73,7 @@ const NotesSidebar = ({ selectedDocId, onSelectDoc, onCreateNew }: NotesSidebarP
                             doc={doc} 
                             selectedDocId={selectedDocId} 
                             onSelectDoc={onSelectDoc} 
+                            onDeleteDoc={onDeleteDoc}
                         />
                     ))}
                 </div>

@@ -81,45 +81,6 @@
   100% { background-position: 100% 100%; }
 }
 
-@keyframes blob-movement {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-}
-
-@keyframes timer-breathing {
-  0%, 100% {
-    stroke-width: 8px;
-    opacity: 1;
-  }
-  50% {
-    stroke-width: 12px;
-    opacity: 0.8;
-  }
-}
-
-@keyframes background-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.7; }
-}
-
-/* --- Room Themes (Keep existing, but they will be overridden by the global body style) --- */
-
-.default, .deep-cave, .library, .cyberpunk, .morning-sunlight {
-  /* Ensure themes use the new base colors */
-  background: radial-gradient(circle at center, #1a1b26 0%, #000000 100%) !important;
-}
-
-
 /* --- Base & Utilities --- */
 
 @layer base {

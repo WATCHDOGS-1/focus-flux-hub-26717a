@@ -74,7 +74,7 @@ export function useGamification() {
         };
 
         fetchClass();
-    }, [userId]);
+    }, [userId, currentLevel]); // Added currentLevel dependency to track changes
 
     const setClass = async (newClass: FocusClass) => {
         if (!userId) return;

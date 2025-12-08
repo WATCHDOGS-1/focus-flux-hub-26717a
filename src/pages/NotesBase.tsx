@@ -41,8 +41,7 @@ const NotesBase = () => {
   
   const handleIconChange = (newIcon: string | null) => {
     if (!selectedDocument) return;
-    // NOTE: In a real app, icon/cover would be stored in a separate DB column (e.g., 'metadata')
-    // For now, we mock this by updating the document object itself.
+    // NOTE: We update the document object itself for metadata
     updateDocumentContent(selectedDocument.id, { ...selectedDocument, icon: newIcon });
   };
   
@@ -71,7 +70,15 @@ const NotesBase = () => {
     
     // NOTE: We need to handle the content update logic carefully here.
     const handleContentUpdate = (content: any) => {
-        updateDocumentContent(selectedDocument.id, { ...selectedDocument, content });
+        // Preserve metadata (title, icon, coverImageUrl) when updating content
+        const metadata = {
+            title: selectedDocument.title,
+            icon: (selectedDocument as any).icon,
+            coverImageUrl: (selectedDocument as any).coverImageUrl,
+            type: selectedDocument.type,
+            id: selectedDocument.id,
+        };
+        updateDocumentContent(selectedDocument.id, { ...metadata, content });
     };
 
     if (selectedDocument.type === 'text') {
@@ -145,6 +152,7 @@ const NotesBase = () => {
                 selectedDocId={selectedDocId} 
                 onSelectDoc={setSelectedDocId} 
                 onCreateNew={createDocument}
+                onDeleteDoc={deleteDocument}
             />
           </Panel>
           

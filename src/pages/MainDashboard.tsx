@@ -8,9 +8,11 @@ import DigitalPlanet3D from "@/components/DigitalPlanet3D"; // New 3D component
 import FocusTimer from "@/components/FocusTimer"; // Reusing existing timer
 import HeatmapStats from "@/components/HeatmapStats"; // Reusing existing heatmap
 import AICoachPanel from "@/components/AICoachPanel"; // Reusing existing AI panel
+import { cn } from "@/lib/utils";
 
-const BentoCard = ({ children, className, delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) => (
+const BentoCard = ({ children, className, delay = 0, id }: { children: React.ReactNode, className?: string, delay?: number, id?: string }) => (
     <motion.div
+        id={id}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay, ease: "easeOut" }}
@@ -49,7 +51,7 @@ const MainDashboard = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 auto-rows-[minmax(200px, auto)]">
                     
                     {/* Slot A: 3D Digital Planet (Span 2 columns, 2 rows) */}
-                    <BentoCard className="lg:col-span-2 lg:row-span-2 h-[600px] relative" delay={0.1}>
+                    <BentoCard id="digital-planet-3d" className="lg:col-span-2 lg:row-span-2 h-[600px] relative" delay={0.1}>
                         <div className="absolute inset-0 z-0">
                             <DigitalPlanet3D />
                         </div>
@@ -60,7 +62,7 @@ const MainDashboard = () => {
                     </BentoCard>
 
                     {/* Slot B: Focus Timer (Span 2 columns, 1 row) */}
-                    <BentoCard className="lg:col-span-2 h-[300px] flex items-center justify-center" delay={0.2}>
+                    <BentoCard id="focus-timer-card" className="lg:col-span-2 h-[300px] flex items-center justify-center" delay={0.2}>
                         <FocusTimer />
                     </BentoCard>
 
@@ -69,9 +71,8 @@ const MainDashboard = () => {
                         <HeatmapStats />
                     </BentoCard>
                     
-                    {/* Slot D: AI Coach Chat Widget (Span 1 column, 2 rows - Placeholder for now) */}
-                    {/* NOTE: The AI Coach will be converted to a floating widget later, but for the dashboard, we use a static panel */}
-                    <BentoCard className="lg:col-span-1 lg:row-span-2 h-[600px]" delay={0.4}>
+                    {/* Slot D: AI Coach Chat Widget (Span 1 column, 2 rows) */}
+                    <BentoCard id="ai-coach-widget" className="lg:col-span-1 lg:row-span-2 h-[600px]" delay={0.4}>
                         <AICoachPanel />
                     </BentoCard>
                     
@@ -84,10 +85,10 @@ const MainDashboard = () => {
                             description="Join live co-working sessions."
                         />
                         <DashboardLink 
-                            title="Notes Base" 
-                            icon={BookOpen} 
-                            link="/notes" 
-                            description="Organize your knowledge."
+                            title="Productivity Hub" 
+                            icon={LayoutGrid} 
+                            link="/productivity" 
+                            description="Manage tasks and schedule your week."
                         />
                         <DashboardLink 
                             title="Leaderboard" 
