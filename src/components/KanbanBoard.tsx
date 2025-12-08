@@ -1,14 +1,14 @@
 import { useTasks } from "@/hooks/use-tasks";
 import { Task } from "@/types/productivity";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Clock, CheckCircle, Loader2, ListChecks, Plus, Trash2, X } from "lucide-react";
+import { Play, Clock, CheckCircle, Loader2, ListChecks, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import {
     Dialog,
@@ -17,6 +17,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useAudioFeedback } from "@/hooks/useAudioFeedback";
 
 // --- Task Creation Modal Component ---
 const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: number, tags: string[]) => void }) => {
@@ -87,11 +91,22 @@ interface KanbanCardProps {
 }
 
 const KanbanCard = ({ task, onFocusNow, onDelete }: KanbanCardProps) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 0,
+    };
+
     return (
         <Card
-            key={task.id}
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
             className={cn(
-                "glass-card p-3 mb-3 transition-all hover-lift cursor-pointer group relative",
+                "glass-card p-3 mb-3 transition-all hover-lift cursor-grab group relative",
+                isDragging && "ring-2 ring-primary/50 shadow-lg",
                 task.status === 'done' && "opacity-70"
             )}
         >
@@ -105,7 +120,7 @@ const KanbanCard = ({ task, onFocusNow, onDelete }: KanbanCardProps) => {
                 <X className="w-4 h-4" />
             </Button>
             
-            <div className="flex flex-col gap-2 pr-6">
+            <div className="flex flex-col gap-2 pr-6" {...listeners}>
                 <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-sm truncate">{task.title}</h4>
                     <Badge variant="secondary" className="text-xs flex items-center gap-1">
@@ -139,6 +154,8 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete }: KanbanColumnProps) => {
+    const taskIds = useMemo(() => tasks.map(task => task.id), [tasks]);
+
     return (
         <div
             className={cn(
@@ -152,32 +169,59 @@ const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete }: KanbanCo
                 {title} ({tasks.length})
             </h3>
             <ScrollArea className="flex-1 pr-2">
-                {tasks.map((task) => (
-                    <KanbanCard 
-                        key={task.id} 
-                        task={task} 
-                        onFocusNow={onFocusNow} 
-                        onDelete={onDelete}
-                    />
-                ))}
+                <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                    {tasks.map((task) => (
+                        <KanbanCard 
+                            key={task.id} 
+                            task={task} 
+                            onFocusNow={onFocusNow} 
+                            onDelete={onDelete}
+                        />
+                    ))}
+                </SortableContext>
             </ScrollArea>
         </div>
     );
 };
 
 const KanbanBoard = () => {
-    const { tasks, columns, addTask, deleteTask, isLoading } = useTasks();
+    const { tasks, columns, addTask, deleteTask, updateTaskStatus, isLoading } = useTasks();
+    const { play } = useAudioFeedback();
     const navigate = useNavigate();
+    
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor)
+    );
 
     const handleFocusNow = (task: Task) => {
-        // Navigate to Zen Mode with the task title as the focus tag
         navigate(`/zen-mode?tag=${encodeURIComponent(task.title)}`);
     };
 
-    const tasksByStatus = Object.keys(columns).reduce((acc, status) => {
-        acc[status] = tasks.filter(task => task.status === status);
-        return acc;
-    }, {} as Record<string, Task[]>);
+    const tasksByStatus = useMemo(() => {
+        return Object.keys(columns).reduce((acc, status) => {
+            acc[status] = tasks.filter(task => task.status === status);
+            return acc;
+        }, {} as Record<string, Task[]>);
+    }, [tasks, columns]);
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        
+        if (!over) return;
+
+        const taskId = active.id as string;
+        const newStatus = over.id as Task['status'];
+        const currentTask = tasks.find(t => t.id === taskId);
+
+        if (currentTask && currentTask.status !== newStatus) {
+            updateTaskStatus(taskId, newStatus);
+            
+            if (newStatus === 'done') {
+                play('pop');
+            }
+        }
+    };
     
     if (isLoading) {
         return (
@@ -190,18 +234,24 @@ const KanbanBoard = () => {
     return (
         <div className="h-full flex flex-col">
             <TaskCreationModal onAddTask={addTask} />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
-                {Object.entries(columns).map(([id, column]) => (
-                    <KanbanColumn
-                        key={id}
-                        columnId={id as Task['status']}
-                        title={column.title}
-                        tasks={tasksByStatus[id]}
-                        onFocusNow={handleFocusNow}
-                        onDelete={deleteTask}
-                    />
-                ))}
-            </div>
+            <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+                    {Object.entries(columns).map(([id, column]) => (
+                        <KanbanColumn
+                            key={id}
+                            columnId={id as Task['status']}
+                            title={column.title}
+                            tasks={tasksByStatus[id]}
+                            onFocusNow={handleFocusNow}
+                            onDelete={deleteTask}
+                        />
+                    ))}
+                </div>
+            </DndContext>
         </div>
     );
 };

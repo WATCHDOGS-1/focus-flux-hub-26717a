@@ -1,55 +1,65 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useKnowledge, Document } from "@/hooks/use-knowledge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, LayoutGrid, Plus, Home, Trash2, Video, Edit, BookOpen } from "lucide-react";
+import { Home, Maximize2, Minimize2, BookOpen, Loader2, Settings } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import BlockEditor from "@/components/editor/BlockEditor";
 import Whiteboard from "@/components/editor/Whiteboard";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import PageHeader from "@/components/notes/PageHeader";
+import NotesSidebar from "@/components/notes/NotesSidebar";
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
+import { toast } from "sonner";
 
 const NotesBase = () => {
   const navigate = useNavigate();
   const { documents, updateDocumentContent, createDocument, deleteDocument } = useKnowledge();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(documents[0]?.id || null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newDocTitle, setNewDocTitle] = useState("");
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [sidebarSize, setSidebarSize] = useState(20);
 
-  useEffect(() => {
-    // Ensure a document is selected if the list isn't empty
-    if (!selectedDocId && documents.length > 0) {
-        setSelectedDocId(documents[0].id);
-    }
-  }, [documents, selectedDocId]);
-
+  // --- Document State Management ---
   const selectedDocument = documents.find(doc => doc.id === selectedDocId);
 
-  const handleCreate = (type: 'text' | 'canvas') => {
-    if (!newDocTitle.trim()) return;
-    const newDoc = createDocument(type, newDocTitle.trim());
-    setSelectedDocId(newDoc.id);
-    setNewDocTitle("");
-    setIsCreateDialogOpen(false);
+  useEffect(() => {
+    if (!selectedDocId && documents.length > 0) {
+        setSelectedDocId(documents[0].id);
+    } else if (selectedDocId && !selectedDocument) {
+        // If the selected document was deleted
+        setSelectedDocId(documents[0]?.id || null);
+    }
+  }, [documents, selectedDocId, selectedDocument]);
+
+  // --- Document Property Handlers ---
+  const handleTitleChange = (newTitle: string) => {
+    if (!selectedDocument) return;
+    // Optimistic update + save logic (simplified here, full save handled by editor)
+    updateDocumentContent(selectedDocument.id, { ...selectedDocument, title: newTitle });
   };
   
-  const handleDelete = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this document?")) {
-        deleteDocument(id);
-        if (selectedDocId === id) {
-            setSelectedDocId(documents.filter(doc => doc.id !== id)[0]?.id || null);
-        }
-    }
+  const handleIconChange = (newIcon: string | null) => {
+    if (!selectedDocument) return;
+    // NOTE: In a real app, icon/cover would be stored in a separate DB column (e.g., 'metadata')
+    // For now, we mock this by updating the document object itself.
+    updateDocumentContent(selectedDocument.id, { ...selectedDocument, icon: newIcon });
   };
+  
+  const handleCoverImageChange = useCallback(async (file: File | null) => {
+    if (!selectedDocument) return;
+    setIsSaving(true);
+    
+    let newUrl = file ? URL.createObjectURL(file) : null; // Mock upload
+    
+    // Simulate upload delay and cleanup
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    updateDocumentContent(selectedDocument.id, { ...selectedDocument, coverImageUrl: newUrl });
+    setIsSaving(false);
+  }, [selectedDocument, updateDocumentContent]);
 
+  // --- Editor Rendering ---
   const renderEditor = () => {
     if (!selectedDocument) {
       return (
@@ -59,12 +69,17 @@ const NotesBase = () => {
       );
     }
     
+    // NOTE: We need to handle the content update logic carefully here.
+    const handleContentUpdate = (content: any) => {
+        updateDocumentContent(selectedDocument.id, { ...selectedDocument, content });
+    };
+
     if (selectedDocument.type === 'text') {
       return (
         <BlockEditor
           documentId={selectedDocument.id}
           initialContent={selectedDocument.content as any}
-          onContentChange={(content) => updateDocumentContent(selectedDocument.id, content)}
+          onContentChange={handleContentUpdate}
         />
       );
     }
@@ -74,96 +89,94 @@ const NotesBase = () => {
         <Whiteboard
           documentId={selectedDocument.id}
           initialContent={selectedDocument.content as string}
-          onContentChange={(content) => updateDocumentContent(selectedDocument.id, content)}
+          onContentChange={handleContentUpdate}
         />
       );
     }
     
     return null;
   };
+  
+  // --- Zen Mode Logic ---
+  const toggleZenMode = () => {
+    setIsZenMode(prev => {
+        const newState = !prev;
+        if (newState) {
+            // Entering Zen Mode: Collapse sidebar
+            setSidebarSize(0);
+        } else {
+            // Exiting Zen Mode: Restore sidebar
+            setSidebarSize(20);
+        }
+        return newState;
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="glass-card border-b border-border sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      <header className="glass-card border-b border-white/10 sticky top-0 z-30">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
             <BookOpen className="w-6 h-6" /> Notes Base
           </h1>
-          <Button variant="outline" onClick={() => navigate("/")} className="dopamine-click">
-            <Home className="w-4 h-4 mr-2" /> Back to Dashboard
-          </Button>
+          <div className="flex gap-2 items-center">
+            <Button variant="ghost" size="icon" onClick={toggleZenMode} title={isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"} className="dopamine-click">
+                {isZenMode ? <Maximize2 className="w-5 h-5" /> : <Minimize2 className="w-5 h-5" />}
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/")} className="dopamine-click">
+                <Home className="w-4 h-4 mr-2" /> Dashboard
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto p-4 grid grid-cols-1 md:grid-cols-4 gap-4 h-full">
-        {/* Sidebar (1/4) */}
-        <Card className="glass-card md:col-span-1 flex flex-col h-[85vh]">
-          <div className="p-4 border-b border-border">
-            <h2 className="text-lg font-semibold mb-2">Documents</h2>
-            
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button size="sm" className="w-full dopamine-click">
-                        <Plus className="w-4 h-4 mr-1" /> Create New
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px] glass-card">
-                    <DialogHeader>
-                        <DialogTitle>Create New Document</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <Input 
-                            placeholder="Document Title" 
-                            value={newDocTitle} 
-                            onChange={e => setNewDocTitle(e.target.value)} 
-                        />
-                        <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleCreate('text')} className="flex-1 dopamine-click" disabled={!newDocTitle.trim()}>
-                                <FileText className="w-4 h-4 mr-1" /> Note
-                            </Button>
-                            <Button size="sm" onClick={() => handleCreate('canvas')} variant="secondary" className="flex-1 dopamine-click" disabled={!newDocTitle.trim()}>
-                                <Video className="w-4 h-4 mr-1" /> Canvas
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-          </div>
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-2 space-y-1">
-              {documents.map(doc => (
-                <div
-                  key={doc.id}
-                  className={cn(
-                    "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors group",
-                    selectedDocId === doc.id ? "bg-primary/20 font-semibold" : "hover:bg-secondary/50"
-                  )}
-                  onClick={() => setSelectedDocId(doc.id)}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    {doc.type === 'text' ? <FileText className="w-4 h-4" /> : <Video className="w-4 h-4" />}
-                    <span className="truncate">{doc.title}</span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive flex-shrink-0"
-                    onClick={(e) => { e.stopPropagation(); handleDelete(doc.id); }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+      <main className="flex-1 min-h-0">
+        <PanelGroup direction="horizontal" className="h-full">
+          
+          {/* Sidebar Panel */}
+          <Panel 
+            defaultSize={20} 
+            minSize={15} 
+            maxSize={30} 
+            onResize={setSidebarSize}
+            className={cn(isZenMode && "hidden")}
+          >
+            <NotesSidebar 
+                selectedDocId={selectedDocId} 
+                onSelectDoc={setSelectedDocId} 
+                onCreateNew={createDocument}
+            />
+          </Panel>
+          
+          {!isZenMode && <PanelResizeHandle className="w-1 bg-border/50 hover:bg-primary/50 transition-colors cursor-col-resize" />}
+          
+          {/* Editor Panel */}
+          <Panel minSize={50}>
+            <Card className="glass-card h-full overflow-y-auto rounded-none border-none">
+              <CardContent className="p-0 h-full flex flex-col">
+                
+                {selectedDocument && (
+                    <PageHeader
+                        title={selectedDocument.title}
+                        onTitleChange={handleTitleChange}
+                        icon={(selectedDocument as any).icon || null}
+                        onIconChange={handleIconChange}
+                        coverImageUrl={(selectedDocument as any).coverImageUrl || null}
+                        onCoverImageChange={handleCoverImageChange}
+                        isSaving={isSaving}
+                    />
+                )}
+                
+                <div className={cn(
+                    "flex-1 min-h-[50vh] p-8",
+                    isZenMode && "max-w-4xl mx-auto w-full"
+                )}>
+                    {renderEditor()}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </Card>
-
-        {/* Editor View (3/4) */}
-        <Card className="glass-card md:col-span-3 h-[85vh]">
-          <CardContent className="p-0 h-full">
-            {renderEditor()}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </Panel>
+        </PanelGroup>
       </main>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./use-auth";
 import { toast } from "sonner";
+import confetti from 'canvas-confetti';
 
 export type FocusClass = "Monk" | "Sprinter" | "Scholar" | "None";
 
@@ -26,10 +27,20 @@ export const FOCUS_CLASSES = [
     },
 ];
 
+const triggerConfetti = () => {
+    confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#b026ff', '#00f0ff', '#ffffff'],
+    });
+};
+
 export function useGamification() {
     const { userId } = useAuth();
     const [userClass, setUserClass] = useState<FocusClass>("None");
     const [isLoading, setIsLoading] = useState(true);
+    const [currentLevel, setCurrentLevel] = useState(0); // Track current level
 
     useEffect(() => {
         if (!userId) return;
@@ -38,7 +49,7 @@ export function useGamification() {
             setIsLoading(true);
             const { data, error } = await supabase
                 .from("profiles")
-                .select("interests")
+                .select("interests, user_levels(level)")
                 .eq("id", userId)
                 .single();
 
@@ -50,6 +61,14 @@ export function useGamification() {
                 if (interests && interests.focus_class) {
                     setUserClass(interests.focus_class as FocusClass);
                 }
+                const level = (data.user_levels as any)?.[0]?.level || 1;
+                
+                // Check for level up and trigger confetti
+                if (currentLevel > 0 && level > currentLevel) {
+                    toast.success(`LEVEL UP! You reached Level ${level}! 🎉`);
+                    triggerConfetti();
+                }
+                setCurrentLevel(level);
             }
             setIsLoading(false);
         };

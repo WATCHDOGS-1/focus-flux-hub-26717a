@@ -13,57 +13,60 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        // Using system fonts as placeholders for Inter/Geist, with Mono for data
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['Fira Code', 'ui-monospace', 'SFMono-Regular'],
+      },
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        // Zen Cyberpunk Palette
+        background: "hsl(230 20% 5%)", // Deep Radial Gradient Base: #1a1b26
+        foreground: "hsl(210 40% 98%)", // Bright White
+        
+        // Primary Accent: Neon Purple
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "hsl(280 90% 60%)", // #b026ff
+          foreground: "hsl(210 40% 98%)",
         },
+        // Secondary Accent: Electric Cyan
+        accent: {
+          DEFAULT: "hsl(185 90% 60%)", // #00f0ff
+          foreground: "hsl(224 71% 4%)",
+        },
+        
+        // Muted/Secondary UI elements
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "hsl(230 10% 15%)", // Darker background for secondary elements
+          foreground: "hsl(210 40% 98%)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "hsl(230 10% 10%)",
+          foreground: "hsl(215 14% 65%)", // Muted Blue-Grey #94a3b8
         },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        success: {
-          DEFAULT: "hsl(var(--success))",
-          foreground: "hsl(var(--success-foreground))",
-        },
-        warning: {
-          DEFAULT: "hsl(var(--warning))",
-          foreground: "hsl(var(--warning-foreground))",
+        
+        // Standard UI colors
+        border: "hsl(230 10% 20%)",
+        input: "hsl(230 10% 15%)",
+        ring: "hsl(280 90% 60%)",
+        card: {
+          DEFAULT: "hsl(230 10% 10%)",
+          foreground: "hsl(210 40% 98%)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "hsl(230 10% 10%)",
+          foreground: "hsl(210 40% 98%)",
         },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+        destructive: {
+          DEFAULT: "hsl(0 84.2% 60.2%)",
+          foreground: "hsl(210 40% 98%)",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+        success: {
+          DEFAULT: "hsl(142 76% 36%)",
+          foreground: "hsl(210 40% 98%)",
+        },
+        warning: {
+          DEFAULT: "hsl(45 93% 47%)",
+          foreground: "hsl(224 71% 4%)",
         },
       },
       borderRadius: {

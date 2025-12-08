@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useFocusSession } from "@/hooks/use-focus-session";
 import TimerSettingsDialog from "./TimerSettingsDialog";
+import { motion } from "framer-motion";
 
 const FocusTimer = () => {
   const { 
@@ -50,7 +51,7 @@ const FocusTimer = () => {
   return (
     <div className="h-full flex flex-col items-center justify-center">
       <div className="flex items-center justify-between w-full max-w-xs mb-4">
-        <h3 className="text-xl font-semibold truncate">
+        <h3 className="text-xl font-bold truncate text-accent">
           {isBreak ? "Break Time" : currentMode.name}
         </h3>
         <TimerSettingsDialog 
@@ -61,12 +62,13 @@ const FocusTimer = () => {
           onToggleAnimation={handleToggleAnimation}
           currentMode={currentMode}
           setCurrentMode={setCurrentMode}
-          triggerClassName="dopamine-click"
+          triggerClassName="dopamine-click text-muted-foreground hover:text-primary"
         />
       </div>
 
-      <div className="relative w-64 h-64 mb-8 shadow-glow rounded-full">
+      <div className="relative w-64 h-64 mb-8">
         <svg className="w-full h-full -rotate-90">
+          {/* Background Ring */}
           <circle
             cx="128"
             cy="128"
@@ -79,7 +81,8 @@ const FocusTimer = () => {
               isActive && isBreathingAnimationEnabled && "animate-background-pulse"
             )}
           />
-          <circle
+          {/* Progress Ring with Neon Glow */}
+          <motion.circle
             cx="128"
             cy="128"
             r="120"
@@ -92,10 +95,13 @@ const FocusTimer = () => {
               "transition-all duration-1000",
               isActive && isBreathingAnimationEnabled && "animate-timer-breathing"
             )}
+            style={{
+                filter: `drop-shadow(0 0 8px ${isBreak ? 'hsl(var(--accent) / 0.8)' : 'hsl(var(--primary) / 0.8)'})`,
+            }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-5xl font-bold font-mono">
+          <div className="text-6xl font-mono font-bold text-foreground">
             {formatTime(timeLeft)}
           </div>
         </div>
@@ -103,20 +109,20 @@ const FocusTimer = () => {
 
       <div className="flex gap-4">
         <Button
-          size="icon"
+          size="lg"
           variant={isActive ? "default" : "outline"}
           onClick={toggleTimer}
-          className="w-12 h-12 dopamine-click shadow-glow"
+          className="w-16 h-16 rounded-full dopamine-click shadow-glow"
         >
-          {isActive ? <Pause /> : <Play />}
+          {isActive ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
         </Button>
         <Button
-          size="icon"
+          size="lg"
           variant="outline"
           onClick={resetTimer}
-          className="w-12 h-12 dopamine-click shadow-glow"
+          className="w-16 h-16 rounded-full dopamine-click shadow-glow"
         >
-          <RotateCcw />
+          <RotateCcw className="w-8 h-8" />
         </Button>
       </div>
     </div>

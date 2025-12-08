@@ -1,44 +1,40 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, LayoutGrid, Zap, MessageSquare, Trophy, BookOpen, Brain } from "lucide-react";
+import { Target, LayoutGrid, Zap, MessageSquare, Trophy, BookOpen, Brain, Clock, Calendar, TrendingUp } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import { useAuth } from "@/hooks/use-auth";
+import { motion } from "framer-motion";
+import DigitalPlanet3D from "@/components/DigitalPlanet3D"; // New 3D component
+import FocusTimer from "@/components/FocusTimer"; // Reusing existing timer
+import HeatmapStats from "@/components/HeatmapStats"; // Reusing existing heatmap
+import AICoachPanel from "@/components/AICoachPanel"; // Reusing existing AI panel
 
-const DashboardCard = ({ title, description, icon: Icon, link, isPrimary = false }: { title: string, description: string, icon: React.ElementType, link: string, isPrimary?: boolean }) => {
-    const navigate = useNavigate();
-    return (
-        <Card 
-            className={`glass-card p-6 hover-lift cursor-pointer transition-all ${isPrimary ? 'border-primary/50 shadow-glow' : ''}`}
-            onClick={() => navigate(link)}
-        >
-            <CardHeader className="p-0 mb-4">
-                <Icon className={`w-10 h-10 ${isPrimary ? 'text-primary' : 'text-accent'}`} />
-            </CardHeader>
-            <CardContent className="p-0 space-y-2">
-                <CardTitle className="text-2xl font-bold">{title}</CardTitle>
-                <p className="text-muted-foreground">{description}</p>
-                <Button className="w-full mt-4 dopamine-click">Go to {title}</Button>
-            </CardContent>
-        </Card>
-    );
-};
+const BentoCard = ({ children, className, delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay, ease: "easeOut" }}
+        className={cn("glass-card p-4 rounded-2xl flex flex-col overflow-hidden", className)}
+    >
+        {children}
+    </motion.div>
+);
 
 const MainDashboard = () => {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-background relative overflow-hidden">
-            <header className="glass-card border-b border-border sticky top-0 z-10">
-                <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-foreground">OnlyFocus Dashboard</h1>
+        <div className="min-h-screen relative overflow-hidden p-4">
+            <header className="glass-card border-b border-white/10 sticky top-4 z-10 mb-4 rounded-xl">
+                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+                    <h1 className="text-2xl font-bold text-primary">OnlyFocus</h1>
                     <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => navigate("/productivity")} className="dopamine-click">
+                            <LayoutGrid className="w-4 h-4 mr-2" /> Productivity Hub
+                        </Button>
                         <Button variant="outline" onClick={() => navigate("/social")} className="dopamine-click">
                             <MessageSquare className="w-4 h-4 mr-2" /> Social Hub
-                        </Button>
-                        <Button variant="ghost" onClick={() => navigate("/social?tab=leaderboard")} className="dopamine-click">
-                            <Trophy className="w-4 h-4 mr-2" /> Leaderboard
                         </Button>
                         {!isAuthenticated && (
                             <Button onClick={() => navigate("/auth")} className="dopamine-click">
@@ -49,56 +45,73 @@ const MainDashboard = () => {
                 </div>
             </header>
 
-            <main className="container mx-auto px-4 py-12">
-                <AnimatedSection>
-                    <h2 className="text-4xl md:text-5xl font-bold text-center mb-4">
-                        Your Productivity Command Center
-                    </h2>
-                    <p className="text-xl text-muted-foreground text-center max-w-3xl mx-auto mb-12">
-                        Navigate between your tasks, notes, and live focus rooms.
-                    </p>
-                </AnimatedSection>
+            <main className="container mx-auto p-0">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 auto-rows-[minmax(200px, auto)]">
+                    
+                    {/* Slot A: 3D Digital Planet (Span 2 columns, 2 rows) */}
+                    <BentoCard className="lg:col-span-2 lg:row-span-2 h-[600px] relative" delay={0.1}>
+                        <div className="absolute inset-0 z-0">
+                            <DigitalPlanet3D />
+                        </div>
+                        <div className="relative z-10 p-4">
+                            <h2 className="text-3xl font-bold text-white mb-2">Digital Civilization</h2>
+                            <p className="text-muted-foreground">Your focus fuels your world. Level up to unlock new biomes.</p>
+                        </div>
+                    </BentoCard>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <AnimatedSection delay={0.1}>
-                        <DashboardCard 
-                            title="Focus Rooms" 
-                            description="Join live video co-working sessions and start your Pomodoro timer for deep accountability." 
+                    {/* Slot B: Focus Timer (Span 2 columns, 1 row) */}
+                    <BentoCard className="lg:col-span-2 h-[300px] flex items-center justify-center" delay={0.2}>
+                        <FocusTimer />
+                    </BentoCard>
+
+                    {/* Slot C: Productivity Heatmap (Span 2 columns, 1 row) */}
+                    <BentoCard className="lg:col-span-2 h-[300px]" delay={0.3}>
+                        <HeatmapStats />
+                    </BentoCard>
+                    
+                    {/* Slot D: AI Coach Chat Widget (Span 1 column, 2 rows - Placeholder for now) */}
+                    {/* NOTE: The AI Coach will be converted to a floating widget later, but for the dashboard, we use a static panel */}
+                    <BentoCard className="lg:col-span-1 lg:row-span-2 h-[600px]" delay={0.4}>
+                        <AICoachPanel />
+                    </BentoCard>
+                    
+                    {/* Slot E: Quick Links (Span 3 columns, 1 row) */}
+                    <BentoCard className="lg:col-span-3 flex flex-row gap-4" delay={0.5}>
+                        <DashboardLink 
+                            title="Explore Rooms" 
                             icon={Zap} 
                             link="/explore" 
-                            isPrimary={true}
+                            description="Join live co-working sessions."
                         />
-                    </AnimatedSection>
-                    <AnimatedSection delay={0.2}>
-                        <DashboardCard 
-                            title="Productivity Hub" 
-                            description="Manage your tasks with the Kanban board, schedule time blocks, and track your daily quests." 
-                            icon={Target} 
-                            link="/productivity" 
-                        />
-                    </AnimatedSection>
-                    <AnimatedSection delay={0.3}>
-                        <DashboardCard 
+                        <DashboardLink 
                             title="Notes Base" 
-                            description="Organize your notes, diagrams, and study materials using the powerful Block Editor and Whiteboard." 
                             icon={BookOpen} 
                             link="/notes" 
+                            description="Organize your knowledge."
                         />
-                    </AnimatedSection>
+                        <DashboardLink 
+                            title="Leaderboard" 
+                            icon={Trophy} 
+                            link="/social?tab=leaderboard" 
+                            description="Climb the weekly ranks."
+                        />
+                    </BentoCard>
                 </div>
-                
-                <AnimatedSection delay={0.4} className="mt-16 text-center">
-                    <h3 className="text-3xl font-bold mb-4 flex items-center justify-center gap-3">
-                        <Brain className="w-6 h-6 text-accent" /> AI Coach & Gamification
-                    </h3>
-                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Your AI Coach is integrated across all modules, providing personalized advice, tracking your XP, and helping you build your digital planet.
-                    </p>
-                    <Button variant="link" onClick={() => navigate("/social?tab=ai-coach")} className="mt-4 text-primary text-lg">
-                        Meet Your Coach
-                    </Button>
-                </AnimatedSection>
             </main>
+        </div>
+    );
+};
+
+const DashboardLink = ({ title, icon: Icon, link, description }: { title: string, icon: React.ElementType, link: string, description: string }) => {
+    const navigate = useNavigate();
+    return (
+        <div 
+            className="flex-1 p-4 rounded-xl bg-secondary/50 hover:bg-secondary/80 transition-colors cursor-pointer dopamine-click"
+            onClick={() => navigate(link)}
+        >
+            <Icon className="w-6 h-6 text-accent mb-2" />
+            <h3 className="font-semibold text-lg">{title}</h3>
+            <p className="text-xs text-muted-foreground">{description}</p>
         </div>
     );
 };

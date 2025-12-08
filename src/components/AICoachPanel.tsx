@@ -11,7 +11,11 @@ import { useUserStats } from "@/hooks/use-user-stats";
 import { cn } from "@/lib/utils";
 import { getRecentFocusSessions } from "@/utils/session-management";
 import { getLocalStudyData } from "@/utils/local-data";
-import { AI_COACH_SYSTEM_PROMPT } from "@/utils/ai-coach"; // Import the system prompt
+import { AI_COACH_SYSTEM_PROMPT } from "@/utils/ai-coach";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import Lottie from 'lottie-react';
+import brainAnimation from '@/assets/lottie/brain-pulse.json'; // Placeholder for Lottie file
 
 // Define chat history type compatible with Gemini API
 interface ChatMessage {
@@ -28,8 +32,8 @@ const AICoachPanel = () => {
     const [history, setHistory] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
-    const [longTermGoal, setLongTermGoal] = useState(""); // Persistent long-term goal
-    const [savedContext, setSavedContext] = useState<ChatMessage[] | null>(null); // Persistent memory
+    const [longTermGoal, setLongTermGoal] = useState("");
+    const [savedContext, setSavedContext] = useState<ChatMessage[] | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,7 +58,6 @@ const AICoachPanel = () => {
         const storedContext = localStorage.getItem(SAVED_CONTEXT_KEY);
         if (storedContext) {
             try {
-                // Only load the context if the current history is empty (i.e., starting a new chat session)
                 if (history.length === 0) {
                     const parsedContext = JSON.parse(storedContext);
                     setSavedContext(parsedContext);
@@ -83,7 +86,6 @@ const AICoachPanel = () => {
             toast.warning("Start a conversation before saving context.");
             return;
         }
-        // Save the current history as the new context
         localStorage.setItem(SAVED_CONTEXT_KEY, JSON.stringify(history));
         setSavedContext(history);
         toast.success("Chat context saved for future sessions!");
@@ -102,7 +104,6 @@ const AICoachPanel = () => {
             prefix += `[LONG-TERM GOAL: ${longTermGoal.trim()}] `;
         }
         if (stats) {
-            // Stats are now just context, not the main focus
             prefix += `[USER STATS: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days, Total XP=${levels?.total_xp || 0}] `;
         }
         return prefix;
@@ -134,7 +135,6 @@ const AICoachPanel = () => {
         Analyze this data and provide a brief summary of my focus areas and potential productivity bottlenecks over the last ${range}. Provide one actionable recommendation.
         `;
         
-        // Combine all preprompts
         const fullPreprompt = `${AI_COACH_SYSTEM_PROMPT}\n\n${getContextualPromptPrefix()}\n\nUSER REQUEST: ${dataPrompt}`;
 
 
@@ -143,7 +143,6 @@ const AICoachPanel = () => {
         setHistory(optimisticHistory);
 
         try {
-            // If saved context exists, inject it into the API call for the analysis
             const apiContents = savedContext ? [...savedContext, ...history, { role: "user" as const, parts: [{ text: fullPreprompt }] }] : [...history, { role: "user" as const, parts: [{ text: fullPreprompt }] }];
             
             const responseText = await sendGeminiChat(apiContents);
@@ -167,7 +166,7 @@ const AICoachPanel = () => {
             const notesSummary = getLocalStudyData().notesSummary;
             contextText = `[NOTES CONTEXT: ${notesSummary || "No notes found."}]`;
         } else if (contextType === 'tasks') {
-            const tasksSummary = getLocalStudyData().tasks.map(t => t.content).join("; ");
+            const tasksSummary = getLocalStudyData().tasks.map(t => t.title).join("; ");
             contextText = `[TASKS CONTEXT: Incomplete Tasks: ${tasksSummary || "No incomplete tasks found."}]`;
         }
         
@@ -179,7 +178,6 @@ const AICoachPanel = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Removed PDF from allowed types
             const allowedTypes = ['image/', 'text/plain', 'text/csv', 'application/json', 'text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
             const isAllowed = allowedTypes.some(type => file.type.startsWith(type));
             
@@ -192,7 +190,7 @@ const AICoachPanel = () => {
             if (file.type.startsWith('image/')) {
                 setImagePreviewUrl(URL.createObjectURL(file));
             } else {
-                setImagePreviewUrl(null); // No preview for non-image files
+                setImagePreviewUrl(null);
             }
             toast.info(`File loaded for next prompt: ${file.name}`);
         }
@@ -201,29 +199,24 @@ const AICoachPanel = () => {
     const handleChat = async (message: string) => {
         if (!message.trim() && !imageFile || isGenerating) return;
         
-        // 1. Construct the full preprompt: Personality + Stats Context + User Message
         const fullPreprompt = `${AI_COACH_SYSTEM_PROMPT}\n\n${getContextualPromptPrefix()}\n\nUSER MESSAGE: ${message}`;
         
-        // 2. Construct the optimistic user message for display
         const userMessageText = imageFile ? `(File attached: ${imageFile.name}) ${message}` : message;
         const userMessage: ChatMessage = { role: "user", parts: [{ text: userMessageText }] }; 
         
-        // 3. Optimistic update
         const optimisticHistory = [...history, userMessage];
         setHistory(optimisticHistory);
         setCurrentMessage("");
         setIsGenerating(true);
         
         const currentImageFile = imageFile;
-        setImageFile(null); // Clear file immediately
+        setImageFile(null);
         setImagePreviewUrl(null);
 
         let apiContents: ChatMessage[] = [...history];
-        let finalUserMessageParts: ChatPart[] = [{ text: fullPreprompt }]; // Start with the full preprompt
+        let finalUserMessageParts: ChatPart[] = [{ text: fullPreprompt }];
 
-        // --- Persistent Context Injection Logic (Only on first message of new session) ---
         if (history.length === 0 && savedContext) {
-            // Step A: Ask the model to summarize the saved context
             const contextSummaryPrompt = `Based on the following previous conversation history, provide a concise summary (2-3 sentences) of the user's main goals, challenges, or topics discussed. This summary will be used to prime the current chat session. Do not respond to the user's current message yet.
             --- PREVIOUS CONTEXT ---
             ${JSON.stringify(savedContext)}
@@ -234,31 +227,25 @@ const AICoachPanel = () => {
             try {
                 const summaryResponse = await sendGeminiChat(summaryContents);
                 
-                // Step B: Inject the summary into the current chat history
                 const contextInjectionMessage: ChatMessage = { 
                     role: "model", 
                     parts: [{ text: `[CONTEXT INJECTED] Welcome back! Based on our last chat, here's the summary: ${summaryResponse}` }] 
                 };
-                apiContents = [contextInjectionMessage]; // Start new history with context injection
+                apiContents = [contextInjectionMessage];
                 
-                // Update UI history to show the context injection message
                 setHistory([contextInjectionMessage, userMessage]);
             } catch (e) {
                 console.error("Failed to inject saved context:", e);
                 toast.warning("Failed to load saved context. Starting fresh.");
-                // Continue with empty apiContents if context injection fails
             }
         }
-        // --- End Persistent Context Injection Logic ---
 
         try {
-            // 3. Construct the actual parts payload for the API
             if (currentImageFile) {
                 const filePart = await fileToGenerativePart(currentImageFile);
                 finalUserMessageParts.unshift(filePart);
             }
             
-            // 4. Send API call using the full history (including the new message)
             const finalApiContents = [
                 ...apiContents, 
                 { role: "user" as const, parts: finalUserMessageParts } 
@@ -267,11 +254,9 @@ const AICoachPanel = () => {
             const responseText = await sendGeminiChat(finalApiContents);
             const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
             
-            // 5. Replace the optimistic message with the final response
             setHistory(prev => [...prev.slice(0, -1), modelMessage]);
         } catch (error: any) {
             toast.error(error.message || "AI Coach failed to respond.");
-            // Remove optimistic message if failed
             setHistory(prev => prev.slice(0, -1));
         } finally {
             setIsGenerating(false);
@@ -284,7 +269,7 @@ const AICoachPanel = () => {
         
         return (
             <div
-                key={index} // Use index as key
+                key={index}
                 className={cn(
                     "p-3 rounded-lg max-w-[90%] flex flex-col",
                     isUser ? "bg-primary/20 ml-auto" : "bg-secondary/20 mr-auto"
@@ -295,7 +280,11 @@ const AICoachPanel = () => {
                     {isUser ? "You" : "AI Coach"}
                 </div>
                 
-                <p className="text-sm whitespace-pre-wrap">{text}</p>
+                <div className="text-sm prose prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {text}
+                    </ReactMarkdown>
+                </div>
             </div>
         );
     };
@@ -319,7 +308,7 @@ const AICoachPanel = () => {
                 AI Focus Coach
             </h3>
             
-            {/* Long-Term Goal Setting (Reduced margin) */}
+            {/* Long-Term Goal Setting */}
             <div className="mb-3 space-y-2 p-3 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <Target className="w-4 h-4" /> Long-Term Focus Goal
@@ -340,7 +329,7 @@ const AICoachPanel = () => {
                 </p>
             </div>
             
-            {/* Persistent Memory Controls (Reduced margin and button height) */}
+            {/* Persistent Memory Controls */}
             <div className="mb-3 space-y-2 p-3 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <Lightbulb className="w-4 h-4" /> Persistent Memory
@@ -371,7 +360,7 @@ const AICoachPanel = () => {
             </div>
 
 
-            {/* Quick Actions (Reduced margin and button height) */}
+            {/* Quick Actions */}
             <div className="space-y-3 mb-3 p-4 rounded-lg bg-secondary/30">
                 <p className="text-sm font-semibold flex items-center gap-1 text-primary">
                     <LayoutGrid className="w-4 h-4" /> Quick Actions
@@ -438,7 +427,7 @@ const AICoachPanel = () => {
                 </div>
             </div>
 
-            {/* Chat History (Now takes up more space) */}
+            {/* Chat History */}
             <ScrollArea className="flex-1 space-y-4 overflow-y-auto mb-4 pr-2">
                 <div className="space-y-4">
                     {history.length === 0 && (
@@ -449,7 +438,10 @@ const AICoachPanel = () => {
                     {history.map(renderMessage)}
                     {isGenerating && (
                         <div className="flex items-center justify-start p-3 rounded-lg bg-secondary/20 mr-auto max-w-[90%]">
-                            <Loader2 className="w-4 h-4 animate-spin mr-2 text-accent" />
+                            <div className="w-8 h-8 mr-2">
+                                {/* Placeholder Lottie animation */}
+                                <Lottie animationData={brainAnimation} loop={true} />
+                            </div>
                             <span className="text-sm text-muted-foreground">AI Coach is thinking...</span>
                         </div>
                     )}
@@ -458,7 +450,7 @@ const AICoachPanel = () => {
             </ScrollArea>
 
             {/* Input and File Preview */}
-            {imageFile && ( // Only show preview if a file is actively staged
+            {imageFile && (
                 <div className="relative mb-2 p-2 rounded-lg border border-primary/50 bg-secondary/20">
                     <div className="flex items-center gap-3">
                         {imagePreviewUrl ? (
