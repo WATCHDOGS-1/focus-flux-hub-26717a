@@ -1,4 +1,3 @@
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import { useTasks } from "@/hooks/use-tasks";
 import { Task } from "@/types/productivity";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,59 +82,51 @@ const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: num
 
 interface KanbanCardProps {
     task: Task;
-    index: number;
     onFocusNow: (task: Task) => void;
     onDelete: (taskId: string) => void;
 }
 
-const KanbanCard = ({ task, index, onFocusNow, onDelete }: KanbanCardProps) => {
+const KanbanCard = ({ task, onFocusNow, onDelete }: KanbanCardProps) => {
     return (
-        <Draggable draggableId={task.id} index={index}>
-            {(provided, snapshot) => (
-                <Card
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className={cn(
-                        "glass-card p-3 mb-3 transition-all hover-lift cursor-grab group relative",
-                        snapshot.isDragging && "ring-2 ring-primary/50 shadow-lg",
-                        task.status === 'done' && "opacity-70"
-                    )}
-                >
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                        onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-                        title="Delete Task"
-                    >
-                        <X className="w-4 h-4" />
-                    </Button>
-                    
-                    <div className="flex flex-col gap-2 pr-6">
-                        <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-sm truncate">{task.title}</h4>
-                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {task.estimatedPomodoros} Poms
-                            </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                            {task.tags.map(tag => (
-                                <Badge key={tag} variant="outline" className="text-[10px] h-4">{tag}</Badge>
-                            ))}
-                        </div>
-                        <Button 
-                            size="sm" 
-                            className="w-full dopamine-click mt-2"
-                            onClick={() => onFocusNow(task)}
-                            disabled={task.status === 'done'}
-                        >
-                            <Play className="w-4 h-4 mr-2" /> Focus Now
-                        </Button>
-                    </div>
-                </Card>
+        <Card
+            key={task.id}
+            className={cn(
+                "glass-card p-3 mb-3 transition-all hover-lift cursor-pointer group relative",
+                task.status === 'done' && "opacity-70"
             )}
-        </Draggable>
+        >
+            <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+                title="Delete Task"
+            >
+                <X className="w-4 h-4" />
+            </Button>
+            
+            <div className="flex flex-col gap-2 pr-6">
+                <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-sm truncate">{task.title}</h4>
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {task.estimated_pomodoros} Poms
+                    </Badge>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                    {(task.tags as string[] || []).map(tag => (
+                        <Badge key={tag} variant="outline" className="text-[10px] h-4">{tag}</Badge>
+                    ))}
+                </div>
+                <Button 
+                    size="sm" 
+                    className="w-full dopamine-click mt-2"
+                    onClick={() => onFocusNow(task)}
+                    disabled={task.status === 'done'}
+                >
+                    <Play className="w-4 h-4 mr-2" /> Focus Now
+                </Button>
+            </div>
+        </Card>
     );
 };
 
@@ -149,42 +140,33 @@ interface KanbanColumnProps {
 
 const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete }: KanbanColumnProps) => {
     return (
-        <Droppable droppableId={columnId}>
-            {(provided, snapshot) => (
-                <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={cn(
-                        "p-4 rounded-xl flex flex-col h-full min-h-[300px] transition-colors",
-                        snapshot.isDraggingOver ? "bg-primary/10" : "bg-secondary/20"
-                    )}
-                >
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2 border-b border-border pb-2">
-                        {columnId === 'todo' && <ListChecks className="w-5 h-5 text-primary" />}
-                        {columnId === 'in_progress' && <Loader2 className="w-5 h-5 text-accent animate-spin" />}
-                        {columnId === 'done' && <CheckCircle className="w-5 h-5 text-success" />}
-                        {title} ({tasks.length})
-                    </h3>
-                    <ScrollArea className="flex-1 pr-2">
-                        {tasks.map((task, index) => (
-                            <KanbanCard 
-                                key={task.id} 
-                                task={task} 
-                                index={index} 
-                                onFocusNow={onFocusNow} 
-                                onDelete={onDelete}
-                            />
-                        ))}
-                        {provided.placeholder}
-                    </ScrollArea>
-                </div>
+        <div
+            className={cn(
+                "p-4 rounded-xl flex flex-col h-full min-h-[300px] bg-secondary/20"
             )}
-        </Droppable>
+        >
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 border-b border-border pb-2">
+                {columnId === 'todo' && <ListChecks className="w-5 h-5 text-primary" />}
+                {columnId === 'in_progress' && <Loader2 className="w-5 h-5 text-accent animate-spin" />}
+                {columnId === 'done' && <CheckCircle className="w-5 h-5 text-success" />}
+                {title} ({tasks.length})
+            </h3>
+            <ScrollArea className="flex-1 pr-2">
+                {tasks.map((task) => (
+                    <KanbanCard 
+                        key={task.id} 
+                        task={task} 
+                        onFocusNow={onFocusNow} 
+                        onDelete={onDelete}
+                    />
+                ))}
+            </ScrollArea>
+        </div>
     );
 };
 
 const KanbanBoard = () => {
-    const { tasks, columns, addTask, deleteTask } = useTasks();
+    const { tasks, columns, addTask, deleteTask, isLoading } = useTasks();
     const navigate = useNavigate();
 
     const handleFocusNow = (task: Task) => {
@@ -196,6 +178,14 @@ const KanbanBoard = () => {
         acc[status] = tasks.filter(task => task.status === status);
         return acc;
     }, {} as Record<string, Task[]>);
+    
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div className="h-full flex flex-col">
