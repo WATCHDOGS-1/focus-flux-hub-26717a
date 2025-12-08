@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, LayoutGrid, Calendar, Zap, Target, BookOpen } from "lucide-react";
 import KanbanBoard from "@/components/KanbanBoard";
-import TimeBlockCalendar from "@/components/TimeBlockCalendar"; // Updated import name
-import { TaskProvider, useTasks } from "@/hooks/use-tasks";
+import TimeBlockCalendar from "@/components/TimeBlockCalendar";
+import { useTasks } from "@/hooks/use-tasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QuestSystemPanel from "@/components/QuestSystemPanel";
 import { Task } from "@/types/productivity";
@@ -78,9 +78,7 @@ const ProductivityDashboardContent = () => {
 };
 
 const ProductivityDashboard = () => (
-    <TaskProvider>
-        <ProductivityDashboardContent />
-    </TaskProvider>
+    <ProductivityDashboardContent />
 );
 
 export default ProductivityDashboard;

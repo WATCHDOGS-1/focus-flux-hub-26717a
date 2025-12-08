@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/use-auth";
 import { KnowledgeProvider } from "@/hooks/use-knowledge";
+import { TaskProvider } from "@/hooks/use-tasks";
 import MarketingLanding from "./pages/MarketingLanding";
 import MainDashboard from "./pages/MainDashboard";
 import ProductivityDashboard from "./pages/ProductivityDashboard";
@@ -31,23 +32,25 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <KnowledgeProvider>
-            <OnboardingTour />
-            <Routes>
-              <Route path="/" element={<MainDashboard />} />
-              <Route path="/landing" element={<MarketingLanding />} />
-              <Route path="/productivity" element={<ProductivityDashboard />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/explore" element={<ExploreRooms />} />
-              <Route path="/social" element={<SocialDashboard />} />
-              <Route path="/circle/:circleId" element={<CircleDetail />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/notes" element={<NotesBase />} />
-              <Route path="/focus-room/:roomId" element={<FocusRoom />} />
-              <Route path="/zen-mode" element={<ZenMode />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <TaskProvider> {/* Moved TaskProvider here to make tasks global */}
+              <OnboardingTour />
+              <Routes>
+                <Route path="/" element={<MainDashboard />} />
+                <Route path="/landing" element={<MarketingLanding />} />
+                <Route path="/productivity" element={<ProductivityDashboard />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/explore" element={<ExploreRooms />} />
+                <Route path="/social" element={<SocialDashboard />} />
+                <Route path="/circle/:circleId" element={<CircleDetail />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/notes" element={<NotesBase />} />
+                <Route path="/focus-room/:roomId" element={<FocusRoom />} />
+                <Route path="/zen-mode" element={<ZenMode />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TaskProvider>
           </KnowledgeProvider>
         </AuthProvider>
       </BrowserRouter>
