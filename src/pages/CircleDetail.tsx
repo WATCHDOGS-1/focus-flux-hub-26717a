@@ -72,12 +72,17 @@ const CircleDetail = () => {
     const { data: membersData, error: membersError } = await supabase.from("circle_members").select("*, profiles(username)").eq("circle_id", circleId);
     if (membersError) {
         console.error("Error fetching circle members:", membersError);
+        toast.error(`Failed to fetch members: ${membersError.message}`);
     }
     setMembers(membersData as CircleMember[] || []);
 
     // 4. Fetch Messages (Only if member)
     if (memberCheck) {
-      const { data: messagesData } = await supabase.from("circle_messages").select("*, profiles(username)").eq("circle_id", circleId).order("created_at", { ascending: true });
+      const { data: messagesData, error: messagesError } = await supabase.from("circle_messages").select("*, profiles(username)").eq("circle_id", circleId).order("created_at", { ascending: true });
+      if (messagesError) {
+        console.error("Error fetching circle messages:", messagesError);
+        toast.error(`Failed to fetch messages: ${messagesError.message}`);
+      }
       setMessages(messagesData as CircleMessage[] || []);
       if (shouldScroll) {
         setTimeout(scrollToBottom, 100);

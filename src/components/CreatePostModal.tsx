@@ -114,7 +114,7 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
                     .update({ data: postData })
                     .eq("id", editingPost.id);
 
-                if (error) throw error;
+                if (error) throw new Error(error.message);
                 toast.success("Post updated successfully!");
             } else {
                 // 2. Create new post
@@ -126,7 +126,7 @@ const CreatePostModal = ({ userId, isOpen, onClose, onPostCreated, editingPost }
                         data: postData,
                     });
 
-                if (error) throw error;
+                if (error) throw new Error(error.message);
                 
                 // 3. Set cooldown
                 const now = Date.now();

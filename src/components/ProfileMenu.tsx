@@ -167,7 +167,7 @@ const ProfileMenu = () => {
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      toast.error("Logout failed. Please try again.");
+      toast.error(`Logout failed: ${error.message}`);
     } else {
       navigate("/auth");
     }

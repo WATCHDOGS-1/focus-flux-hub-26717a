@@ -100,6 +100,46 @@ export const spendStardust = async (userId: string, amount: number): Promise<boo
   return true;
 };
 
+/**
+ * Simulates spending XP by updating the user_levels table.
+ */
+export const spendXP = async (userId: string, amount: number): Promise<boolean> => {
+    // 1. Fetch current XP
+    const { data: levelsData, error: fetchError } = await supabase
+        .from("user_levels")
+        .select("total_xp")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (fetchError) {
+        toast.error(`Failed to fetch XP: ${fetchError.message}`);
+        return false;
+    }
+
+    const currentXP = levelsData?.total_xp || 0;
+
+    if (currentXP < amount) {
+        return false;
+    }
+
+    const newTotalXP = currentXP - amount;
+    const newTitle = getTitleByXP(newTotalXP);
+    const newLevel = LEVEL_THRESHOLDS.find(t => t.title === newTitle)?.level || 1;
+
+    // 2. Update XP
+    const { error: updateError } = await supabase
+        .from("user_levels")
+        .update({ total_xp: newTotalXP, level: newLevel, title: newTitle })
+        .eq("user_id", userId);
+
+    if (updateError) {
+        toast.error(`Failed to spend XP: ${updateError.message}`);
+        return false;
+    }
+
+    return true;
+};
+
 
 /**
  * Handles all post-session logic: saving session, updating weekly stats,
@@ -118,10 +158,11 @@ export const endFocusSession = async (
 
   if (minutes < 1) {
     // Save session but skip stats update if duration is too short
-    await supabase
+    const { error: shortSessionError } = await supabase
       .from("focus_sessions")
       .update({ end_time: new Date().toISOString(), duration_minutes: 0, tag: focusTag || null })
       .eq("id", sessionId);
+    if (shortSessionError) console.error("Error saving short session:", shortSessionError);
     return { message: `Session ended. Duration too short to count towards stats.`, durationMinutes: 0, focusTag };
   }
 
@@ -134,26 +175,29 @@ export const endFocusSession = async (
       tag: focusTag || null,
     })
     .eq("id", sessionId);
-  if (sessionError) throw new Error("Failed to save session.");
+  if (sessionError) throw new Error(`Failed to save session: ${sessionError.message}`);
 
   // --- 2. Fetch Current Stats & Levels & Profile (for Class) ---
-  const { data: statsData } = await supabase
+  const { data: statsData, error: statsFetchError } = await supabase
     .from("user_stats")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
+  if (statsFetchError) console.error("Error fetching user stats:", statsFetchError);
 
-  const { data: levelsData } = await supabase
+  const { data: levelsData, error: levelsFetchError } = await supabase
     .from("user_levels")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
+  if (levelsFetchError) console.error("Error fetching user levels:", levelsFetchError);
 
-  const { data: profileData } = await supabase
+  const { data: profileData, error: profileFetchError } = await supabase
     .from("profiles")
     .select("interests")
     .eq("id", userId)
     .single();
+  if (profileFetchError) console.error("Error fetching profile interests:", profileFetchError);
 
   // Initialize stats if they don't exist
   const currentStats = statsData || { user_id: userId, longest_streak: 0, longest_session_minutes: 0, total_focused_minutes: 0, last_focused_date: null };
@@ -249,22 +293,25 @@ export const endFocusSession = async (
   weekStart.setDate(today.getDate() - today.getDay());
   weekStart.setHours(0, 0, 0, 0);
 
-  const { data: existingStats } = await supabase
+  const { data: existingStats, error: weeklyStatsFetchError } = await supabase
     .from("weekly_stats")
     .select("*")
     .eq("user_id", userId)
     .gte("week_start", weekStart.toISOString())
     .maybeSingle();
+  if (weeklyStatsFetchError) console.error("Error fetching weekly stats:", weeklyStatsFetchError);
 
   if (existingStats) {
-    await supabase
+    const { error: weeklyUpdateError } = await supabase
       .from("weekly_stats")
       .update({ total_minutes: existingStats.total_minutes + minutes })
       .eq("id", existingStats.id);
+    if (weeklyUpdateError) console.error("Error updating weekly stats:", weeklyUpdateError);
   } else {
-    await supabase
+    const { error: weeklyInsertError } = await supabase
       .from("weekly_stats")
       .insert({ user_id: userId, week_start: weekStart.toISOString(), total_minutes: minutes });
+    if (weeklyInsertError) console.error("Error inserting weekly stats:", weeklyInsertError);
   }
   
   // --- 9. Create Feed Item (Only if session >= 30 minutes) ---

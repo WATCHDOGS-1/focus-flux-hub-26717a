@@ -41,7 +41,7 @@ const Auth = () => {
       
       // If the sign-in happens without a redirect (e.g., already logged in), the AuthProvider handles it.
     } catch (error: any) {
-      toast.error(error.message || `${provider} sign in failed`);
+      toast.error(`Sign in failed: ${error.message}`);
       setAuthLoading(false);
     }
   };

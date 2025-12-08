@@ -35,8 +35,10 @@ export const uploadImageToCloudinary = async (file: File): Promise<string> => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Cloudinary upload failed:", errorData);
-      toast.error(`Image upload failed: ${errorData.error?.message || 'Server error'}`, { id: 'cloudinary-upload' });
-      throw new Error("Cloudinary upload failed.");
+      // Use the specific error message from Cloudinary if available
+      const errorMessage = errorData.error?.message || 'Server error during upload.';
+      toast.error(`Image upload failed: ${errorMessage}`, { id: 'cloudinary-upload' });
+      throw new Error(`Cloudinary upload failed: ${errorMessage}`);
     }
 
     const data = await response.json();
@@ -46,7 +48,9 @@ export const uploadImageToCloudinary = async (file: File): Promise<string> => {
     return data.secure_url;
   } catch (error) {
     console.error("Error during Cloudinary upload:", error);
-    toast.error("Image upload failed due to network or configuration error.", { id: 'cloudinary-upload' });
-    throw new Error("Image upload failed.");
+    // If the error is already detailed (from the throw above), use it. Otherwise, use a generic network error.
+    const message = error instanceof Error ? error.message : "Image upload failed due to network or configuration error.";
+    toast.error(message, { id: 'cloudinary-upload' });
+    throw new Error(message);
   }
 };

@@ -100,8 +100,8 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
       });
 
     if (error) {
-      const errorMsg = `Failed to send message: ${error.message}. This often indicates a missing RLS policy on the 'dm_messages' table.`;
-      toast.error(errorMsg, { duration: 8000 }); // Display detailed error with RLS hint
+      const errorMsg = `Failed to send message: ${error.message}`;
+      toast.error(errorMsg, { duration: 8000 }); // Display detailed error
       console.error(errorMsg, error);
       // Rollback the optimistic message if sending failed
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));

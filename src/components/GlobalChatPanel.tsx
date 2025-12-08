@@ -48,6 +48,7 @@ const GlobalChatPanel = ({ userId }: GlobalChatPanelProps) => {
 
     if (error) {
       console.error("Error loading messages:", error);
+      toast.error(`Failed to load messages: ${error.message}`);
     } else if (data) {
       setMessages(data as ChatMessage[]);
       scrollToBottom();
