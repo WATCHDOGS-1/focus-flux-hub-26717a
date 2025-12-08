@@ -1,5 +1,5 @@
+import React, { useCallback, createContext, useContext, ReactNode } from 'react';
 import useSound from 'use-sound';
-import { useCallback, createContext, useContext, ReactNode } from 'react';
 
 // Define sound paths (assuming they are in the public folder)
 const SOUND_PATHS = {
