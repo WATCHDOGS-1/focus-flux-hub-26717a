@@ -17,7 +17,7 @@ import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
 import SessionSaveModal from "@/components/SessionSaveModal"; // Import the new modal
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText, BookOpen } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -206,7 +206,6 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={() => navigate("/notes")} className="w-full justify-start gap-2"><BookOpen /> Notes Base</Button> {/* P4: Notes Navigation */}
             <Button onClick={() => toggleMainWorkspace('notes-media')} className="w-full justify-start gap-2"><NotebookText /> Notes Workspace</Button>
             <Button onClick={() => toggleMainWorkspace('ai')} className="w-full justify-start gap-2"><Brain /> AI Coach & Tasks</Button>
             <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
@@ -286,16 +285,6 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
-                    {/* P4: Notes Navigation Button */}
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => navigate("/notes")} 
-                        title="Notes Base"
-                    >
-                        <BookOpen className="h-5 w-5" />
-                    </Button>
-                    
                     {/* Notes/Media Button (Combined) */}
                     <Button 
                         variant="ghost" 

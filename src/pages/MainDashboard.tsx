@@ -4,7 +4,7 @@ import { Target, LayoutGrid, Zap, MessageSquare, Trophy, BookOpen, Brain, Clock,
 import AnimatedSection from "@/components/AnimatedSection";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import DigitalPlanetView from "@/components/DigitalPlanetView"; // Standardized component
+import DigitalPlanet3D from "@/components/DigitalPlanet3D"; // New 3D component
 import FocusTimer from "@/components/FocusTimer"; // Reusing existing timer
 import HeatmapStats from "@/components/HeatmapStats"; // Reusing existing heatmap
 import AICoachPanel from "@/components/AICoachPanel"; // Reusing existing AI panel
@@ -50,9 +50,15 @@ const MainDashboard = () => {
             <main className="container mx-auto p-0">
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 auto-rows-[minmax(200px, auto)]">
                     
-                    {/* Slot A: Digital Planet View (Span 2 columns, 2 rows) */}
+                    {/* Slot A: 3D Digital Planet (Span 2 columns, 2 rows) */}
                     <BentoCard id="digital-planet-3d" className="lg:col-span-2 lg:row-span-2 h-[600px] relative" delay={0.1}>
-                        <DigitalPlanetView />
+                        <div className="absolute inset-0 z-0">
+                            <DigitalPlanet3D />
+                        </div>
+                        <div className="relative z-10 p-4">
+                            <h2 className="text-3xl font-bold text-white mb-2">Digital Civilization</h2>
+                            <p className="text-muted-foreground">Your focus fuels your world. Level up to unlock new biomes.</p>
+                        </div>
                     </BentoCard>
 
                     {/* Slot B: Focus Timer (Span 2 columns, 1 row) */}

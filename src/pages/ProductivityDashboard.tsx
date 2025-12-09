@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LayoutGrid, Calendar, Zap, Target, BookOpen } from "lucide-react";
+import { Home, LayoutGrid, Calendar, Zap, Target } from "lucide-react";
 import KanbanBoard from "@/components/KanbanBoard";
-import TimeBlockCalendar from "@/components/TimeBlockCalendar"; // Updated import name
+import WeeklyCalendar from "@/components/WeeklyCalendar"; // Updated import
 import { TaskProvider, useTasks } from "@/hooks/use-tasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QuestSystemPanel from "@/components/QuestSystemPanel";
@@ -19,19 +19,11 @@ const ProductivityDashboardContent = () => {
         <div className="min-h-screen bg-background flex flex-col">
             <header className="glass-card border-b border-border sticky top-0 z-10">
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        {/* P4: Home Button */}
-                        <Button variant="ghost" size="icon" onClick={() => navigate("/")} title="Go to Home">
-                            <Home className="w-5 h-5" />
-                        </Button>
-                        <h1 className="text-2xl font-bold text-accent flex items-center gap-2">
-                            <LayoutGrid className="w-6 h-6" /> Productivity Dashboard
-                        </h1>
-                    </div>
+                    <h1 className="text-2xl font-bold text-accent flex items-center gap-2">
+                        <LayoutGrid className="w-6 h-6" /> Productivity Dashboard
+                    </h1>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => navigate("/notes")} className="dopamine-click">
-                            <BookOpen className="w-4 h-4 mr-2" /> Notes Base
-                        </Button>
+                        {/* Removed Notes/Knowledge button */}
                         <Button variant="default" onClick={() => navigate("/explore")} className="dopamine-click">
                             <Zap className="w-4 h-4 mr-2" /> Focus Rooms
                         </Button>
@@ -61,7 +53,7 @@ const ProductivityDashboardContent = () => {
                     </TabsContent>
 
                     <TabsContent value="calendar" className="h-[75vh]">
-                        <TimeBlockCalendar />
+                        <WeeklyCalendar />
                     </TabsContent>
                 </Tabs>
             </main>

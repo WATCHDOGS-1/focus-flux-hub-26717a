@@ -166,7 +166,7 @@ const AICoachPanel = () => {
             const notesSummary = getLocalStudyData().notesSummary;
             contextText = `[NOTES CONTEXT: ${notesSummary || "No notes found."}]`;
         } else if (contextType === 'tasks') {
-            const tasksSummary = getLocalStudyData().tasks.map(t => t.content).join("; ");
+            const tasksSummary = getLocalStudyData().tasks.map(t => t.title).join("; ");
             contextText = `[TASKS CONTEXT: Incomplete Tasks: ${tasksSummary || "No incomplete tasks found."}]`;
         }
         
