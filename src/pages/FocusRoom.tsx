@@ -17,7 +17,7 @@ import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
 import SessionSaveModal from "@/components/SessionSaveModal"; // Import the new modal
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText, BookOpen, Grid, List, LayoutGrid } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,7 +60,6 @@ const FocusRoom = () => {
   const [isZenMode, setIsZenMode] = useState(false);
   const [mainWorkspacePanel, setMainWorkspacePanel] = useState<'notes-media' | 'ai' | null>(null); // Updated type
   const [roomTheme, setRoomTheme] = useState("default");
-  const [videoLayout, setVideoLayout] = useState<'grid-1' | 'grid-2' | 'grid-3'>('grid-2'); // New state for video layout
   
   // --- Session Save Modal State ---
   const [isSaveModalOpen, setIsSaveModalState] = useState(false);
@@ -215,14 +214,6 @@ const FocusRoom = () => {
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer /> Timer</Button>
-            
-            {/* Mobile Layout Controls */}
-            <div className="flex gap-2 w-full">
-                <Button onClick={() => setVideoLayout('grid-1')} variant={videoLayout === 'grid-1' ? 'default' : 'outline'} className="flex-1 justify-start gap-2"><List /> 1x Grid</Button>
-                <Button onClick={() => setVideoLayout('grid-2')} variant={videoLayout === 'grid-2' ? 'default' : 'outline'} className="flex-1 justify-start gap-2"><LayoutGrid /> 2x Grid</Button>
-                <Button onClick={() => setVideoLayout('grid-3')} variant={videoLayout === 'grid-3' ? 'default' : 'outline'} className="flex-1 justify-start gap-2"><Grid /> 3x Grid</Button>
-            </div>
-            
             <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User /> Profile</Button>
             <ThemeToggle />
             <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2">
@@ -295,13 +286,6 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
-                    {/* Video Layout Controls */}
-                    <div className="flex items-center gap-1 border border-border rounded-lg p-1">
-                        <Button variant={videoLayout === 'grid-1' ? 'secondary' : 'ghost'} size="icon" onClick={() => setVideoLayout('grid-1')} title="1x Grid View"><List className="h-4 w-4" /></Button>
-                        <Button variant={videoLayout === 'grid-2' ? 'secondary' : 'ghost'} size="icon" onClick={() => setVideoLayout('grid-2')} title="2x Grid View"><LayoutGrid className="h-4 w-4" /></Button>
-                        <Button variant={videoLayout === 'grid-3' ? 'secondary' : 'ghost'} size="icon" onClick={() => setVideoLayout('grid-3')} title="3x Grid View"><Grid className="h-4 w-4" /></Button>
-                    </div>
-                    
                     {/* P4: Notes Navigation Button */}
                     <Button 
                         variant="ghost" 
@@ -385,7 +369,7 @@ const FocusRoom = () => {
                     "min-h-[400px]", // Minimum height for video grid
                     mainWorkspacePanel && "flex-1" // Take half the space if workspace is open
                 )}>
-                    <VideoGrid userId={userId} roomId={roomId} layoutMode={videoLayout} />
+                    <VideoGrid userId={userId} roomId={roomId} />
                 </div>
                 
                 {/* Conditional Workspace Panels */}

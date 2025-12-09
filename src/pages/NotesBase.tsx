@@ -13,44 +13,6 @@ import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Define the wrapper component outside the main component body
-const ClientOnlyEditorWrapper = ({ selectedDocument, handleContentUpdate }: { selectedDocument: Document, handleContentUpdate: (content: any) => void }) => {
-    const [isMounted, setIsMounted] = useState(false);
-    useEffect(() => { setIsMounted(true); }, []);
-
-    if (!isMounted) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="ml-3 text-muted-foreground">Loading editor...</p>
-            </div>
-        );
-    }
-    
-    if (selectedDocument.type === 'text') {
-        return (
-            <BlockEditor
-                documentId={selectedDocument.id}
-                initialContent={selectedDocument.content as any}
-                onContentChange={handleContentUpdate}
-            />
-        );
-    }
-    
-    if (selectedDocument.type === 'canvas') {
-        return (
-            <Whiteboard
-                documentId={selectedDocument.id}
-                initialContent={selectedDocument.content as string}
-                onContentChange={handleContentUpdate}
-            />
-        );
-    }
-    
-    return null;
-};
-
-
 const NotesBase = () => {
   const navigate = useNavigate();
   const { documents, updateDocument, createDocument, deleteDocument } = useKnowledge();
@@ -86,16 +48,9 @@ const NotesBase = () => {
     if (!selectedDocument) return;
     setIsSaving(true);
     
-    let newUrl = null;
-    if (file) {
-        // Mock upload: Use a placeholder URL that simulates persistence, since useKnowledge is mocked.
-        newUrl = `https://mock-storage.com/covers/${selectedDocument.id}-${Date.now()}`;
-        toast.info("Cover image uploaded (mocked).");
-    } else {
-        toast.info("Cover image removed.");
-    }
+    let newUrl = file ? URL.createObjectURL(file) : null; // Mock upload
     
-    // Simulate upload delay
+    // Simulate upload delay and cleanup
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     updateDocument(selectedDocument.id, { coverImageUrl: newUrl });
@@ -118,12 +73,27 @@ const NotesBase = () => {
         updateDocument(selectedDocument.id, { content });
     };
 
-    return (
-        <ClientOnlyEditorWrapper 
-            selectedDocument={selectedDocument} 
-            handleContentUpdate={handleContentUpdate} 
+    if (selectedDocument.type === 'text') {
+      return (
+        <BlockEditor
+          documentId={selectedDocument.id}
+          initialContent={selectedDocument.content as any}
+          onContentChange={handleContentUpdate}
         />
-    );
+      );
+    }
+    
+    if (selectedDocument.type === 'canvas') {
+      return (
+        <Whiteboard
+          documentId={selectedDocument.id}
+          initialContent={selectedDocument.content as string}
+          onContentChange={handleContentUpdate}
+        />
+      );
+    }
+    
+    return null;
   };
   
   // --- Zen Mode Logic ---

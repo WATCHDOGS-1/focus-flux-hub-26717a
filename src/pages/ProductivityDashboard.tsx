@@ -2,13 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, LayoutGrid, Calendar, Zap, Target, BookOpen } from "lucide-react";
 import KanbanBoard from "@/components/KanbanBoard";
-import TimeBlockCalendar from "@/components/TimeBlockCalendar";
-import { useTasks } from "@/hooks/use-tasks";
+import TimeBlockCalendar from "@/components/TimeBlockCalendar"; // Updated import name
+import { TaskProvider, useTasks } from "@/hooks/use-tasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QuestSystemPanel from "@/components/QuestSystemPanel";
 import { Task } from "@/types/productivity";
 import { toast } from "sonner";
-import DigitalPlanetView from "@/components/DigitalPlanetView";
 
 const ProductivityDashboardContent = () => {
     const navigate = useNavigate();
@@ -41,15 +40,8 @@ const ProductivityDashboardContent = () => {
             </header>
 
             <main className="flex-1 container mx-auto p-4 space-y-6">
-                
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                        <QuestSystemPanel />
-                    </div>
-                    <div className="lg:col-span-1 h-full">
-                        <DigitalPlanetView />
-                    </div>
-                </div>
+                {/* Quest System Panel (Top Priority) */}
+                <QuestSystemPanel />
 
                 {/* Removed DragDropContext wrapper */}
                 <Tabs defaultValue="kanban">
@@ -78,7 +70,9 @@ const ProductivityDashboardContent = () => {
 };
 
 const ProductivityDashboard = () => (
-    <ProductivityDashboardContent />
+    <TaskProvider>
+        <ProductivityDashboardContent />
+    </TaskProvider>
 );
 
 export default ProductivityDashboard;

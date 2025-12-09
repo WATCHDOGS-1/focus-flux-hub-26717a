@@ -71,11 +71,9 @@ const TimeBlockCalendar = () => {
         return events;
     }, [tasks]);
     
-    // Filter tasks that are not yet scheduled (or are scheduled but marked as done)
+    // Filter tasks that are not yet scheduled
     const unscheduledTasks = useMemo(() => {
-        // Only show tasks that are NOT scheduled (start_time is null) AND are not done.
-        // If a task is done, we allow scheduling it, but it will be moved back to 'todo' on schedule.
-        return tasks.filter(t => !t.start_time || t.status === 'done');
+        return tasks.filter(t => !t.start_time);
     }, [tasks]);
 
     const handleSlotClick = (day: Date, hour: number) => {
@@ -100,31 +98,21 @@ const TimeBlockCalendar = () => {
         
         const start = parseISO(formState.startTime);
         const end = parseISO(formState.endTime);
-        const selectedTask = tasks.find(t => t.id === formState.taskId);
-
-        if (!selectedTask) {
-            toast.error("Selected task not found.");
-            return;
-        }
 
         if (isBefore(end, start) || isSameDay(start, end) && start.getHours() >= end.getHours()) {
             toast.error("End time must be after start time.");
             return;
         }
-        
-        // If the task was previously marked as done, scheduling it moves it back to todo/in_progress
-        const newStatus = selectedTask.status === 'done' ? 'todo' : selectedTask.status;
 
         await updateTask({
             id: formState.taskId,
             start_time: start.toISOString(),
             end_time: end.toISOString(),
-            status: newStatus,
         });
 
         setIsDialogOpen(false);
         setFormState(null);
-        toast.success(`Task "${selectedTask.title}" scheduled successfully!`);
+        toast.success("Task scheduled successfully!");
     };
     
     const handleRemoveSchedule = async (taskId: string) => {
@@ -209,14 +197,14 @@ const TimeBlockCalendar = () => {
                                                         style={{ height: `${durationHours * 60}px` }}
                                                         onClick={(e) => e.stopPropagation()} // Prevent slot click
                                                     >
-                                                        <div className="font-semibold truncate">{event.title || event.title}</div>
+                                                        <div className="font-semibold truncate">{event.title}</div>
                                                         <div className="text-[10px] text-white/80 flex items-center justify-between">
                                                             <span>{format(parseISO(event.start_time!), 'h:mm a')}</span>
                                                             <Button 
                                                                 variant="ghost" 
                                                                 size="icon" 
                                                                 className="w-4 h-4 p-0 opacity-0 group-hover:opacity-100 text-white/80 hover:text-destructive"
-                                                                onClick={(e) => { e.stopPropagation(); handleRemoveSchedule(event.id); }}
+                                                                onClick={() => handleRemoveSchedule(event.id)}
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
                                                             </Button>
@@ -251,7 +239,7 @@ const TimeBlockCalendar = () => {
                             <Select 
                                 value={formState.taskId} 
                                 onValueChange={(taskId) => {
-                                    const selectedTask = tasks.find(t => t.id === taskId);
+                                    const selectedTask = unscheduledTasks.find(t => t.id === taskId);
                                     setFormState(prev => ({
                                         ...prev!,
                                         taskId,
