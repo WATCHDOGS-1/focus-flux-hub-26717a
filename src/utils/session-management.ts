@@ -86,17 +86,41 @@ export const getRecentFocusSessions = async (userId: string, range: 'day' | 'wee
 };
 
 /**
- * Simulates spending Stardust by updating localStorage.
+ * Spends Stardust by updating the user_levels table.
  */
 export const spendStardust = async (userId: string, amount: number): Promise<boolean> => {
-  const currentStardust = parseInt(localStorage.getItem(`stardust_${userId}`) || '0');
-  
-  if (currentStardust < amount) {
-    return false;
+  // 1. Fetch current Stardust
+  const { data: levelsData, error: fetchError } = await supabase
+      .from("user_levels")
+      .select("stardust")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+  if (fetchError) {
+      toast.error(`Failed to fetch Stardust: ${fetchError.message}`);
+      return false;
   }
-  
+
+  // Assuming stardust exists on user_levels row
+  const currentStardust = (levelsData as any)?.stardust || 0; 
+
+  if (currentStardust < amount) {
+      return false;
+  }
+
   const newStardust = currentStardust - amount;
-  localStorage.setItem(`stardust_${userId}`, newStardust.toString());
+
+  // 2. Update Stardust
+  const { error: updateError } = await supabase
+      .from("user_levels")
+      .update({ stardust: newStardust as any }) // Cast as any due to missing type definition
+      .eq("user_id", userId);
+
+  if (updateError) {
+      toast.error(`Failed to spend Stardust: ${updateError.message}`);
+      return false;
+  }
+
   return true;
 };
 
@@ -104,10 +128,10 @@ export const spendStardust = async (userId: string, amount: number): Promise<boo
  * Simulates spending XP by updating the user_levels table.
  */
 export const spendXP = async (userId: string, amount: number): Promise<boolean> => {
-    // 1. Fetch current XP
+    // 1. Fetch current XP and Stardust
     const { data: levelsData, error: fetchError } = await supabase
         .from("user_levels")
-        .select("total_xp")
+        .select("total_xp, level, title, stardust") // Assuming stardust is here
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -126,7 +150,7 @@ export const spendXP = async (userId: string, amount: number): Promise<boolean> 
     const newTitle = getTitleByXP(newTotalXP);
     const newLevel = LEVEL_THRESHOLDS.find(t => t.title === newTitle)?.level || 1;
 
-    // 2. Update XP
+    // 2. Update XP (and preserve stardust)
     const { error: updateError } = await supabase
         .from("user_levels")
         .update({ total_xp: newTotalXP, level: newLevel, title: newTitle })
@@ -149,7 +173,8 @@ export const endFocusSession = async (
   userId: string,
   sessionId: string,
   sessionStartTime: number,
-  focusTag: string
+  focusTag: string,
+  taskId: string | null // NEW: Accept taskId
 ): Promise<{ message: string, durationMinutes: number, focusTag: string }> => {
   const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
   const minutes = Math.floor(sessionDuration / 60);
@@ -187,7 +212,7 @@ export const endFocusSession = async (
 
   const { data: levelsData, error: levelsFetchError } = await supabase
     .from("user_levels")
-    .select("*")
+    .select("*, stardust") // Assuming stardust is now selected
     .eq("user_id", userId)
     .maybeSingle();
   if (levelsFetchError) console.error("Error fetching user levels:", levelsFetchError);
@@ -201,7 +226,7 @@ export const endFocusSession = async (
 
   // Initialize stats if they don't exist
   const currentStats = statsData || { user_id: userId, longest_streak: 0, longest_session_minutes: 0, total_focused_minutes: 0, last_focused_date: null };
-  const currentLevels = levelsData || { user_id: userId, level: 1, total_xp: 0, title: LEVEL_THRESHOLDS[0].title };
+  const currentLevels = levelsData || { user_id: userId, level: 1, total_xp: 0, title: LEVEL_THRESHOLDS[0].title, stardust: 0 };
   const userClass = (profileData?.interests as any)?.focus_class || "None";
 
   // --- 3. Streak Calculation ---
@@ -257,13 +282,26 @@ export const endFocusSession = async (
   const pomodorosCompleted = Math.floor(minutes / 25);
   const stardustEarned = pomodorosCompleted * STARDUST_PER_POMODORO;
   
-  // Mock: Update Stardust in localStorage
-  const currentStardust = parseInt(localStorage.getItem(`stardust_${userId}`) || '0');
-  const finalStardust = currentStardust + stardustEarned;
-  localStorage.setItem(`stardust_${userId}`, finalStardust.toString());
+  // --- 6. Update Task Pomodoros (NEW) ---
+  if (taskId) {
+      const { data: taskData } = await supabase
+          .from("tasks")
+          .select("actual_pomodoros")
+          .eq("id", taskId)
+          .single();
+          
+      const currentActualPoms = (taskData as any)?.actual_pomodoros || 0;
+      const newActualPoms = currentActualPoms + pomodorosCompleted;
+      
+      const { error: taskUpdateError } = await supabase
+          .from("tasks")
+          .update({ actual_pomodoros: newActualPoms as any })
+          .eq("id", taskId);
+          
+      if (taskUpdateError) console.error("Error updating task pomodoros:", taskUpdateError);
+  }
 
-
-  // --- 6. Update User Stats Table ---
+  // --- 7. Update User Stats Table ---
   const updatedStats = {
     longest_streak: Math.max(currentStats.longest_streak, newStreak),
     longest_session_minutes: Math.max(currentStats.longest_session_minutes, minutes),
@@ -276,19 +314,24 @@ export const endFocusSession = async (
     .upsert({ user_id: userId, ...updatedStats }, { onConflict: 'user_id' });
   if (statsUpdateError) console.error("Error updating user stats:", statsUpdateError);
 
-  // --- 7. Update User Levels Table ---
+  // --- 8. Update User Levels Table (XP and Stardust) ---
+  
+  const currentStardust = (currentLevels as any).stardust || 0; 
+  const finalStardust = currentStardust + stardustEarned;
+
   const updatedLevels = {
     total_xp: newTotalXP,
     level: newLevel,
     title: newTitle,
+    stardust: finalStardust as any, // Cast as any due to missing type definition
   };
 
   const { error: levelsUpdateError } = await supabase
     .from("user_levels")
     .upsert({ user_id: userId, ...updatedLevels }, { onConflict: 'user_id' });
-  if (levelsUpdateError) console.error("Error updating user levels:", levelsUpdateError);
+  if (levelsUpdateError) console.error("Error updating user levels (XP/Stardust):", levelsUpdateError);
 
-  // --- 8. Update Weekly Stats (Existing Logic) ---
+  // --- 9. Update Weekly Stats (Existing Logic) ---
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - today.getDay());
   weekStart.setHours(0, 0, 0, 0);
@@ -314,7 +357,7 @@ export const endFocusSession = async (
     if (weeklyInsertError) console.error("Error inserting weekly stats:", weeklyInsertError);
   }
   
-  // --- 9. Create Feed Item (Only if session >= 30 minutes) ---
+  // --- 10. Create Feed Item (Only if session >= 30 minutes) ---
   if (minutes >= 30) {
     const feedItemData = {
       duration: minutes,

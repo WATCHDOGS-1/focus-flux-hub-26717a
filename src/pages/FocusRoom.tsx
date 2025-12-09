@@ -17,7 +17,8 @@ import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
 import SessionSaveModal from "@/components/SessionSaveModal"; // Import the new modal
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText } from "lucide-react";
+import DigitalPlanetView from "@/components/DigitalPlanetView"; // Import DigitalPlanetView
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,7 +64,7 @@ const FocusRoom = () => {
   
   // --- Session Save Modal State ---
   const [isSaveModalOpen, setIsSaveModalState] = useState(false);
-  const [sessionToSave, setSessionToSave] = useState<{ durationMinutes: number, defaultTag: string } | null>(null);
+  const [sessionToSave, setSessionToSave] = useState<{ durationMinutes: number, defaultTag: string, taskId: string | null } | null>(null);
 
   // --- Profile Modal State and Handler ---
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
@@ -115,7 +116,7 @@ const FocusRoom = () => {
   }, [roomTheme]);
 
   const handleSaveAndLeave = async (tag: string) => {
-    await endCurrentSessionAndSave(tag);
+    await endCurrentSessionAndSave(tag, sessionToSave?.taskId || null);
     navigate("/explore");
   };
   
@@ -167,7 +168,8 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
-      case "youtube": return <YouTubePanel />; // New YouTube Panel
+      case "youtube": return <YouTubePanel />;
+      case "planet": return <DigitalPlanetView />;
       default: return null;
     }
   };
@@ -179,7 +181,8 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
-      "youtube": "YouTube Player", // New Title
+      "youtube": "YouTube Player",
+      "planet": "Digital Planet",
     };
     return titles[panel] || "";
   };
@@ -208,6 +211,7 @@ const FocusRoom = () => {
             <RoomThemeSelector onThemeChange={setRoomTheme} />
             <Button onClick={() => toggleMainWorkspace('notes-media')} className="w-full justify-start gap-2"><NotebookText /> Notes Workspace</Button>
             <Button onClick={() => toggleMainWorkspace('ai')} className="w-full justify-start gap-2"><Brain /> AI Coach & Tasks</Button>
+            <Button onClick={() => togglePanel("planet")} className="w-full justify-start gap-2"><Globe /> Digital Planet</Button>
             <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
@@ -308,6 +312,9 @@ const FocusRoom = () => {
                     </Button>
                     
                     {/* Sidebar Panel Buttons */}
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("planet")} title="Digital Planet" className={activePanel === 'planet' ? "bg-secondary" : ""}>
+                        <Globe className="h-5 w-5" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("youtube")} title="YouTube Player" className={activePanel === 'youtube' ? "bg-secondary" : ""}>
                         <Youtube className="h-5 w-5" />
                     </Button>

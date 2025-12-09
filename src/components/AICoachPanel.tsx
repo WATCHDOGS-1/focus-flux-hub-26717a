@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Zap, Database, Target, Paperclip, X, Lightbulb, MessageSquare, LayoutGrid, Save, Trash2, NotebookText, CalendarDays, Calendar, Clock, FileText } from "lucide-react";
+import { Send, Brain, Loader2, Target, Paperclip, X, Lightbulb, MessageSquare, ListChecks, Save, Trash2, CalendarDays, Calendar, Clock, FileText, Settings, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { sendGeminiChat, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
@@ -15,7 +15,14 @@ import { AI_COACH_SYSTEM_PROMPT } from "@/utils/ai-coach";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Lottie from 'lottie-react';
-import brainAnimation from '@/assets/lottie/brain-pulse.json'; // Placeholder for Lottie file
+import brainAnimation from '@/assets/lottie/brain-pulse.json';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Define chat history type compatible with Gemini API
 interface ChatMessage {
@@ -302,132 +309,139 @@ const AICoachPanel = () => {
     }
 
     return (
-        <div className="h-full flex flex-col">
-            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Brain className="w-5 h-5 text-accent" />
-                AI Focus Coach
-            </h3>
-            
-            {/* Long-Term Goal Setting */}
-            <div className="mb-3 space-y-2 p-3 rounded-lg bg-secondary/30">
-                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
-                    <Target className="w-4 h-4" /> Long-Term Focus Goal
-                </p>
-                <div className="flex gap-2">
-                    <Input
-                        placeholder="e.g., 'Finish my thesis by end of month'"
-                        value={longTermGoal}
-                        onChange={(e) => setLongTermGoal(e.target.value)}
-                        className="flex-1"
-                    />
-                    <Button onClick={handleSaveLongTermGoal} className="dopamine-click">
-                        Save
-                    </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    This goal provides context for all AI advice.
-                </p>
-            </div>
-            
-            {/* Persistent Memory Controls */}
-            <div className="mb-3 space-y-2 p-3 rounded-lg bg-secondary/30">
-                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
-                    <Lightbulb className="w-4 h-4" /> Persistent Memory
-                </p>
-                <div className="flex gap-2">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleSaveContext}
-                        disabled={history.length === 0 || isGenerating}
-                        className="flex-1 flex items-center gap-1 h-8"
-                    >
-                        <Save className="w-4 h-4" /> Save Current Chat
-                    </Button>
-                    <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        onClick={handleClearContext}
-                        disabled={!savedContext || isGenerating}
-                        className="flex-1 flex items-center gap-1 h-8"
-                    >
-                        <Trash2 className="w-4 h-4" /> Clear Saved Context
-                    </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    {savedContext ? "Context loaded. New chat will start with a summary." : "No context saved. Save a chat to enable memory."}
-                </p>
-            </div>
-
-
-            {/* Quick Actions */}
-            <div className="space-y-3 mb-3 p-4 rounded-lg bg-secondary/30">
-                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
-                    <LayoutGrid className="w-4 h-4" /> Quick Actions
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleAnalyzeData('day')}
-                        disabled={isGenerating}
-                        className="text-xs h-8 flex items-center justify-center"
-                    >
-                        <Clock className="w-3 h-3 mr-1" /> Analyze Day
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleAnalyzeData('week')}
-                        disabled={isGenerating}
-                        className="text-xs h-8 flex items-center justify-center"
-                    >
-                        <CalendarDays className="w-3 h-3 mr-1" /> Analyze Week
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleAnalyzeData('month')}
-                        disabled={isGenerating}
-                        className="text-xs h-8 flex items-center justify-center"
-                    >
-                        <Calendar className="w-3 h-3 mr-1" /> Analyze Month
-                    </Button>
-                </div>
+        <div id="ai-coach-widget" className="h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-accent" />
+                    AI Focus Coach
+                </h3>
                 
-                <p className="text-sm font-semibold flex items-center gap-1 text-primary pt-3 border-t border-border/50 mt-3">
-                    <Target className="w-4 h-4" /> Inject Context
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={() => handleInjectContext('stats')}
-                        className="text-xs h-8"
-                    >
-                        Stats
-                    </Button>
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={() => handleInjectContext('tasks')}
-                        className="text-xs h-8"
-                    >
-                        Tasks
-                    </Button>
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={() => handleChat("What are the best strategies for avoiding distractions?")}
-                        disabled={isGenerating}
-                        className="text-xs h-8"
-                    >
-                        Help
-                    </Button>
-                </div>
+                {/* Settings Dialog Trigger */}
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="dopamine-click flex-shrink-0" title="AI Coach Settings">
+                            <Settings className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px] glass-card">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-accent">
+                                <Settings className="w-5 h-5" /> AI Coach Settings
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-6 py-4">
+                            {/* Long-Term Goal Setting */}
+                            <div className="space-y-2">
+                                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
+                                    <Target className="w-4 h-4" /> Long-Term Focus Goal
+                                </p>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="e.g., 'Finish my thesis by end of month'"
+                                        value={longTermGoal}
+                                        onChange={(e) => setLongTermGoal(e.target.value)}
+                                        className="flex-1"
+                                    />
+                                    <Button onClick={handleSaveLongTermGoal} className="dopamine-click">
+                                        Save
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    This goal provides context for all AI advice.
+                                </p>
+                            </div>
+                            
+                            {/* Persistent Memory Controls */}
+                            <div className="space-y-2 pt-4 border-t border-border">
+                                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
+                                    <Lightbulb className="w-4 h-4" /> Persistent Memory
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={handleSaveContext}
+                                        disabled={history.length === 0 || isGenerating}
+                                        className="flex-1 flex items-center gap-1 h-8"
+                                    >
+                                        <Save className="w-4 h-4" /> Save Current Chat
+                                    </Button>
+                                    <Button 
+                                        variant="destructive" 
+                                        size="sm" 
+                                        onClick={handleClearContext}
+                                        disabled={!savedContext || isGenerating}
+                                        className="flex-1 flex items-center gap-1 h-8"
+                                    >
+                                        <Trash2 className="w-4 h-4" /> Clear Saved Context
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {savedContext ? "Context loaded. New chat will start with a summary." : "No context saved. Save a chat to enable memory."}
+                                </p>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
+            
+            {/* Quick Actions (Compact Toolbar) */}
+            <div className="flex gap-2 mb-3 p-2 rounded-lg bg-secondary/30 justify-around">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleAnalyzeData('day')}
+                    disabled={isGenerating}
+                    title="Analyze Day"
+                >
+                    <Clock className="w-4 h-4" />
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleAnalyzeData('week')}
+                    disabled={isGenerating}
+                    title="Analyze Week"
+                >
+                    <CalendarDays className="w-4 h-4" />
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleAnalyzeData('month')}
+                    disabled={isGenerating}
+                    title="Analyze Month"
+                >
+                    <Calendar className="w-4 h-4" />
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleInjectContext('stats')}
+                    title="Inject Stats"
+                >
+                    <TrendingUp className="w-4 h-4" />
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleInjectContext('tasks')}
+                    title="Inject Tasks"
+                >
+                    <ListChecks className="w-4 h-4" />
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleChat("What are the best strategies for avoiding distractions?")}
+                    disabled={isGenerating}
+                    title="Ask for Help"
+                >
+                    <Lightbulb className="w-4 h-4" />
+                </Button>
             </div>
 
-            {/* Chat History */}
+            {/* Chat History (Maximized) */}
             <ScrollArea className="flex-1 space-y-4 overflow-y-auto mb-4 pr-2">
                 <div className="space-y-4">
                     {history.length === 0 && (

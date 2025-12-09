@@ -26,9 +26,9 @@ interface UseFocusSessionResult {
   toggleTimer: () => void;
   resetTimer: () => void;
   handleSaveCustomSettings: (workMinutes: number, breakMinutes: number) => void;
-  startNewSession: () => void;
-  prepareSessionEnd: () => { durationMinutes: number, defaultTag: string } | null; // New function to trigger modal
-  endCurrentSessionAndSave: (finalFocusTag: string) => Promise<void>; // New function to finalize save
+  startNewSession: (taskId?: string | null) => void;
+  prepareSessionEnd: () => { durationMinutes: number, defaultTag: string, taskId: string | null } | null; // Updated return type
+  endCurrentSessionAndSave: (finalFocusTag: string, taskId: string | null) => Promise<void>; // Updated signature
   currentDuration: number;
   progress: number;
 }
@@ -45,6 +45,7 @@ export function useFocusSession(): UseFocusSessionResult {
   const [isBreak, setIsBreak] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null); // NEW: Task ID state
   const [focusTag, setFocusTagState] = useState(""); // Local state for input field
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -95,6 +96,7 @@ export function useFocusSession(): UseFocusSessionResult {
         // If session is too short, just reset without saving
         setSessionStartTime(0);
         setSessionId(null);
+        setCurrentTaskId(null); // Reset task ID
         setTimeLeft(currentMode.work);
         setIsBreak(false);
         toast.info("Session ended. Duration too short to save.");
@@ -104,12 +106,13 @@ export function useFocusSession(): UseFocusSessionResult {
     return {
         durationMinutes,
         defaultTag: focusTag.trim() || "General Focus",
+        taskId: currentTaskId, // Include task ID
     };
-  }, [userId, sessionId, sessionStartTime, focusTag, currentMode]);
+  }, [userId, sessionId, sessionStartTime, focusTag, currentMode, currentTaskId]);
 
 
   // Function to finalize session saving after receiving the tag from the modal
-  const endCurrentSessionAndSave = useCallback(async (finalFocusTag: string) => {
+  const endCurrentSessionAndSave = useCallback(async (finalFocusTag: string, taskId: string | null) => {
     if (!userId || !sessionId || sessionStartTime === 0) {
         toast.error("Cannot save session: session data missing.");
         return;
@@ -118,7 +121,7 @@ export function useFocusSession(): UseFocusSessionResult {
     const sessionDurationSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
     const durationMinutes = Math.floor(sessionDurationSeconds / 60);
 
-    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, finalFocusTag);
+    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, finalFocusTag, taskId); // Pass taskId
 
     toast.promise(leavePromise, {
       loading: "Saving your session...",
@@ -136,12 +139,13 @@ export function useFocusSession(): UseFocusSessionResult {
     // Reset state regardless of save success (optimistic reset)
     setSessionStartTime(0);
     setSessionId(null);
+    setCurrentTaskId(null); // Reset task ID
     setTimeLeft(currentMode.work);
     setIsBreak(false);
     lastCheckinTimeRef.current = 0; // Reset check-in tracker
   }, [userId, sessionId, sessionStartTime, stats, levels, refetchStats, currentMode]);
 
-  const startNewSession = async () => {
+  const startNewSession = async (taskId?: string | null) => {
     if (!userId || !profile) {
         toast.error("Authentication incomplete. Please wait for profile to load or re-login.");
         return;
@@ -162,6 +166,7 @@ export function useFocusSession(): UseFocusSessionResult {
 
     // 2. Update state
     setSessionId(data.id);
+    setCurrentTaskId(taskId || null); // Store task ID
     setSessionStartTime(Date.now());
     setIsActive(true);
     setIsBreak(false);
@@ -271,6 +276,7 @@ export function useFocusSession(): UseFocusSessionResult {
     setTimeLeft(currentMode.work);
     setSessionStartTime(0);
     setSessionId(null);
+    setCurrentTaskId(null); // Reset task ID
     lastCheckinTimeRef.current = 0; // Reset check-in tracker
     toast.info("Timer reset.");
   };
