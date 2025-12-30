@@ -2,14 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Zap, 
-  LayoutGrid, 
   MessageSquare, 
-  Trophy, 
   Video, 
-  Brain, 
   ArrowRight,
   TrendingUp,
-  Clock
+  Clock,
+  LayoutGrid,
+  Shield,
+  Star
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
@@ -17,122 +17,133 @@ import DigitalPlanetView from "@/components/DigitalPlanetView";
 import FocusTimer from "@/components/FocusTimer";
 import HeatmapStats from "@/components/HeatmapStats";
 import AICoachPanel from "@/components/AICoachPanel";
+import AnimatedSection from "@/components/AnimatedSection";
 import { cn } from "@/lib/utils";
-
-const DashboardCard = ({ children, className, delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay, ease: [0.23, 1, 0.32, 1] }}
-        className={cn("glass p-6 rounded-3xl overflow-hidden", className)}
-    >
-        {children}
-    </motion.div>
-);
 
 const MainDashboard = () => {
     const { isAuthenticated, profile } = useAuth();
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen p-4 md:p-8 max-w-[1600px] mx-auto space-y-8">
-            {/* Header */}
-            <header className="flex items-center justify-between px-4">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-glow">
-                        OnlyFocus
+        <div className="min-h-screen p-6 md:p-12 max-w-[1800px] mx-auto space-y-12">
+            {/* Nav Header */}
+            <header className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-6">
+                    <h1 className="text-4xl font-black tracking-tighter text-glow italic">
+                        ONLYFOCUS
                     </h1>
-                    <p className="text-muted-foreground text-sm">
-                        Welcome back{profile ? `, ${profile.username}` : ''}. Ready for flow?
-                    </p>
+                    <nav className="hidden md:flex gap-8 text-xs font-bold uppercase tracking-widest opacity-40">
+                        <span className="cursor-pointer hover:opacity-100 transition-opacity" onClick={() => navigate("/social")}>Community</span>
+                        <span className="cursor-pointer hover:opacity-100 transition-opacity" onClick={() => navigate("/productivity")}>Day Planner</span>
+                        <span className="cursor-pointer hover:opacity-100 transition-opacity">Archive</span>
+                    </nav>
                 </div>
-                <div className="flex gap-3">
-                    <Button 
-                        variant="ghost" 
-                        onClick={() => navigate("/social")} 
-                        className="rounded-full glass-hover"
-                    >
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Community
-                    </Button>
-                    {!isAuthenticated && (
-                        <Button 
-                            onClick={() => navigate("/auth")} 
-                            className="rounded-full premium-gradient px-8"
-                        >
-                            Log In
+                <div className="flex gap-4">
+                    {!isAuthenticated ? (
+                        <Button onClick={() => navigate("/auth")} className="rounded-full premium-gradient px-8 h-12 font-bold shadow-glow">
+                            INITIALIZE
                         </Button>
+                    ) : (
+                        <div className="flex items-center gap-4">
+                             <div className="text-right hidden sm:block">
+                                <p className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">Authorized User</p>
+                                <p className="text-sm font-bold">{profile?.username}</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-full bg-primary/20 border border-white/10 flex items-center justify-center font-black">
+                                {profile?.username?.[0].toUpperCase()}
+                            </div>
+                        </div>
                     )}
                 </div>
             </header>
 
-            <main className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                {/* Hero Action: Join Focus Room */}
-                <DashboardCard className="lg:col-span-12 premium-gradient p-8 flex flex-col md:flex-row items-center justify-between gap-8 border-none group cursor-pointer" delay={0.1}>
-                    <div className="space-y-4 text-center md:text-left">
-                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/20 text-white text-xs font-medium backdrop-blur-md">
-                            <Video className="w-3 h-3 mr-2" />
-                            Live Accountability
-                        </div>
-                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
-                            Focus with others. <br />
-                            <span className="opacity-70">Achieve more together.</span>
-                        </h2>
-                        <p className="text-white/80 max-w-md text-lg">
-                            Join one of our virtual study rooms and leverage social accountability to hit your goals.
-                        </p>
-                        <Button 
-                            size="lg" 
+                {/* Hero Block */}
+                <div className="lg:col-span-8 space-y-8">
+                    <AnimatedSection>
+                        <div 
                             onClick={() => navigate("/explore")}
-                            className="bg-white text-primary hover:bg-white/90 rounded-full px-10 h-14 text-lg font-semibold shadow-2xl transition-transform group-hover:scale-105"
+                            className="group relative h-[500px] rounded-[3rem] overflow-hidden cursor-pointer border border-white/5"
                         >
-                            Enter Focus Room
-                            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                    </div>
-                    <div className="relative w-full md:w-1/3 aspect-video glass rounded-2xl flex items-center justify-center overflow-hidden border-white/20">
-                        <Zap className="w-20 h-20 text-white animate-pulse" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                    </div>
-                </DashboardCard>
-
-                {/* Left Column: Planet & Stats */}
-                <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <DashboardCard className="md:col-span-2 h-[400px]" delay={0.2}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-semibold flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5 text-primary" />
-                                Your Civilization
-                            </h3>
-                            <Button variant="ghost" size="sm" onClick={() => navigate("/social?tab=planets")}>Details</Button>
+                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                            
+                            <div className="absolute bottom-0 left-0 p-12 space-y-6 w-full">
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-[10px] font-black tracking-[0.2em] uppercase">
+                                    <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                                    Active Study Nexus
+                                </div>
+                                <h2 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.8] transition-transform group-hover:-translate-y-2 duration-500">
+                                    ENTER THE <br /> <span className="text-primary italic">VOID.</span>
+                                </h2>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-white/60 max-w-sm text-sm font-medium leading-relaxed">
+                                        Join a collective of high-performance minds. Real-time accountability for those who seek mastery.
+                                    </p>
+                                    <div className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-accent group-hover:text-background">
+                                        <ArrowRight className="w-8 h-8" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <DigitalPlanetView />
-                    </DashboardCard>
+                    </AnimatedSection>
 
-                    <DashboardCard delay={0.3}>
-                        <div className="flex items-center gap-2 mb-4">
-                            <Clock className="w-5 h-5 text-primary" />
-                            <h3 className="font-semibold">Quick Timer</h3>
-                        </div>
-                        <FocusTimer />
-                    </DashboardCard>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <AnimatedSection delay={0.2}>
+                            <div className="glass-card p-8 rounded-[2.5rem] h-full flex flex-col justify-between group hover:border-primary/50 transition-colors">
+                                <div>
+                                    <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center mb-6">
+                                        <Clock className="text-primary" />
+                                    </div>
+                                    <h3 className="text-2xl font-black italic tracking-tighter mb-4">PRECISION TIMER</h3>
+                                    <FocusTimer />
+                                </div>
+                            </div>
+                        </AnimatedSection>
 
-                    <DashboardCard delay={0.4}>
-                         <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Zap className="w-5 h-5 text-primary" />
-                            Consistency
-                        </h3>
-                        <HeatmapStats />
-                    </DashboardCard>
+                        <AnimatedSection delay={0.3}>
+                            <div className="glass-card p-8 rounded-[2.5rem] h-full flex flex-col justify-between group hover:border-accent/50 transition-colors">
+                                <div>
+                                    <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center mb-6">
+                                        <TrendingUp className="text-accent" />
+                                    </div>
+                                    <h3 className="text-2xl font-black italic tracking-tighter mb-4">CONSISTENCY HUB</h3>
+                                    <HeatmapStats />
+                                </div>
+                            </div>
+                        </AnimatedSection>
+                    </div>
                 </div>
 
-                {/* Right Column: AI Coach */}
-                <DashboardCard className="lg:col-span-4 h-full" delay={0.5}>
-                    <AICoachPanel />
-                </DashboardCard>
+                {/* Right Column: AI & Civilization */}
+                <div className="lg:col-span-4 space-y-8">
+                    <AnimatedSection delay={0.4}>
+                        <div className="glass-card p-8 rounded-[2.5rem] min-h-[400px]">
+                            <h3 className="text-2xl font-black italic tracking-tighter mb-8 flex items-center gap-2">
+                                <Star className="text-primary" /> THE PLANET
+                            </h3>
+                            <div className="h-64 mb-8">
+                                <DigitalPlanetView />
+                            </div>
+                            <Button variant="outline" onClick={() => navigate("/social?tab=planets")} className="w-full rounded-2xl h-12 font-bold border-white/5 hover:bg-white/5">
+                                MANAGE CIVILIZATION
+                            </Button>
+                        </div>
+                    </AnimatedSection>
+
+                    <AnimatedSection delay={0.5} className="h-full">
+                        <div className="glass-card p-8 rounded-[2.5rem] h-full border-primary/20">
+                            <AICoachPanel />
+                        </div>
+                    </AnimatedSection>
+                </div>
 
             </main>
+
+            <footer className="pt-24 pb-12 text-center">
+                <p className="text-[10px] font-black tracking-[0.4em] opacity-20 uppercase italic">Designed for Mastery • Built for Focus</p>
+            </footer>
         </div>
     );
 };
