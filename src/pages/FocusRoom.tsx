@@ -97,15 +97,16 @@ const FocusRoom = () => {
   }, [userId, isActive, sessionStartTime, startNewSession]);
 
   // Effect to check if a session needs saving (e.g., timer paused or ended)
+  // Guarded by !isSaveModalOpen to prevent infinite loop crashes
   useEffect(() => {
-    if (!isActive && sessionStartTime !== 0) {
+    if (!isActive && sessionStartTime !== 0 && !isSaveModalOpen) {
         const sessionData = prepareSessionEnd();
         if (sessionData) {
             setSessionToSave(sessionData);
             setIsSaveModalState(true);
         }
     }
-  }, [isActive, sessionStartTime, prepareSessionEnd]);
+  }, [isActive, sessionStartTime, prepareSessionEnd, isSaveModalOpen]);
 
 
   useEffect(() => {
@@ -127,11 +128,9 @@ const FocusRoom = () => {
         if (sessionData) {
             setSessionToSave(sessionData);
             setIsSaveModalState(true);
-            // The navigation happens inside handleSaveAndLeave
             return;
         }
     }
-    // If no active session, just navigate
     navigate("/explore");
   };
 
@@ -235,7 +234,7 @@ const FocusRoom = () => {
       {/* Session Save Modal */}
       {sessionToSave && (
         <SessionSaveModal
-            isOpen={isSaveModalState}
+            isOpen={isSaveModalOpen}
             onClose={() => setIsSaveModalState(false)}
             onSave={handleSaveAndLeave}
             defaultTag={sessionToSave.defaultTag}
@@ -337,7 +336,7 @@ const FocusRoom = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="flex h-full"> {/* Added h-full here */}
+        <div className="flex h-full">
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
             {/* Focus Tag Input (Always visible in room, unless in Focus Mode) */}
             {!isFocusMode && (
@@ -357,26 +356,26 @@ const FocusRoom = () => {
 
             {/* Main Content Area: Video Grid and Workspace */}
             <div className={cn(
-                "flex-1 min-h-[400px]", // Ensure minimum height for the whole area
-                mainWorkspacePanel && "flex flex-col gap-4" // If any workspace is shown, make it a vertical flex container
+                "flex-1 min-h-[400px]", 
+                mainWorkspacePanel && "flex flex-col gap-4"
             )}>
                 {/* Video Grid */}
                 <div className={cn(
-                    "min-h-[400px]", // Minimum height for video grid
-                    mainWorkspacePanel && "flex-1" // Take half the space if workspace is open
+                    "min-h-[400px]", 
+                    mainWorkspacePanel && "flex-1"
                 )}>
                     <VideoGrid userId={userId} roomId={roomId} />
                 </div>
                 
                 {/* Conditional Workspace Panels */}
                 {mainWorkspacePanel === 'notes-media' && (
-                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
+                    <div className="flex-1 min-h-[400px]">
                         <NotesAndMediaPanel />
                     </div>
                 )}
                 
                 {mainWorkspacePanel === 'ai' && (
-                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
+                    <div className="flex-1 min-h-[400px]">
                         <AICoachAndTasksPanel />
                     </div>
                 )}

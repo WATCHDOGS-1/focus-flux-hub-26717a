@@ -173,7 +173,7 @@ const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete, updateTask
                             key={task.id} 
                             task={task} 
                             onFocusNow={onFocusNow} 
-                            onDelete={deleteTask}
+                            onDelete={onDelete}
                         />
                     ))}
                 </SortableContext>
