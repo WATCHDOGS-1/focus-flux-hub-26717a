@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, subDays, startOfWeek } from "date-fns";
 
 const XP_PER_MINUTE = 10;
 const STARDUST_PER_POMODORO = 10;
@@ -16,6 +16,75 @@ const LEVEL_THRESHOLDS = [
 ];
 
 export const getLevelThresholds = () => LEVEL_THRESHOLDS;
+
+/**
+ * Fetches recent focus sessions for biome calculation and stats.
+ */
+export const getRecentFocusSessions = async (userId: string, range: 'day' | 'week' = 'week') => {
+  const startDate = range === 'day' ? subDays(new Date(), 1) : startOfWeek(new Date());
+  
+  const { data, error } = await supabase
+    .from("focus_sessions")
+    .select("duration_minutes, tag, start_time")
+    .eq("user_id", userId)
+    .gte("start_time", startDate.toISOString())
+    .not("duration_minutes", "is", null)
+    .gt("duration_minutes", 0);
+
+  if (error) {
+    console.error("Error fetching recent sessions:", error);
+    return [];
+  }
+
+  return (data || []).map(s => ({
+    totalMinutes: s.duration_minutes || 0,
+    tag: s.tag || "General",
+    startTime: s.start_time
+  }));
+};
+
+/**
+ * Deducts XP from a user's total for civilization upgrades.
+ */
+export const spendXP = async (userId: string, amount: number): Promise<boolean> => {
+  const { data: levels } = await supabase
+    .from("user_levels")
+    .select("total_xp")
+    .eq("user_id", userId)
+    .single();
+
+  if (!levels || levels.total_xp < amount) return false;
+
+  const newXP = levels.total_xp - amount;
+  
+  const { error } = await supabase
+    .from("user_levels")
+    .update({ total_xp: newXP })
+    .eq("user_id", userId);
+
+  return !error;
+};
+
+/**
+ * Deducts Stardust for planet structures.
+ */
+export const spendStardust = async (userId: string, amount: number): Promise<boolean> => {
+  const { data: levels } = await supabase
+    .from("user_levels")
+    .select("stardust")
+    .eq("user_id", userId)
+    .single();
+
+  const currentStardust = (levels as any)?.stardust || 0;
+  if (currentStardust < amount) return false;
+
+  const { error } = await supabase
+    .from("user_levels")
+    .update({ stardust: currentStardust - amount } as any)
+    .eq("user_id", userId);
+
+  return !error;
+};
 
 export const endFocusSession = async (
   userId: string,
