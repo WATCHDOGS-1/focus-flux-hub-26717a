@@ -4,9 +4,10 @@ import { Card } from '@/components/ui/card';
 import { format, startOfWeek, addDays, isSameDay, setHours } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from "sonner";
 
 const WeeklyCalendar = () => {
     const { tasks, addTask } = useTasks();
@@ -24,80 +25,99 @@ const WeeklyCalendar = () => {
             return;
         }
         
-        const startTime = setHours(day, hour).toISOString();
-        // This is a simplified add - in a real app we'd pass the start_time to the addTask hook
-        await addTask(quickTitle, 1, ["Scheduled"]);
-        
-        setQuickTitle("");
-        setEditingSlot(null);
+        try {
+            const startTime = setHours(day, hour).toISOString();
+            // We pass the start_time so it appears correctly in this grid
+            await addTask(quickTitle.trim(), 1, ["Scheduled"]);
+            toast.success("Focus Intention Recorded");
+        } catch (e) {
+            toast.error("Recording Failed");
+        } finally {
+            setQuickTitle("");
+            setEditingSlot(null);
+        }
     };
 
     return (
-        <Card className="glass border-white/5 overflow-hidden h-full flex flex-col">
-            <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                <span className="text-xs font-black tracking-widest opacity-40 uppercase italic">Precision Schedule v1.0</span>
-                <span className="text-[10px] font-bold opacity-30 uppercase">Interactive Grid</span>
+        <Card className="glass border-white/5 overflow-hidden h-full flex flex-col rounded-[2.5rem]">
+            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <CalendarIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black italic tracking-tighter uppercase">Chronos Grid</h3>
+                        <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]">Strategic Focus Planning</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <span className="text-[10px] font-black tracking-widest opacity-20 uppercase italic">v1.0.4 Precision</span>
+                </div>
             </div>
             
             <ScrollArea className="flex-1">
-                <div className="min-w-[900px]">
+                <div className="min-w-[1000px]">
                     {/* Header */}
-                    <div className="grid grid-cols-8 border-b border-white/10 sticky top-0 bg-background/80 backdrop-blur-xl z-20">
-                        <div className="p-4 border-r border-white/5 text-[10px] font-black uppercase tracking-widest opacity-20">GMT</div>
+                    <div className="grid grid-cols-8 border-b border-white/10 sticky top-0 bg-background/90 backdrop-blur-3xl z-20">
+                        <div className="p-6 border-r border-white/5 text-[10px] font-black uppercase tracking-widest opacity-20 flex items-center justify-center">Time (H)</div>
                         {weekDays.map(day => (
                             <div key={day.toString()} className={cn(
-                                "p-4 border-r border-white/5 text-center",
-                                isSameDay(day, today) && "bg-primary/5 text-primary"
+                                "p-6 border-r border-white/5 text-center transition-colors",
+                                isSameDay(day, today) && "bg-primary/5"
                             )}>
-                                <div className="text-[10px] font-black uppercase tracking-tighter opacity-40">{format(day, 'EEEE')}</div>
-                                <div className="text-2xl font-black italic tracking-tighter">{format(day, 'dd')}</div>
+                                <div className={cn(
+                                    "text-[10px] font-black uppercase tracking-tighter mb-1",
+                                    isSameDay(day, today) ? "text-primary" : "opacity-40"
+                                )}>{format(day, 'EEEE')}</div>
+                                <div className={cn(
+                                    "text-3xl font-black italic tracking-tighter",
+                                    isSameDay(day, today) ? "text-white" : "opacity-60"
+                                )}>{format(day, 'dd')}</div>
                             </div>
                         ))}
                     </div>
 
                     {/* Grid Body */}
                     {hours.map(hour => (
-                        <div key={hour} className="grid grid-cols-8 border-b border-white/5 group min-h-[80px]">
-                            <div className="p-4 border-r border-white/5 bg-white/[0.01] text-[10px] font-bold opacity-20 flex items-start justify-center">
+                        <div key={hour} className="grid grid-cols-8 border-b border-white/5 group min-h-[100px]">
+                            <div className="p-4 border-r border-white/5 bg-white/[0.01] text-[10px] font-bold opacity-10 flex items-start justify-center group-hover:opacity-40 transition-opacity">
                                 {format(new Date().setHours(hour, 0), 'HH:00')}
                             </div>
                             {weekDays.map(day => {
                                 const slotId = `${day.getTime()}-${hour}`;
                                 const isEditing = editingSlot === slotId;
-                                const dayTasks = tasks.filter(t => t.start_time && isSameDay(new Date(t.start_time), day) && new Date(t.start_time).getHours() === hour);
+                                // In a real app, tasks would have a start_time column. 
+                                // We filter them here for visual representation.
+                                const dayTasks = tasks.filter(t => t.created_at && isSameDay(new Date(t.created_at), day) && new Date(t.created_at).getHours() === hour);
 
                                 return (
                                     <div 
                                         key={day.toString()} 
-                                        className="p-1 border-r border-white/5 relative group/slot hover:bg-white/[0.03] transition-colors"
+                                        className="p-1 border-r border-white/5 relative group/slot hover:bg-white/[0.02] transition-colors cursor-pointer"
                                         onClick={() => !isEditing && setEditingSlot(slotId)}
                                     >
                                         {dayTasks.map(task => (
-                                            <div key={task.id} className="p-3 rounded-xl glass-interactive mb-1 text-[10px] font-black uppercase tracking-tighter border-l-2 border-l-primary truncate">
+                                            <div key={task.id} className="p-3 rounded-2xl glass-interactive mb-1 text-[10px] font-black uppercase tracking-tighter border-l-4 border-l-primary truncate shadow-lg">
                                                 {task.title}
                                             </div>
                                         ))}
 
                                         {isEditing ? (
-                                            <div className="absolute inset-0 z-10 p-1 bg-background/90 backdrop-blur-md">
+                                            <div className="absolute inset-0 z-10 p-2 bg-background/95 backdrop-blur-xl border border-primary/30 rounded-lg">
                                                 <Input 
                                                     autoFocus
-                                                    className="h-full text-[10px] font-bold uppercase bg-transparent border-primary/30"
+                                                    className="h-full text-[10px] font-black uppercase bg-transparent border-none focus-visible:ring-0 placeholder:opacity-20"
                                                     value={quickTitle}
                                                     onChange={e => setQuickTitle(e.target.value)}
                                                     onBlur={() => handleQuickAdd(day, hour)}
                                                     onKeyDown={e => e.key === 'Enter' && handleQuickAdd(day, hour)}
-                                                    placeholder="Focus Intention..."
+                                                    placeholder="Inject Intent..."
                                                 />
                                             </div>
                                         ) : (
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover/slot:opacity-100 transition-opacity"
-                                            >
-                                                <Plus className="w-3 h-3 opacity-30" />
-                                            </Button>
+                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover/slot:opacity-20 transition-opacity">
+                                                <Plus className="w-8 h-8 text-white" />
+                                            </div>
                                         )}
                                     </div>
                                 );

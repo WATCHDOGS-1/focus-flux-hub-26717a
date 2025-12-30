@@ -21,7 +21,6 @@
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/30;
-    /* Removed noise/static. Pure liquid gradient. */
     background: radial-gradient(circle at top left, hsla(280, 80%, 20%, 0.15), transparent 40%),
                 radial-gradient(circle at bottom right, hsla(185, 80%, 20%, 0.1), transparent 40%),
                 hsl(240, 10%, 2%);
@@ -37,7 +36,12 @@
   }
   
   .glass-interactive {
-    @apply glass hover:bg-white/[0.06] hover:border-white/[0.15] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)];
+    @apply glass;
+    transition: all 700ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  
+  .glass-interactive:hover {
+    @apply bg-white/[0.06] border-white/[0.15];
   }
 
   .text-luxury {
