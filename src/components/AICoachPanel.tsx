@@ -1,525 +1,141 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Brain, Loader2, Target, Paperclip, X, Lightbulb, MessageSquare, ListChecks, Save, Trash2, CalendarDays, Calendar, Clock, FileText, Settings, TrendingUp } from "lucide-react";
+import { Send, Brain, Sparkles, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { sendGeminiChat, getGeminiApiKey, fileToGenerativePart, ChatPart } from "@/utils/gemini";
+import { sendGeminiChat, getGeminiApiKey } from "@/utils/gemini";
 import GeminiApiKeySetup from "./GeminiApiKeySetup";
 import { useAuth } from "@/hooks/use-auth";
-import { useUserStats } from "@/hooks/use-user-stats";
 import { cn } from "@/lib/utils";
-import { getRecentFocusSessions } from "@/utils/session-management";
-import { getLocalStudyData } from "@/utils/local-data";
-import { AI_COACH_SYSTEM_PROMPT } from "@/utils/ai-coach";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import Lottie from 'lottie-react';
-import brainAnimation from '@/assets/lottie/brain-pulse.json';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
-// Define chat history type compatible with Gemini API
 interface ChatMessage {
     role: "user" | "model";
-    parts: ChatPart[];
+    parts: { text: string }[];
 }
-
-const LONG_TERM_GOAL_KEY = "ai_coach_long_term_goal";
-const SAVED_CONTEXT_KEY = "ai_coach_saved_context";
 
 const AICoachPanel = () => {
     const { userId } = useAuth();
-    const { stats, levels } = useUserStats();
     const [history, setHistory] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
-    const [longTermGoal, setLongTermGoal] = useState("");
-    const [savedContext, setSavedContext] = useState<ChatMessage[] | null>(null);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const apiKey = getGeminiApiKey();
 
-    const scrollToBottom = () => {
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    // --- Initialization and Context Loading ---
-    useEffect(() => {
-        scrollToBottom();
     }, [history]);
-    
-    useEffect(() => {
-        const storedGoal = localStorage.getItem(LONG_TERM_GOAL_KEY);
-        if (storedGoal) {
-            setLongTermGoal(storedGoal);
-        }
+
+    const handleChat = async () => {
+        if (!currentMessage.trim() || isGenerating) return;
         
-        const storedContext = localStorage.getItem(SAVED_CONTEXT_KEY);
-        if (storedContext) {
-            try {
-                if (history.length === 0) {
-                    const parsedContext = JSON.parse(storedContext);
-                    setSavedContext(parsedContext);
-                }
-            } catch (e) {
-                console.error("Failed to parse saved context:", e);
-                localStorage.removeItem(SAVED_CONTEXT_KEY);
-            }
-        }
-    }, [history.length]);
-
-    // --- Persistent Memory Handlers ---
-    const handleSaveLongTermGoal = () => {
-        if (longTermGoal.trim()) {
-            localStorage.setItem(LONG_TERM_GOAL_KEY, longTermGoal.trim());
-            toast.success("Long-term goal saved!");
-        } else {
-            localStorage.removeItem(LONG_TERM_GOAL_KEY);
-            setLongTermGoal("");
-            toast.info("Long-term goal cleared.");
-        }
-    };
-    
-    const handleSaveContext = () => {
-        if (history.length === 0) {
-            toast.warning("Start a conversation before saving context.");
-            return;
-        }
-        localStorage.setItem(SAVED_CONTEXT_KEY, JSON.stringify(history));
-        setSavedContext(history);
-        toast.success("Chat context saved for future sessions!");
-    };
-    
-    const handleClearContext = () => {
-        localStorage.removeItem(SAVED_CONTEXT_KEY);
-        setSavedContext(null);
-        toast.info("Saved chat context cleared.");
-    };
-
-    // --- Contextual Prompt Generation ---
-    const getContextualPromptPrefix = () => {
-        let prefix = "";
-        if (longTermGoal.trim()) {
-            prefix += `[LONG-TERM GOAL: ${longTermGoal.trim()}] `;
-        }
-        if (stats) {
-            prefix += `[USER STATS: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days, Total XP=${levels?.total_xp || 0}] `;
-        }
-        return prefix;
-    };
-
-    // --- Quick Actions ---
-    const handleAnalyzeData = async (range: 'day' | 'week' | 'month') => {
-        if (!userId || isGenerating) return;
-
-        setIsGenerating(true);
+        const messageText = currentMessage.trim();
+        const userMessage: ChatMessage = { role: "user", parts: [{ text: messageText }] };
         
-        const sessionData = await getRecentFocusSessions(userId, range);
-        const sessionSummary = sessionData.length > 0 
-            ? sessionData.map(s => `${s.tag} (${s.totalMinutes} min)`).join(", ")
-            : `No focused sessions found in the last ${range}.`;
-
-        const localData = getLocalStudyData();
-        const tasksSummary = localData.tasks.length > 0 
-            ? localData.tasks.map(t => t.content).join("; ")
-            : "No incomplete tasks found.";
-        
-        const dataPrompt = `
-        --- User Study Data (Last ${range}) ---
-        Focus Sessions (Aggregated by subject/tag): ${sessionSummary}
-        Incomplete To-Do List Items (Local Storage): ${tasksSummary}
-        Local Notes Summary (First 200 chars): ${localData.notesSummary || "No notes found."}
-        --- End Data ---
-        
-        Analyze this data and provide a brief summary of my focus areas and potential productivity bottlenecks over the last ${range}. Provide one actionable recommendation.
-        `;
-        
-        const fullPreprompt = `${AI_COACH_SYSTEM_PROMPT}\n\n${getContextualPromptPrefix()}\n\nUSER REQUEST: ${dataPrompt}`;
-
-
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: `Requesting analysis for the last ${range}...` }] };
-        const optimisticHistory = [...history, userMessage];
-        setHistory(optimisticHistory);
-
-        try {
-            const apiContents = savedContext ? [...savedContext, ...history, { role: "user" as const, parts: [{ text: fullPreprompt }] }] : [...history, { role: "user" as const, parts: [{ text: fullPreprompt }] }];
-            
-            const responseText = await sendGeminiChat(apiContents);
-            const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
-            
-            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
-            toast.success(`Analysis for the last ${range} loaded.`);
-        } catch (error: any) {
-            toast.error(error.message || "AI Coach failed to analyze data.");
-            setHistory(prev => prev.slice(0, -1));
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-    
-    const handleInjectContext = (contextType: 'stats' | 'notes' | 'tasks') => {
-        let contextText = "";
-        if (contextType === 'stats' && stats) {
-            contextText = `[STATS CONTEXT: Total Focused Minutes=${stats.total_focused_minutes}, Longest Streak=${stats.longest_streak} days, Total XP=${levels?.total_xp || 0}]`;
-        } else if (contextType === 'notes') {
-            const notesSummary = getLocalStudyData().notesSummary;
-            contextText = `[NOTES CONTEXT: ${notesSummary || "No notes found."}]`;
-        } else if (contextType === 'tasks') {
-            const tasksSummary = getLocalStudyData().tasks.map(t => t.title).join("; ");
-            contextText = `[TASKS CONTEXT: Incomplete Tasks: ${tasksSummary || "No incomplete tasks found."}]`;
-        }
-        
-        if (contextText) {
-            setCurrentMessage(prev => (prev + " " + contextText).trim());
-        }
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const allowedTypes = ['image/', 'text/plain', 'text/csv', 'application/json', 'text/markdown', 'text/html', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-            const isAllowed = allowedTypes.some(type => file.type.startsWith(type));
-            
-            if (!isAllowed) {
-                toast.error("Unsupported file type. Please upload an image or text/code document.");
-                return;
-            }
-            
-            setImageFile(file);
-            if (file.type.startsWith('image/')) {
-                setImagePreviewUrl(URL.createObjectURL(file));
-            } else {
-                setImagePreviewUrl(null);
-            }
-            toast.info(`File loaded for next prompt: ${file.name}`);
-        }
-    };
-
-    const handleChat = async (message: string) => {
-        if (!message.trim() && !imageFile || isGenerating) return;
-        
-        const fullPreprompt = `${AI_COACH_SYSTEM_PROMPT}\n\n${getContextualPromptPrefix()}\n\nUSER MESSAGE: ${message}`;
-        
-        const userMessageText = imageFile ? `(File attached: ${imageFile.name}) ${message}` : message;
-        const userMessage: ChatMessage = { role: "user", parts: [{ text: userMessageText }] }; 
-        
-        const optimisticHistory = [...history, userMessage];
-        setHistory(optimisticHistory);
+        setHistory(prev => [...prev, userMessage]);
         setCurrentMessage("");
         setIsGenerating(true);
-        
-        const currentImageFile = imageFile;
-        setImageFile(null);
-        setImagePreviewUrl(null);
-
-        let apiContents: ChatMessage[] = [...history];
-        let finalUserMessageParts: ChatPart[] = [{ text: fullPreprompt }];
-
-        if (history.length === 0 && savedContext) {
-            const contextSummaryPrompt = `Based on the following previous conversation history, provide a concise summary (2-3 sentences) of the user's main goals, challenges, or topics discussed. This summary will be used to prime the current chat session. Do not respond to the user's current message yet.
-            --- PREVIOUS CONTEXT ---
-            ${JSON.stringify(savedContext)}
-            --- END PREVIOUS CONTEXT ---`;
-            
-            const summaryContents: ChatMessage[] = [{ role: "user", parts: [{ text: contextSummaryPrompt }] }];
-            
-            try {
-                const summaryResponse = await sendGeminiChat(summaryContents);
-                
-                const contextInjectionMessage: ChatMessage = { 
-                    role: "model", 
-                    parts: [{ text: `[CONTEXT INJECTED] Welcome back! Based on our last chat, here's the summary: ${summaryResponse}` }] 
-                };
-                apiContents = [contextInjectionMessage];
-                
-                setHistory([contextInjectionMessage, userMessage]);
-            } catch (e) {
-                console.error("Failed to inject saved context:", e);
-                toast.warning("Failed to load saved context. Starting fresh.");
-            }
-        }
 
         try {
-            if (currentImageFile) {
-                const filePart = await fileToGenerativePart(currentImageFile);
-                finalUserMessageParts.unshift(filePart);
-            }
-            
-            const finalApiContents = [
-                ...apiContents, 
-                { role: "user" as const, parts: finalUserMessageParts } 
-            ];
-            
-            const responseText = await sendGeminiChat(finalApiContents);
-            const modelMessage: ChatMessage = { role: "model", parts: [{ text: responseText }] };
-            
-            setHistory(prev => [...prev.slice(0, -1), modelMessage]);
+            const responseText = await sendGeminiChat([...history, userMessage]);
+            setHistory(prev => [...prev, { role: "model", parts: [{ text: responseText }] }]);
         } catch (error: any) {
-            toast.error(error.message || "AI Coach failed to respond.");
-            setHistory(prev => prev.slice(0, -1));
+            toast.error(error.message || "Coach encountered an error.");
         } finally {
             setIsGenerating(false);
         }
-    };
-
-    const renderMessage = (msg: ChatMessage, index: number) => {
-        const isUser = msg.role === "user";
-        const text = msg.parts[0]?.text || "";
-        
-        return (
-            <div
-                key={index}
-                className={cn(
-                    "p-3 rounded-lg max-w-[90%] flex flex-col",
-                    isUser ? "bg-primary/20 ml-auto" : "bg-secondary/20 mr-auto"
-                )}
-            >
-                <div className="text-xs font-bold mb-1 flex items-center gap-1">
-                    {isUser ? <MessageSquare className="w-3 h-3" /> : <Brain className="w-3 h-3 text-accent" />}
-                    {isUser ? "You" : "AI Coach"}
-                </div>
-                
-                <div className="text-sm prose prose-invert max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {text}
-                    </ReactMarkdown>
-                </div>
-            </div>
-        );
     };
 
     if (!apiKey) {
         return (
-            <div className="h-full flex flex-col">
-                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-accent" />
-                    AI Focus Coach
-                </h3>
+            <div className="h-full flex flex-col space-y-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                        <Brain className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-bold tracking-tight">AI Focus Coach</h3>
+                </div>
                 <GeminiApiKeySetup />
             </div>
         );
     }
 
     return (
-        <div id="ai-coach-widget" className="h-full flex flex-col">
-            <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-accent" />
-                    AI Focus Coach
-                </h3>
-                
-                {/* Settings Dialog Trigger */}
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="dopamine-click flex-shrink-0" title="AI Coach Settings">
-                            <Settings className="w-5 h-5 text-muted-foreground" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px] glass-card">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-accent">
-                                <Settings className="w-5 h-5" /> AI Coach Settings
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-6 py-4">
-                            {/* Long-Term Goal Setting */}
-                            <div className="space-y-2">
-                                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
-                                    <Target className="w-4 h-4" /> Long-Term Focus Goal
-                                </p>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="e.g., 'Finish my thesis by end of month'"
-                                        value={longTermGoal}
-                                        onChange={(e) => setLongTermGoal(e.target.value)}
-                                        className="flex-1"
-                                    />
-                                    <Button onClick={handleSaveLongTermGoal} className="dopamine-click">
-                                        Save
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    This goal provides context for all AI advice.
-                                </p>
-                            </div>
-                            
-                            {/* Persistent Memory Controls */}
-                            <div className="space-y-2 pt-4 border-t border-border">
-                                <p className="text-sm font-semibold flex items-center gap-1 text-primary">
-                                    <Lightbulb className="w-4 h-4" /> Persistent Memory
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={handleSaveContext}
-                                        disabled={history.length === 0 || isGenerating}
-                                        className="flex-1 flex items-center gap-1 h-8"
-                                    >
-                                        <Save className="w-4 h-4" /> Save Current Chat
-                                    </Button>
-                                    <Button 
-                                        variant="destructive" 
-                                        size="sm" 
-                                        onClick={handleClearContext}
-                                        disabled={!savedContext || isGenerating}
-                                        className="flex-1 flex items-center gap-1 h-8"
-                                    >
-                                        <Trash2 className="w-4 h-4" /> Clear Saved Context
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {savedContext ? "Context loaded. New chat will start with a summary." : "No context saved. Save a chat to enable memory."}
-                                </p>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            </div>
-            
-            {/* Quick Actions (Compact Toolbar) */}
-            <div className="flex gap-2 mb-3 p-2 rounded-lg bg-secondary/30 justify-around">
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleAnalyzeData('day')}
-                    disabled={isGenerating}
-                    title="Analyze Day"
-                >
-                    <Clock className="w-4 h-4" />
-                </Button>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleAnalyzeData('week')}
-                    disabled={isGenerating}
-                    title="Analyze Week"
-                >
-                    <CalendarDays className="w-4 h-4" />
-                </Button>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleAnalyzeData('month')}
-                    disabled={isGenerating}
-                    title="Analyze Month"
-                >
-                    <Calendar className="w-4 h-4" />
-                </Button>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleInjectContext('stats')}
-                    title="Inject Stats"
-                >
-                    <TrendingUp className="w-4 h-4" />
-                </Button>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleInjectContext('tasks')}
-                    title="Inject Tasks"
-                >
-                    <ListChecks className="w-4 h-4" />
-                </Button>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleChat("What are the best strategies for avoiding distractions?")}
-                    disabled={isGenerating}
-                    title="Ask for Help"
-                >
-                    <Lightbulb className="w-4 h-4" />
-                </Button>
+        <div className="h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                    <h3 className="font-bold">Elite Coach</h3>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Always Online</p>
+                </div>
             </div>
 
-            {/* Chat History (Maximized) */}
-            <ScrollArea className="flex-1 space-y-4 overflow-y-auto mb-4 pr-2">
-                <div className="space-y-4">
+            <ScrollArea className="flex-1 pr-4 -mr-4">
+                <div className="space-y-6">
                     {history.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground text-sm">
-                            Start chatting with your AI Coach for personalized productivity advice!
+                        <div className="text-center py-12 space-y-4">
+                            <Brain className="w-12 h-12 text-muted/20 mx-auto" />
+                            <p className="text-sm text-muted-foreground max-w-[180px] mx-auto">
+                                How can I help you master your focus today?
+                            </p>
                         </div>
                     )}
-                    {history.map(renderMessage)}
-                    {isGenerating && (
-                        <div className="flex items-center justify-start p-3 rounded-lg bg-secondary/20 mr-auto max-w-[90%]">
-                            <div className="w-8 h-8 mr-2">
-                                {/* Placeholder Lottie animation */}
-                                <Lottie animationData={brainAnimation} loop={true} />
+                    {history.map((msg, i) => (
+                        <div key={i} className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>
+                            <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border",
+                                msg.role === 'user' ? "bg-secondary" : "bg-primary/10 text-primary border-primary/20"
+                            )}>
+                                {msg.role === 'user' ? <User className="w-4 h-4" /> : <Brain className="w-4 h-4" />}
                             </div>
-                            <span className="text-sm text-muted-foreground">AI Coach is thinking...</span>
+                            <div className={cn(
+                                "p-4 rounded-2xl text-sm max-w-[85%] leading-relaxed",
+                                msg.role === 'user' ? "bg-primary text-white" : "bg-secondary/50 border border-white/5"
+                            )}>
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-invert prose-sm">
+                                    {msg.parts[0].text}
+                                </ReactMarkdown>
+                            </div>
+                        </div>
+                    ))}
+                    {isGenerating && (
+                        <div className="flex gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            </div>
+                            <div className="bg-secondary/50 border border-white/5 p-4 rounded-2xl flex gap-1">
+                                <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
+                                <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                            </div>
                         </div>
                     )}
                     <div ref={messagesEndRef} />
                 </div>
             </ScrollArea>
 
-            {/* Input and File Preview */}
-            {imageFile && (
-                <div className="relative mb-2 p-2 rounded-lg border border-primary/50 bg-secondary/20">
-                    <div className="flex items-center gap-3">
-                        {imagePreviewUrl ? (
-                            <img 
-                                src={imagePreviewUrl} 
-                                alt="File for AI analysis" 
-                                className="h-16 w-auto object-contain rounded" 
-                            />
-                        ) : (
-                            <FileText className="w-10 h-10 text-primary" />
-                        )}
-                        <span className="text-sm font-medium truncate">{imageFile.name}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground mt-1 block">File attached for next prompt.</span>
+            <div className="pt-6">
+                <div className="relative group">
+                    <Input
+                        value={currentMessage}
+                        onChange={(e) => setCurrentMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === "Enter" && handleChat()}
+                        placeholder="Message your coach..."
+                        className="h-12 bg-secondary/50 border-white/5 rounded-2xl pl-4 pr-12 focus-visible:ring-primary/20 focus-visible:border-primary/50"
+                    />
                     <Button 
-                        variant="destructive" 
                         size="icon" 
-                        className="absolute top-1 right-1 w-5 h-5"
-                        onClick={() => { setImageFile(null); setImagePreviewUrl(null); }}
+                        onClick={handleChat} 
+                        disabled={!currentMessage.trim() || isGenerating}
+                        className="absolute right-1.5 top-1.5 h-9 w-9 rounded-xl premium-gradient shadow-lg"
                     >
-                        <X className="w-3 h-3" />
+                        <Send className="w-4 h-4" />
                     </Button>
                 </div>
-            )}
-
-            <div className="flex gap-2">
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*, text/plain, text/csv, application/json, text/markdown, text/html, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    disabled={isGenerating}
-                />
-                <Button 
-                    size="icon" 
-                    variant="outline" 
-                    onClick={() => fileInputRef.current?.click()} 
-                    className="dopamine-click flex-shrink-0"
-                    disabled={isGenerating}
-                    title="Upload Document or Image for Analysis"
-                >
-                    <Paperclip className="w-4 h-4" />
-                </Button>
-                <Input
-                    value={currentMessage}
-                    onChange={(e) => setCurrentMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleChat(currentMessage)}
-                    placeholder="Ask your AI Coach anything..."
-                    className="flex-1"
-                    disabled={isGenerating}
-                />
-                <Button size="icon" onClick={() => handleChat(currentMessage)} className="dopamine-click" disabled={(!currentMessage.trim() && !imageFile) || isGenerating}>
-                    <Send className="w-4 h-4" />
-                </Button>
             </div>
         </div>
     );
