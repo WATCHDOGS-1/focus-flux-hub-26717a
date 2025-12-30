@@ -5,25 +5,13 @@
 @layer base {
   :root {
     --background: 240 10% 2%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 4%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 4%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 263.4 70% 50.4%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 240 3.7% 10%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 10%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 185 90% 60%;
-    --accent-foreground: 240 10% 2%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 12%;
-    --input: 240 3.7% 12%;
-    --ring: 263.4 70% 50.4%;
-    --radius: 1.5rem;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 100%;
+    --primary: 280 90% 65%;
+    --accent: 185 100% 50%;
+    --border: 240 5% 15%;
+    --radius: 2rem;
   }
 }
 
@@ -32,50 +20,39 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(263, 70%, 50%, 0.1) 0px, transparent 40%),
-      radial-gradient(at 100% 100%, hsla(185, 90%, 60%, 0.05) 0px, transparent 40%),
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    @apply bg-background text-foreground antialiased selection:bg-primary/30;
+    /* Removed noise/static. Pure liquid gradient. */
+    background: radial-gradient(circle at top left, hsla(280, 80%, 20%, 0.15), transparent 40%),
+                radial-gradient(circle at bottom right, hsla(185, 80%, 20%, 0.1), transparent 40%),
+                hsl(240, 10%, 2%);
     background-attachment: fixed;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.01em;
   }
 }
 
 @layer utilities {
-  .glass-card {
-    @apply bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] shadow-[0_8px_32px_0_rgba(0,0,0,0.8)];
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-3xl border border-white/[0.08] shadow-2xl;
   }
   
-  .glass-hover {
-    @apply hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)];
+  .glass-interactive {
+    @apply glass hover:bg-white/[0.06] hover:border-white/[0.15] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)];
+  }
+
+  .text-luxury {
+    @apply font-black italic tracking-tighter uppercase;
+    background: linear-gradient(to bottom right, #fff, #888);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .premium-gradient {
-    @apply bg-gradient-to-br from-primary via-primary/90 to-accent;
-  }
-
-  .text-glow {
-    text-shadow: 0 0 30px hsla(263, 70%, 50%, 0.4);
-  }
-
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
+    @apply bg-gradient-to-br from-primary via-primary/80 to-accent;
   }
 }
 
-/* Custom Smooth Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-white/5 rounded-full hover:bg-primary/40 transition-colors;
-}
+/* Scrollbar Artistry */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full hover:bg-primary/50 transition-colors; }

@@ -1,55 +1,43 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  Zap, 
-  MessageSquare, 
-  Video, 
-  ArrowRight,
-  TrendingUp,
-  Clock,
-  LayoutGrid,
-  Shield,
-  Star
-} from "lucide-react";
+import { Zap, Clock, TrendingUp, ArrowRight, Star, Globe } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import DigitalPlanetView from "@/components/DigitalPlanetView";
+import DigitalPlanet3D from "@/components/DigitalPlanet3D";
 import FocusTimer from "@/components/FocusTimer";
 import HeatmapStats from "@/components/HeatmapStats";
 import AICoachPanel from "@/components/AICoachPanel";
 import AnimatedSection from "@/components/AnimatedSection";
-import { cn } from "@/lib/utils";
 
 const MainDashboard = () => {
     const { isAuthenticated, profile } = useAuth();
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen p-6 md:p-12 max-w-[1800px] mx-auto space-y-12">
-            {/* Nav Header */}
-            <header className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-4xl font-black tracking-tighter text-glow italic">
-                        ONLYFOCUS
+        <div className="min-h-screen p-8 md:p-16 max-w-[1920px] mx-auto space-y-16">
+            <header className="flex items-center justify-between">
+                <div className="flex items-center gap-12">
+                    <h1 className="text-5xl font-black italic tracking-tighter text-luxury">
+                        OnlyFocus
                     </h1>
-                    <nav className="hidden md:flex gap-8 text-xs font-bold uppercase tracking-widest opacity-40">
-                        <span className="cursor-pointer hover:opacity-100 transition-opacity" onClick={() => navigate("/social")}>Community</span>
-                        <span className="cursor-pointer hover:opacity-100 transition-opacity" onClick={() => navigate("/productivity")}>Day Planner</span>
-                        <span className="cursor-pointer hover:opacity-100 transition-opacity">Archive</span>
+                    <nav className="hidden lg:flex gap-10 text-[10px] font-black uppercase tracking-[0.3em] opacity-40">
+                        <span className="cursor-pointer hover:opacity-100 transition-all hover:text-primary" onClick={() => navigate("/social")}>Collective</span>
+                        <span className="cursor-pointer hover:opacity-100 transition-all hover:text-primary" onClick={() => navigate("/productivity")}>Schedule</span>
+                        <span className="cursor-pointer hover:opacity-100 transition-all hover:text-primary" onClick={() => navigate("/notes")}>Archive</span>
                     </nav>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-6">
                     {!isAuthenticated ? (
-                        <Button onClick={() => navigate("/auth")} className="rounded-full premium-gradient px-8 h-12 font-bold shadow-glow">
-                            INITIALIZE
+                        <Button onClick={() => navigate("/auth")} className="rounded-full premium-gradient px-10 h-14 font-black tracking-widest shadow-2xl">
+                            INITIATE
                         </Button>
                     ) : (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-6 group cursor-pointer" onClick={() => navigate("/social?tab=profile")}>
                              <div className="text-right hidden sm:block">
-                                <p className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">Authorized User</p>
-                                <p className="text-sm font-bold">{profile?.username}</p>
+                                <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">Authorized</p>
+                                <p className="text-sm font-black italic">{profile?.username}</p>
                             </div>
-                            <div className="w-12 h-12 rounded-full bg-primary/20 border border-white/10 flex items-center justify-center font-black">
+                            <div className="w-14 h-14 rounded-[1.5rem] glass-interactive flex items-center justify-center font-black text-primary border-primary/20">
                                 {profile?.username?.[0].toUpperCase()}
                             </div>
                         </div>
@@ -57,58 +45,52 @@ const MainDashboard = () => {
                 </div>
             </header>
 
-            <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                 
-                {/* Hero Block */}
-                <div className="lg:col-span-8 space-y-8">
+                {/* Hero Showcase */}
+                <div className="lg:col-span-8 space-y-12">
                     <AnimatedSection>
                         <div 
                             onClick={() => navigate("/explore")}
-                            className="group relative h-[500px] rounded-[3rem] overflow-hidden cursor-pointer border border-white/5"
+                            className="group relative h-[600px] rounded-[4rem] overflow-hidden cursor-pointer border border-white/[0.05] shadow-2xl"
                         >
-                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-[2000ms] group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                             
-                            <div className="absolute bottom-0 left-0 p-12 space-y-6 w-full">
-                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-[10px] font-black tracking-[0.2em] uppercase">
+                            <div className="absolute bottom-0 left-0 p-16 space-y-8 w-full backdrop-blur-sm bg-black/10">
+                                <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full glass border-white/10 text-[10px] font-black tracking-[0.3em] uppercase">
                                     <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                                    Active Study Nexus
+                                    Synchronized Performance
                                 </div>
-                                <h2 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.8] transition-transform group-hover:-translate-y-2 duration-500">
-                                    ENTER THE <br /> <span className="text-primary italic">VOID.</span>
+                                <h2 className="text-7xl md:text-9xl font-black tracking-tighter leading-[0.8] text-luxury">
+                                    ASCEND <br /> <span className="text-primary">ABOVE.</span>
                                 </h2>
                                 <div className="flex items-center justify-between">
-                                    <p className="text-white/60 max-w-sm text-sm font-medium leading-relaxed">
-                                        Join a collective of high-performance minds. Real-time accountability for those who seek mastery.
+                                    <p className="text-white/40 max-w-sm text-sm font-medium leading-relaxed uppercase tracking-widest">
+                                        Join the global elite. Silent co-working for the modern architect of reality.
                                     </p>
-                                    <div className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-accent group-hover:text-background">
-                                        <ArrowRight className="w-8 h-8" />
+                                    <div className="w-24 h-24 rounded-full bg-white text-black flex items-center justify-center transition-all duration-700 group-hover:bg-accent group-hover:scale-110">
+                                        <ArrowRight className="w-10 h-10" />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </AnimatedSection>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                         <AnimatedSection delay={0.2}>
-                            <div className="glass-card p-8 rounded-[2.5rem] h-full flex flex-col justify-between group hover:border-primary/50 transition-colors">
+                            <div className="glass p-12 rounded-[3.5rem] h-full flex flex-col justify-between group hover:border-primary/50 transition-all duration-700">
                                 <div>
-                                    <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center mb-6">
-                                        <Clock className="text-primary" />
-                                    </div>
-                                    <h3 className="text-2xl font-black italic tracking-tighter mb-4">PRECISION TIMER</h3>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mb-8 block italic">Temporal Engine</span>
                                     <FocusTimer />
                                 </div>
                             </div>
                         </AnimatedSection>
 
                         <AnimatedSection delay={0.3}>
-                            <div className="glass-card p-8 rounded-[2.5rem] h-full flex flex-col justify-between group hover:border-accent/50 transition-colors">
+                            <div className="glass p-12 rounded-[3.5rem] h-full flex flex-col justify-between group hover:border-accent/50 transition-all duration-700">
                                 <div>
-                                    <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center mb-6">
-                                        <TrendingUp className="text-accent" />
-                                    </div>
-                                    <h3 className="text-2xl font-black italic tracking-tighter mb-4">CONSISTENCY HUB</h3>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mb-8 block italic">Cognitive Consistency</span>
                                     <HeatmapStats />
                                 </div>
                             </div>
@@ -116,24 +98,26 @@ const MainDashboard = () => {
                     </div>
                 </div>
 
-                {/* Right Column: AI & Civilization */}
-                <div className="lg:col-span-4 space-y-8">
+                {/* Right Artistic Column */}
+                <div className="lg:col-span-4 space-y-12">
                     <AnimatedSection delay={0.4}>
-                        <div className="glass-card p-8 rounded-[2.5rem] min-h-[400px]">
-                            <h3 className="text-2xl font-black italic tracking-tighter mb-8 flex items-center gap-2">
-                                <Star className="text-primary" /> THE PLANET
-                            </h3>
-                            <div className="h-64 mb-8">
-                                <DigitalPlanetView />
+                        <div className="glass p-12 rounded-[3.5rem] min-h-[500px] relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8">
+                                <Globe className="w-6 h-6 text-primary/40 animate-spin-slow" />
                             </div>
-                            <Button variant="outline" onClick={() => navigate("/social?tab=planets")} className="w-full rounded-2xl h-12 font-bold border-white/5 hover:bg-white/5">
-                                MANAGE CIVILIZATION
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mb-12 block italic">Digital Biosphere</span>
+                            <div className="h-72 mb-12">
+                                <DigitalPlanet3D />
+                            </div>
+                            <Button variant="outline" onClick={() => navigate("/social?tab=planets")} className="w-full rounded-2xl h-14 font-black border-white/5 hover:bg-white/5 uppercase tracking-widest text-[10px]">
+                                Evolve Civilization
                             </Button>
                         </div>
                     </AnimatedSection>
 
                     <AnimatedSection delay={0.5} className="h-full">
-                        <div className="glass-card p-8 rounded-[2.5rem] h-full border-primary/20">
+                        <div className="glass p-12 rounded-[3.5rem] h-full border-primary/20">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mb-8 block italic">The Elite Oracle</span>
                             <AICoachPanel />
                         </div>
                     </AnimatedSection>
@@ -141,8 +125,8 @@ const MainDashboard = () => {
 
             </main>
 
-            <footer className="pt-24 pb-12 text-center">
-                <p className="text-[10px] font-black tracking-[0.4em] opacity-20 uppercase italic">Designed for Mastery • Built for Focus</p>
+            <footer className="pt-32 pb-12 text-center">
+                <p className="text-[10px] font-black tracking-[0.6em] opacity-10 uppercase italic">A Monument to Pure Intent • OnlyFocus MMXXV</p>
             </footer>
         </div>
     );
