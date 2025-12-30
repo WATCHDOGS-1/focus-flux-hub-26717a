@@ -36,8 +36,7 @@
   }
   
   .glass-interactive {
-    @apply glass;
-    transition: all 700ms cubic-bezier(0.23, 1, 0.32, 1);
+    @apply glass transition-all duration-700;
   }
   
   .glass-interactive:hover {
@@ -54,6 +53,11 @@
   .premium-gradient {
     @apply bg-gradient-to-br from-primary via-primary/80 to-accent;
   }
+}
+
+/* Custom easing for high-art feel */
+.ease-renaissance {
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* Scrollbar Artistry */

@@ -5,30 +5,32 @@ import { useUserStats } from '@/hooks/use-user-stats';
 import * as THREE from 'three';
 
 const RotatingPlanet = () => {
-    const meshRef = useRef<THREE.Mesh>(null!);
+    const meshRef = useRef<THREE.Mesh>(null);
     const { levels } = useUserStats();
     
-    const color = useMemo(() => {
+    const planetColor = useMemo(() => {
         const level = levels?.level || 1;
         if (level >= 7) return '#00f0ff';
         if (level >= 4) return '#b026ff';
-        return '#444';
+        return '#444444';
     }, [levels]);
 
-    useFrame((state) => {
-        meshRef.current.rotation.y += 0.002;
-        meshRef.current.rotation.x += 0.001;
+    useFrame(() => {
+        if (meshRef.current) {
+            meshRef.current.rotation.y += 0.002;
+            meshRef.current.rotation.x += 0.001;
+        }
     });
 
     return (
         <Sphere ref={meshRef} args={[1, 64, 64]}>
             <MeshDistortMaterial 
-                color={color} 
+                color={planetColor} 
                 speed={2} 
                 distort={0.2} 
                 metalness={0.9} 
                 roughness={0.1}
-                emissive={color}
+                emissive={planetColor}
                 emissiveIntensity={0.2}
             />
         </Sphere>

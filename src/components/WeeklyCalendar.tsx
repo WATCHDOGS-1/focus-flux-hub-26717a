@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { format, startOfWeek, addDays, isSameDay, setHours } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Check, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from "sonner";
@@ -26,9 +26,11 @@ const WeeklyCalendar = () => {
         }
         
         try {
+            // We use the start of the selected hour as the task's context
             const startTime = setHours(day, hour).toISOString();
-            // We pass the start_time so it appears correctly in this grid
-            await addTask(quickTitle.trim(), 1, ["Scheduled"]);
+            
+            // In a real app, we'd add start_time to the payload. For now, we use tags to identify it in the grid.
+            await addTask(quickTitle.trim(), 1, ["Scheduled", `Hour:${hour}`]);
             toast.success("Focus Intention Recorded");
         } catch (e) {
             toast.error("Recording Failed");
@@ -50,16 +52,12 @@ const WeeklyCalendar = () => {
                         <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]">Strategic Focus Planning</p>
                     </div>
                 </div>
-                <div className="text-right">
-                    <span className="text-[10px] font-black tracking-widest opacity-20 uppercase italic">v1.0.4 Precision</span>
-                </div>
             </div>
             
             <ScrollArea className="flex-1">
                 <div className="min-w-[1000px]">
-                    {/* Header */}
                     <div className="grid grid-cols-8 border-b border-white/10 sticky top-0 bg-background/90 backdrop-blur-3xl z-20">
-                        <div className="p-6 border-r border-white/5 text-[10px] font-black uppercase tracking-widest opacity-20 flex items-center justify-center">Time (H)</div>
+                        <div className="p-6 border-r border-white/5 text-[10px] font-black uppercase tracking-widest opacity-20 flex items-center justify-center">GMT</div>
                         {weekDays.map(day => (
                             <div key={day.toString()} className={cn(
                                 "p-6 border-r border-white/5 text-center transition-colors",
@@ -77,7 +75,6 @@ const WeeklyCalendar = () => {
                         ))}
                     </div>
 
-                    {/* Grid Body */}
                     {hours.map(hour => (
                         <div key={hour} className="grid grid-cols-8 border-b border-white/5 group min-h-[100px]">
                             <div className="p-4 border-r border-white/5 bg-white/[0.01] text-[10px] font-bold opacity-10 flex items-start justify-center group-hover:opacity-40 transition-opacity">
@@ -86,9 +83,14 @@ const WeeklyCalendar = () => {
                             {weekDays.map(day => {
                                 const slotId = `${day.getTime()}-${hour}`;
                                 const isEditing = editingSlot === slotId;
-                                // In a real app, tasks would have a start_time column. 
-                                // We filter them here for visual representation.
-                                const dayTasks = tasks.filter(t => t.created_at && isSameDay(new Date(t.created_at), day) && new Date(t.created_at).getHours() === hour);
+                                
+                                // Look for tasks that match this day and hour context
+                                const dayTasks = tasks.filter(t => {
+                                    const taskDate = new Date(t.created_at);
+                                    const hourTag = (t.tags as string[] || []).find(tag => tag.startsWith("Hour:"));
+                                    const matchesHour = hourTag ? hourTag === `Hour:${hour}` : taskDate.getHours() === hour;
+                                    return isSameDay(taskDate, day) && matchesHour;
+                                });
 
                                 return (
                                     <div 
