@@ -1,6 +1,5 @@
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface Props {
   children: ReactNode;
@@ -13,7 +12,7 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false,
+    hasError: false
   };
 
   public static getDerivedStateFromError(_: Error): State {
@@ -23,27 +22,18 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught error in component:", error, errorInfo);
-    // In a production environment, this would log the error to Sentry/Datadog.
+    // Optionally log the error to an external service
   }
 
   public render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-      return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md text-center glass-card border-destructive/50">
-            <CardHeader>
-              <AlertTriangle className="w-10 h-10 text-destructive mx-auto" />
-              <CardTitle className="text-2xl text-destructive">Application Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Something went wrong while rendering this section. Please refresh the page or try again later.
-              </p>
-            </CardContent>
-          </Card>
+      return this.props.fallback || (
+        <div className="p-6 bg-destructive/10 border border-destructive/50 rounded-xl text-destructive flex flex-col items-center justify-center h-full">
+          <AlertTriangle className="w-8 h-8 mb-3" />
+          <h2 className="text-lg font-bold">Something went wrong.</h2>
+          <p className="text-sm text-muted-foreground text-center">
+            The editor failed to load. Try refreshing the page or selecting a different document.
+          </p>
         </div>
       );
     }

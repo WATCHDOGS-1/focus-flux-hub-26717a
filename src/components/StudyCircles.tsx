@@ -7,193 +7,69 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Users, Shield } from "lucide-react";
+import { Plus, Search, Users, Shield, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
-
-type Circle = Database["public"]["Tables"]["circles"]["Row"];
 
 const StudyCircles = () => {
   const { userId } = useAuth();
   const navigate = useNavigate();
-  const [myCircles, setMyCircles] = useState<Circle[]>([]);
-  const [discoverCircles, setDiscoverCircles] = useState<Circle[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [circles, setCircles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newCircleName, setNewCircleName] = useState("");
-  const [newCircleDesc, setNewCircleDesc] = useState("");
+  const [name, setName] = useState("");
 
-  // Temporarily disable circles functionality and show coming soon message
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from("circles").select("*").limit(20);
+      setCircles(data || []);
+      setIsLoading(false);
+    };
+    load();
+  }, []);
+
+  const createCircle = async () => {
+    if (!name.trim()) return;
+    const { data, error } = await supabase.from("circles").insert({ name, owner_id: userId }).select().single();
+    if (error) toast.error(error.message);
+    else {
+        await supabase.from("circle_members").insert({ circle_id: data.id, user_id: userId, role: 'owner' });
+        toast.success("Circle Created!");
+        navigate(`/circle/${data.id}`);
+    }
+  };
+
   return (
-    <div className="text-center py-20 space-y-4 glass-card p-8 rounded-xl">
-      <Shield className="w-12 h-12 text-primary mx-auto" />
-      <h3 className="text-2xl font-bold">Study Circles: Coming Soon</h3>
-      <p className="text-muted-foreground max-w-md mx-auto">
-        Study Circles are currently under construction. This feature will allow you to create private, persistent focus groups with friends for enhanced accountability and shared goals.
-      </p>
+    <div className="space-y-6">
+        <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Study Circles</h2>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button className="rounded-full dopamine-click"><Plus className="w-4 h-4 mr-2" /> New Circle</Button>
+                </DialogTrigger>
+                <DialogContent className="glass">
+                    <DialogHeader><DialogTitle>Create Study Circle</DialogTitle></DialogHeader>
+                    <div className="space-y-4 pt-4">
+                        <Input placeholder="Circle Name" value={name} onChange={e => setName(e.target.value)} />
+                        <Button onClick={createCircle} className="w-full">Initialize Circle</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {circles.map(c => (
+                <div key={c.id} className="glass p-6 rounded-3xl flex items-center justify-between group cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/circle/${c.id}`)}>
+                    <div className="space-y-1">
+                        <h4 className="font-bold text-lg">{c.name}</h4>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Users className="w-3 h-3" /> Persistent Group
+                        </div>
+                    </div>
+                    <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+            ))}
+        </div>
     </div>
   );
-
-  /*
-  // Original logic (commented out for now)
-  useEffect(() => {
-    if (userId) {
-      loadCircles();
-    }
-  }, [userId]);
-
-  const loadCircles = async () => {
-    if (!userId) return;
-    setIsLoading(true);
-
-    // Fetch circles the user is a member of
-    const { data: memberData, error: memberError } = await supabase
-      .from("circle_members")
-      .select("circle_id")
-      .eq("user_id", userId);
-
-    if (memberError) {
-      console.error("Error fetching user's circles:", memberError);
-    } else {
-      const circleIds = memberData.map(m => m.circle_id);
-      if (circleIds.length > 0) {
-        const { data: circlesData, error: circlesError } = await supabase
-          .from("circles")
-          .select("*")
-          .in("id", circleIds);
-        if (circlesData) setMyCircles(circlesData);
-      } else {
-        setMyCircles([]);
-      }
-    }
-
-    // Fetch circles to discover (all circles for now, can be optimized)
-    const { data: allCircles, error: allCirclesError } = await supabase
-      .from("circles")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (allCircles) setDiscoverCircles(allCircles);
-
-    setIsLoading(false);
-  };
-
-  const handleCreateCircle = async () => {
-    if (!userId || !newCircleName.trim()) {
-      toast.error("Circle name is required.");
-      return;
-    }
-
-    // 1. Create Circle
-    const { data: circleData, error: circleError } = await supabase
-      .from("circles")
-      .insert({ name: newCircleName, description: newCircleDesc, owner_id: userId })
-      .select()
-      .single();
-
-    if (circleError) {
-      const errorMsg = `Failed to create circle: ${circleError.message}`;
-      console.error(errorMsg, circleError);
-      toast.error(errorMsg); // Display detailed error
-      return;
-    } 
-    
-    if (circleData) {
-      // 2. Add owner as a member
-      const { error: memberError } = await supabase
-        .from("circle_members")
-        .insert({ circle_id: circleData.id, user_id: userId, role: 'owner' });
-        
-      if (memberError) {
-        const errorMsg = `Failed to add you as a member: ${memberError.message}`;
-        console.error(errorMsg, memberError);
-        toast.error(errorMsg); // Display detailed error
-        // Optionally delete the circle if membership fails
-        await supabase.from("circles").delete().eq("id", circleData.id);
-        return;
-      }
-
-      toast.success("Study Circle created!");
-      setIsCreateDialogOpen(false);
-      setNewCircleName("");
-      setNewCircleDesc("");
-      loadCircles();
-      navigate(`/circle/${circleData.id}`);
-    }
-  };
-
-  const filteredDiscover = discoverCircles.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const renderCircleCard = (circle: Circle) => (
-    <Card
-      key={circle.id}
-      className="glass-card hover-lift cursor-pointer"
-      onClick={() => navigate(`/circle/${circle.id}`)}
-    >
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> {circle.name}</CardTitle>
-        <CardDescription className="truncate">{circle.description || "No description."}</CardDescription>
-      </CardHeader>
-    </Card>
-  );
-
-  if (isLoading) {
-    return <div className="text-center py-8 text-muted-foreground">Loading circles...</div>;
-  }
-
-  return (
-    <Tabs defaultValue="my-circles">
-      <div className="flex justify-between items-center mb-4">
-        <TabsList>
-          <TabsTrigger value="my-circles">My Circles</TabsTrigger>
-          <TabsTrigger value="discover">Discover</TabsTrigger>
-        </TabsList>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="flex items-center gap-2 dopamine-click">
-              <Plus className="w-4 h-4" /> Create Circle
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="glass-card">
-            <DialogHeader>
-              <DialogTitle>Create a New Study Circle</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input placeholder="Circle Name (e.g., 'Quantum Physics Crew')" value={newCircleName} onChange={e => setNewCircleName(e.target.value)} />
-              <Input placeholder="Description (Optional)" value={newCircleDesc} onChange={e => setNewCircleDesc(e.target.value)} />
-              <Button onClick={handleCreateCircle} className="w-full">Create</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <TabsContent value="my-circles">
-        <div className="space-y-4">
-          {myCircles.length > 0 ? (
-            myCircles.map(renderCircleCard)
-          ) : (
-            <p className="text-center py-8 text-muted-foreground">You haven't joined any circles yet. Discover one!</p>
-          )}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="discover">
-        <div className="space-y-4">
-          <Input
-            placeholder="Search for circles..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            icon={<Search className="w-4 h-4 text-muted-foreground" />}
-          />
-          {filteredDiscover.map(renderCircleCard)}
-        </div>
-      </TabsContent>
-    </Tabs>
-  );
-  */
 };
 
 export default StudyCircles;

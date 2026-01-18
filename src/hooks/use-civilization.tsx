@@ -76,11 +76,12 @@ export function useCivilization(): { data: CivilizationData | null, isLoading: b
             const currentLevels = levels || { 
                 total_xp: defaultLevelData.xp, 
                 level: defaultLevelData.level, 
-                title: defaultLevelData.title 
+                title: defaultLevelData.title,
+                stardust: 0, // Default if levels is null
             };
             
-            // --- Stardust (Mocked from localStorage) ---
-            const stardust = parseInt(localStorage.getItem(`stardust_${userId}`) || '0');
+            // --- Stardust (Fetched from levels data) ---
+            const stardust = (currentLevels as any).stardust || 0; // Assuming stardust is now part of levels
 
             // --- Biome Calculation ---
             const planetTheme = await calculateBiome(userId);
