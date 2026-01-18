@@ -1,8 +1,10 @@
+"use client";
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
-import { sanitizeUsername } from "@/utils/moderation"; // Import moderation utility
+import { sanitizeUsername } from "@/utils/moderation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -22,53 +24,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (id: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle(); // Changed to maybeSingle()
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-      toast.error(`Failed to load user profile: ${error.message}`);
-      setProfile(null);
-    } else if (data) {
-      // --- Moderation Check ---
-      const sanitizedUsername = await sanitizeUsername(id, data.username);
-      
-      const finalProfile: Profile = {
-        ...data,
-        username: sanitizedUsername,
-      };
-      setProfile(finalProfile);
-    } else {
-        // Profile not found (data is null). This is expected if the profile trigger hasn't fired yet.
-        console.warn("Profile not found for user ID:", id);
-        setProfile(null);
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return;
+      }
+
+      if (data) {
+        const sanitizedUsername = await sanitizeUsername(id, data.username);
+        setProfile({ ...data, username: sanitizedUsername });
+      } else {
+        // Profile doesn't exist - attempt to create it (self-healing)
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          const emailPrefix = userData.user.email?.split('@')[0] || `user_${id.slice(0, 5)}`;
+          const { data: newProfile, error: insertError } = await supabase
+            .from("profiles")
+            .insert({ id, username: emailPrefix })
+            .select()
+            .single();
+          
+          if (!insertError && newProfile) {
+            setProfile(newProfile);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Profile fetch/create failed", e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (session) {
           setUserId(session.user.id);
-          fetchProfile(session.user.id);
+          await fetchProfile(session.user.id);
         } else {
           setUserId(null);
           setProfile(null);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
-    // Initial check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUserId(session.user.id);
         fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => {
