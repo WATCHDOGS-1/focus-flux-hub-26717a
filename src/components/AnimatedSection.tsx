@@ -16,7 +16,7 @@ const AnimatedSection = ({ children, delay = 0, duration = 0.6, className }: Ani
 
   const variants = {
     hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0, transition: { duration, delay, ease: [0.23, 1, 0.32, 1] } },
+    visible: { opacity: 1, y: 0, transition: { duration, delay, ease: "easeOut" } },
   };
 
   return (

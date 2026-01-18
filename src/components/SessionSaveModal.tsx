@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Tag, Clock, Loader2, Zap } from "lucide-react";
+import { Tag, Clock, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface Props {
+interface SessionSaveModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (tag: string) => Promise<void>;
@@ -12,41 +13,67 @@ interface Props {
     durationMinutes: number;
 }
 
-const SessionSaveModal = ({ isOpen, onClose, onSave, defaultTag, durationMinutes }: Props) => {
+const SessionSaveModal = ({ isOpen, onClose, onSave, defaultTag, durationMinutes }: SessionSaveModalProps) => {
     const [tag, setTag] = useState(defaultTag);
     const [isSaving, setIsSaving] = useState(false);
 
+    useEffect(() => {
+        setTag(defaultTag);
+    }, [defaultTag]);
+
     const handleSave = async () => {
+        if (isSaving) return;
         setIsSaving(true);
-        await onSave(tag);
-        setIsSaving(false);
+        try {
+            await onSave(tag.trim() || "General Focus");
+        } finally {
+            setIsSaving(false);
+            onClose();
+        }
+    };
+    
+    const formatTime = (minutes: number) => {
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(o) => !o && !isSaving && onClose()}>
-            <DialogContent className="glass rounded-[2rem] border-none shadow-2xl p-8 max-w-sm">
-                <DialogHeader className="items-center text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-                        <Zap className="w-8 h-8 text-primary animate-pulse" />
-                    </div>
-                    <DialogTitle className="text-3xl font-black italic tracking-tighter">LEVEL COMPLETE</DialogTitle>
-                    <DialogDescription className="text-foreground/70">
-                        You stayed in deep flow for <span className="font-bold text-white">{durationMinutes} minutes</span>.
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-[425px] glass-card">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-primary" /> Session Complete!
+                    </DialogTitle>
+                    <DialogDescription>
+                        Your session lasted <span className="font-bold text-accent">{formatTime(durationMinutes)}</span>. Please tag your focus area before saving.
                     </DialogDescription>
                 </DialogHeader>
-
-                <div className="space-y-4 pt-4">
+                <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                        <label className="text-[10px] uppercase tracking-widest font-bold opacity-40">Identify your work</label>
-                        <Input 
-                            value={tag} 
-                            onChange={e => setTag(e.target.value)}
-                            placeholder="e.g. System Architecture"
-                            className="bg-white/5 border-white/10 h-12 rounded-2xl text-center font-bold"
+                        <label htmlFor="focus-tag" className="text-sm font-medium flex items-center gap-1">
+                            <Tag className="w-4 h-4" /> Focus Tag
+                        </label>
+                        <Input
+                            id="focus-tag"
+                            placeholder="e.g., 'Math Homework', 'Project Alpha'"
+                            value={tag}
+                            onChange={(e) => setTag(e.target.value)}
+                            onKeyPress={(e) => e.key === "Enter" && handleSave()}
+                            disabled={isSaving}
                         />
                     </div>
-                    <Button onClick={handleSave} disabled={isSaving} className="w-full h-14 rounded-2xl text-lg font-bold premium-gradient shadow-glow">
-                        {isSaving ? <Loader2 className="animate-spin" /> : "COLLECT XP"}
+                    <Button 
+                        onClick={handleSave} 
+                        disabled={isSaving}
+                        className="w-full dopamine-click"
+                    >
+                        {isSaving ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                            "Save Session & Earn XP"
+                        )}
                     </Button>
                 </div>
             </DialogContent>

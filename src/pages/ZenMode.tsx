@@ -10,7 +10,6 @@ const ZenMode = () => {
     const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
     const [searchParams] = useSearchParams();
     const initialTag = searchParams.get('tag') || "Deep Focus";
-    const taskId = searchParams.get('taskId'); // NEW: Read taskId
 
     const {
         isActive,
@@ -27,7 +26,7 @@ const ZenMode = () => {
             const sessionData = prepareSessionEnd();
             if (sessionData) {
                 // Auto-save immediately if paused/ended
-                endCurrentSessionAndSave(sessionData.defaultTag, sessionData.taskId);
+                endCurrentSessionAndSave(sessionData.defaultTag);
             }
         }
     }, [isActive, sessionStartTime, prepareSessionEnd, endCurrentSessionAndSave]);
@@ -44,10 +43,10 @@ const ZenMode = () => {
         // Set initial tag and start session if not already active
         if (sessionStartTime === 0) {
             setFocusTag(initialTag);
-            startNewSession(taskId); // Pass taskId to startNewSession
+            startNewSession();
             toast.info(`Zen Mode started: ${initialTag}`);
         }
-    }, [isAuthLoading, isAuthenticated, navigate, initialTag, taskId, sessionStartTime, setFocusTag, startNewSession]);
+    }, [isAuthLoading, isAuthenticated, navigate, initialTag, sessionStartTime, setFocusTag, startNewSession]);
 
     const handleExitZenMode = () => {
         // If active, trigger save flow (which is handled by the useEffect above)

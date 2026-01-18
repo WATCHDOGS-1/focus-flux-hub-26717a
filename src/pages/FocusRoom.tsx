@@ -17,8 +17,7 @@ import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
 import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
 import SessionSaveModal from "@/components/SessionSaveModal"; // Import the new modal
-import DigitalPlanetView from "@/components/DigitalPlanetView"; // Import DigitalPlanetView
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText, Globe } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +63,7 @@ const FocusRoom = () => {
   
   // --- Session Save Modal State ---
   const [isSaveModalOpen, setIsSaveModalState] = useState(false);
-  const [sessionToSave, setSessionToSave] = useState<{ durationMinutes: number, defaultTag: string, taskId: string | null } | null>(null);
+  const [sessionToSave, setSessionToSave] = useState<{ durationMinutes: number, defaultTag: string } | null>(null);
 
   // --- Profile Modal State and Handler ---
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
@@ -97,16 +96,15 @@ const FocusRoom = () => {
   }, [userId, isActive, sessionStartTime, startNewSession]);
 
   // Effect to check if a session needs saving (e.g., timer paused or ended)
-  // Guarded by !isSaveModalOpen to prevent infinite loop crashes
   useEffect(() => {
-    if (!isActive && sessionStartTime !== 0 && !isSaveModalOpen) {
+    if (!isActive && sessionStartTime !== 0) {
         const sessionData = prepareSessionEnd();
         if (sessionData) {
             setSessionToSave(sessionData);
             setIsSaveModalState(true);
         }
     }
-  }, [isActive, sessionStartTime, prepareSessionEnd, isSaveModalOpen]);
+  }, [isActive, sessionStartTime, prepareSessionEnd]);
 
 
   useEffect(() => {
@@ -117,7 +115,7 @@ const FocusRoom = () => {
   }, [roomTheme]);
 
   const handleSaveAndLeave = async (tag: string) => {
-    await endCurrentSessionAndSave(tag, sessionToSave?.taskId || null);
+    await endCurrentSessionAndSave(tag);
     navigate("/explore");
   };
   
@@ -128,9 +126,11 @@ const FocusRoom = () => {
         if (sessionData) {
             setSessionToSave(sessionData);
             setIsSaveModalState(true);
+            // The navigation happens inside handleSaveAndLeave
             return;
         }
     }
+    // If no active session, just navigate
     navigate("/explore");
   };
 
@@ -167,8 +167,7 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
-      case "youtube": return <YouTubePanel />;
-      case "planet": return <DigitalPlanetView />;
+      case "youtube": return <YouTubePanel />; // New YouTube Panel
       default: return null;
     }
   };
@@ -180,8 +179,7 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
-      "youtube": "YouTube Player",
-      "planet": "Digital Planet",
+      "youtube": "YouTube Player", // New Title
     };
     return titles[panel] || "";
   };
@@ -208,9 +206,9 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
+            <Button onClick={() => navigate("/notes")} className="w-full justify-start gap-2"><BookOpen /> Notes Base</Button> {/* P4: Notes Navigation */}
             <Button onClick={() => toggleMainWorkspace('notes-media')} className="w-full justify-start gap-2"><NotebookText /> Notes Workspace</Button>
             <Button onClick={() => toggleMainWorkspace('ai')} className="w-full justify-start gap-2"><Brain /> AI Coach & Tasks</Button>
-            <Button onClick={() => togglePanel("planet")} className="w-full justify-start gap-2"><Globe /> Digital Planet</Button>
             <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
@@ -234,7 +232,7 @@ const FocusRoom = () => {
       {/* Session Save Modal */}
       {sessionToSave && (
         <SessionSaveModal
-            isOpen={isSaveModalOpen}
+            isOpen={isSaveModalState}
             onClose={() => setIsSaveModalState(false)}
             onSave={handleSaveAndLeave}
             defaultTag={sessionToSave.defaultTag}
@@ -288,6 +286,16 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
+                    {/* P4: Notes Navigation Button */}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => navigate("/notes")} 
+                        title="Notes Base"
+                    >
+                        <BookOpen className="h-5 w-5" />
+                    </Button>
+                    
                     {/* Notes/Media Button (Combined) */}
                     <Button 
                         variant="ghost" 
@@ -311,9 +319,6 @@ const FocusRoom = () => {
                     </Button>
                     
                     {/* Sidebar Panel Buttons */}
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("planet")} title="Digital Planet" className={activePanel === 'planet' ? "bg-secondary" : ""}>
-                        <Globe className="h-5 w-5" />
-                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => togglePanel("youtube")} title="YouTube Player" className={activePanel === 'youtube' ? "bg-secondary" : ""}>
                         <Youtube className="h-5 w-5" />
                     </Button>
@@ -336,7 +341,7 @@ const FocusRoom = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="flex h-full">
+        <div className="flex h-full"> {/* Added h-full here */}
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
             {/* Focus Tag Input (Always visible in room, unless in Focus Mode) */}
             {!isFocusMode && (
@@ -356,26 +361,26 @@ const FocusRoom = () => {
 
             {/* Main Content Area: Video Grid and Workspace */}
             <div className={cn(
-                "flex-1 min-h-[400px]", 
-                mainWorkspacePanel && "flex flex-col gap-4"
+                "flex-1 min-h-[400px]", // Ensure minimum height for the whole area
+                mainWorkspacePanel && "flex flex-col gap-4" // If any workspace is shown, make it a vertical flex container
             )}>
                 {/* Video Grid */}
                 <div className={cn(
-                    "min-h-[400px]", 
-                    mainWorkspacePanel && "flex-1"
+                    "min-h-[400px]", // Minimum height for video grid
+                    mainWorkspacePanel && "flex-1" // Take half the space if workspace is open
                 )}>
                     <VideoGrid userId={userId} roomId={roomId} />
                 </div>
                 
                 {/* Conditional Workspace Panels */}
                 {mainWorkspacePanel === 'notes-media' && (
-                    <div className="flex-1 min-h-[400px]">
+                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
                         <NotesAndMediaPanel />
                     </div>
                 )}
                 
                 {mainWorkspacePanel === 'ai' && (
-                    <div className="flex-1 min-h-[400px]">
+                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
                         <AICoachAndTasksPanel />
                     </div>
                 )}

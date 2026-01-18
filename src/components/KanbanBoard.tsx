@@ -25,6 +25,7 @@ import { CSS } from '@dnd-kit/utilities';
 const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: number, tags: string[]) => void }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [title, setTitle] = useState("");
+    const [poms, setPoms] = useState(1);
     const [tagsInput, setTagsInput] = useState("");
 
     const handleSubmit = () => {
@@ -33,11 +34,11 @@ const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: num
             return;
         }
         const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
-        // Pass 1 as default estimated pomodoros
-        onAddTask(title.trim(), 1, tags); 
+        onAddTask(title.trim(), poms, tags);
         
         // Reset state
         setTitle("");
+        setPoms(1);
         setTagsInput("");
         setIsOpen(false);
     };
@@ -59,7 +60,13 @@ const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: num
                         value={title} 
                         onChange={e => setTitle(e.target.value)} 
                     />
-                    {/* Removed Estimated Pomodoros Input */}
+                    <Input 
+                        type="number"
+                        min={1}
+                        placeholder="Estimated Pomodoros (25 min blocks)" 
+                        value={poms} 
+                        onChange={e => setPoms(parseInt(e.target.value) || 1)} 
+                    />
                     <Input 
                         placeholder="Tags (e.g., Coding, Design, Math - separated by commas)" 
                         value={tagsInput} 
@@ -77,7 +84,7 @@ const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: num
 
 
 interface KanbanCardProps {
-    task: Task & { actual_pomodoros?: number | null }; // Extend type locally for safety
+    task: Task;
     onFocusNow: (task: Task) => void;
     onDelete: (taskId: string) => void;
 }
@@ -90,9 +97,6 @@ const KanbanCard = ({ task, onFocusNow, onDelete }: KanbanCardProps) => {
         transition,
         zIndex: isDragging ? 10 : 0,
     };
-    
-    const actualPoms = task.actual_pomodoros || 0;
-    const estimatedPoms = task.estimated_pomodoros || 1;
 
     return (
         <Card
@@ -119,8 +123,7 @@ const KanbanCard = ({ task, onFocusNow, onDelete }: KanbanCardProps) => {
                 <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-sm truncate">{task.title}</h4>
                     <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> 
-                        {task.status === 'done' && actualPoms > 0 ? `${actualPoms} Poms Used` : `${estimatedPoms} Poms Est.`}
+                        <Clock className="w-3 h-3" /> {task.estimated_pomodoros} Poms
                     </Badge>
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -192,8 +195,7 @@ const KanbanBoard = () => {
     );
 
     const handleFocusNow = (task: Task) => {
-        // Pass both tag and taskId
-        navigate(`/zen-mode?tag=${encodeURIComponent(task.title)}&taskId=${task.id}`);
+        navigate(`/zen-mode?tag=${encodeURIComponent(task.title)}`);
     };
 
     const tasksByStatus = useMemo(() => {
