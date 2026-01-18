@@ -17,7 +17,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -33,10 +33,7 @@ const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: num
             return;
         }
         const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
-        // Pass 1 as default estimated pomodoros
         onAddTask(title.trim(), 1, tags); 
-        
-        // Reset state
         setTitle("");
         setTagsInput("");
         setIsOpen(false);
@@ -59,9 +56,8 @@ const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: num
                         value={title} 
                         onChange={e => setTitle(e.target.value)} 
                     />
-                    {/* Removed Estimated Pomodoros Input */}
                     <Input 
-                        placeholder="Tags (e.g., Coding, Design, Math - separated by commas)" 
+                        placeholder="Tags (e.g., Coding, Design - separated by commas)" 
                         value={tagsInput} 
                         onChange={e => setTagsInput(e.target.value)} 
                     />
@@ -73,11 +69,9 @@ const TaskCreationModal = ({ onAddTask }: { onAddTask: (title: string, poms: num
         </Dialog>
     );
 };
-// --- End Task Creation Modal Component ---
-
 
 interface KanbanCardProps {
-    task: Task & { actual_pomodoros?: number | null }; // Extend type locally for safety
+    task: Task & { actual_pomodoros?: number | null };
     onFocusNow: (task: Task) => void;
     onDelete: (taskId: string) => void;
 }
@@ -108,7 +102,7 @@ const KanbanCard = ({ task, onFocusNow, onDelete }: KanbanCardProps) => {
             <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                className="absolute top-1 right-1 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive z-10"
                 onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
                 title="Delete Task"
             >
@@ -131,7 +125,7 @@ const KanbanCard = ({ task, onFocusNow, onDelete }: KanbanCardProps) => {
                 <Button 
                     size="sm" 
                     className="w-full dopamine-click mt-2"
-                    onClick={() => onFocusNow(task)}
+                    onClick={(e) => { e.stopPropagation(); onFocusNow(task); }}
                     disabled={task.status === 'done'}
                 >
                     <Play className="w-4 h-4 mr-2" /> Focus Now
@@ -147,17 +141,18 @@ interface KanbanColumnProps {
     tasks: Task[];
     onFocusNow: (task: Task) => void;
     onDelete: (taskId: string) => void;
-    updateTaskStatus: (taskId: string, newStatus: Task['status']) => Promise<void>;
 }
 
-const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete, updateTaskStatus }: KanbanColumnProps) => {
+const KanbanColumn = ({ columnId, title, tasks, onFocusNow, onDelete }: KanbanColumnProps) => {
+    const { setNodeRef, isOver } = useDroppable({ id: columnId });
     const taskIds = useMemo(() => tasks.map(task => task.id), [tasks]);
 
     return (
         <div
-            id={columnId} // Added ID for DndContext to identify droppable area
+            ref={setNodeRef}
             className={cn(
-                "p-4 rounded-xl flex flex-col h-full min-h-[300px] bg-secondary/20"
+                "p-4 rounded-xl flex flex-col h-full min-h-[400px] bg-secondary/10 transition-colors border-2 border-transparent",
+                isOver && "bg-secondary/30 border-primary/20 shadow-inner"
             )}
         >
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 border-b border-border pb-2">
@@ -192,7 +187,6 @@ const KanbanBoard = () => {
     );
 
     const handleFocusNow = (task: Task) => {
-        // Pass both tag and taskId
         navigate(`/zen-mode?tag=${encodeURIComponent(task.title)}&taskId=${task.id}`);
     };
 
@@ -205,17 +199,27 @@ const KanbanBoard = () => {
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        
         if (!over) return;
 
         const taskId = active.id as string;
-        const newStatus = over.id as Task['status'];
-        const currentTask = tasks.find(t => t.id === taskId);
+        // The 'over.id' could be a column ID or another task ID.
+        // We check if it's one of our column IDs.
+        const columnIds = Object.keys(columns);
+        let newStatus: Task['status'] | null = null;
+        
+        if (columnIds.includes(over.id as string)) {
+            newStatus = over.id as Task['status'];
+        } else {
+            // If dropped over another task, find which column that task belongs to.
+            const targetTask = tasks.find(t => t.id === over.id);
+            if (targetTask) {
+                newStatus = targetTask.status;
+            }
+        }
 
-        if (currentTask && currentTask.status !== newStatus) {
+        const currentTask = tasks.find(t => t.id === taskId);
+        if (currentTask && newStatus && currentTask.status !== newStatus) {
             updateTaskStatus(taskId, newStatus);
-            
-            // Removed audio feedback here
         }
     };
     
@@ -244,7 +248,6 @@ const KanbanBoard = () => {
                             tasks={tasksByStatus[id]}
                             onFocusNow={handleFocusNow}
                             onDelete={deleteTask}
-                            updateTaskStatus={updateTaskStatus}
                         />
                     ))}
                 </div>
