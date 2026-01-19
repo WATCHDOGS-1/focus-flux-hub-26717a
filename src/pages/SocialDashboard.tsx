@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,8 @@ import {
     MessageSquare, 
     User, 
     LayoutList,
-    Plus,
-    Calendar
+    Calendar,
+    Loader2
 } from "lucide-react";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
@@ -29,10 +29,25 @@ import AnimatedSection from "@/components/AnimatedSection";
 
 const SocialDashboard = () => {
     const navigate = useNavigate();
-    const { userId } = useAuth();
+    const { userId, isAuthenticated, isLoading } = useAuth();
     const [targetUserId, setTargetUserId] = useState<string | null>(null);
     const [searchParams] = useSearchParams();
     const defaultTab = searchParams.get('tab') || 'feed';
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            navigate("/landing");
+        }
+    }, [isLoading, isAuthenticated, navigate]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Connecting to Hub...</p>
+            </div>
+        );
+    }
 
     if (!userId) return null;
 

@@ -22,18 +22,25 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught error in component:", error, errorInfo);
-    // Optionally log the error to an external service
   }
 
   public render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <div className="p-6 bg-destructive/10 border border-destructive/50 rounded-xl text-destructive flex flex-col items-center justify-center h-full">
-          <AlertTriangle className="w-8 h-8 mb-3" />
-          <h2 className="text-lg font-bold">Something went wrong.</h2>
-          <p className="text-sm text-muted-foreground text-center">
-            The editor failed to load. Try refreshing the page or selecting a different document.
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+            <AlertTriangle className="w-10 h-10 text-destructive" />
+          </div>
+          <h2 className="text-2xl font-black italic tracking-tighter uppercase mb-2">System Interruption</h2>
+          <p className="text-muted-foreground max-w-md mb-8">
+            A critical rendering error occurred. The Oracle is recalibrating.
           </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-8 h-12 rounded-full bg-white text-black font-bold uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all"
+          >
+            Force Restart
+          </button>
         </div>
       );
     }

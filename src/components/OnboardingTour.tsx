@@ -15,16 +15,6 @@ const OnboardingTour = () => {
         const isTourCompleted = localStorage.getItem(TOUR_COMPLETED_KEY);
         if (isTourCompleted) return;
 
-        // Check if user created less than 1 hour ago (using profile data)
-        const profileCreatedAt = new Date(profile.created_at || 0).getTime();
-        const oneHourAgo = Date.now() - 3600000;
-
-        // NOTE: Since profile data doesn't expose created_at directly in the provided types, 
-        // we will rely on a simple check for now, assuming the user is new if they haven't seen the tour.
-        // For a real implementation, we'd need the created_at field from the profile.
-        
-        // For now, we just check if the tour hasn't been completed.
-        
         // Initialize driver.js
         driverRef.current = driver({
             showProgress: true,
@@ -33,53 +23,33 @@ const OnboardingTour = () => {
                 { 
                     element: '#focus-timer-card', 
                     popover: { 
-                        title: '1. The Focus Timer', 
-                        description: 'This is your Pomodoro timer. Start a session here to track your deep work and earn XP.',
+                        title: 'The Temporal Engine', 
+                        description: 'Your command center for deep work.',
                         side: 'right'
                     } 
                 },
                 { 
                     element: '#kanban-board', 
                     popover: { 
-                        title: '2. Task Management', 
-                        description: 'Organize your tasks here. Drag them between To Do, In Progress, and Done.',
+                        title: 'Strategic Planning', 
+                        description: 'Organize your leverage here.',
                         side: 'left'
                     } 
-                },
-                { 
-                    element: '#digital-planet-3d', 
-                    popover: { 
-                        title: '3. Your Digital Planet', 
-                        description: 'Your focus sessions fuel the growth of your digital civilization. Watch it evolve!',
-                        side: 'bottom'
-                    } 
-                },
-                { 
-                    element: '#ai-coach-widget', 
-                    popover: { 
-                        title: '4. AI Focus Coach', 
-                        description: 'Your personalized AI mentor. Ask for advice, analyze your stats, and get motivation.',
-                        side: 'top'
-                    } 
-                },
-            ],
-            onDestroyStarted: () => {
-                if (!driverRef.current.isLastStep()) {
-                    if (!window.confirm("Are you sure you want to skip the tour?")) {
-                        return;
-                    }
                 }
+            ].filter(step => document.querySelector(step.element as string)), // CRITICAL: Only include steps if element exists
+            onDestroyStarted: () => {
                 driverRef.current.destroy();
                 localStorage.setItem(TOUR_COMPLETED_KEY, 'true');
             },
         });
 
-        // Start the tour after a slight delay to ensure elements are rendered
-        const timeout = setTimeout(() => {
-            driverRef.current.drive();
-        }, 1000);
-
-        return () => clearTimeout(timeout);
+        // Only start if there are valid steps for the current page
+        if (driverRef.current.getConfig().steps?.length > 0) {
+            const timeout = setTimeout(() => {
+                driverRef.current.drive();
+            }, 2000);
+            return () => clearTimeout(timeout);
+        }
     }, [isAuthenticated, profile]);
 
     return null;
