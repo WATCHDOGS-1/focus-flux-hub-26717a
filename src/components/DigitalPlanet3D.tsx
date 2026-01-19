@@ -1,43 +1,37 @@
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Stars, MeshDistortMaterial } from '@react-three/drei';
-import { useCivilization } from '@/hooks/use-civilization';
+import { useUserStats } from '@/hooks/use-user-stats';
 import * as THREE from 'three';
 
-const SquadBiosphere = () => {
+const RotatingPlanet = () => {
     const meshRef = useRef<THREE.Mesh>(null);
-    const { data: civData } = useCivilization();
+    const { levels } = useUserStats();
     
-    const planetState = useMemo(() => {
-        const isDying = civData?.isDying;
-        const level = civData?.level || 1;
-        
-        if (isDying) return { color: '#450a0a', speed: 0.5, distort: 0.8 }; // Barren/Decaying
-        if (level >= 7) return { color: '#00f0ff', speed: 4, distort: 0.2 }; // Ascended
-        if (level >= 4) return { color: '#3B82F6', speed: 2.5, distort: 0.3 }; // Thriving
-        return { color: '#171B21', speed: 1.5, distort: 0.4 }; // Developing
-    }, [civData]);
+    const planetColor = useMemo(() => {
+        const level = levels?.level || 1;
+        if (level >= 7) return '#00f0ff';
+        if (level >= 4) return '#b026ff';
+        return '#444444';
+    }, [levels]);
 
-    useFrame((state) => {
+    useFrame(() => {
         if (meshRef.current) {
-            meshRef.current.rotation.y += 0.002 * planetState.speed;
-            meshRef.current.rotation.x += 0.001 * planetState.speed;
-            // Pulsing effect based on health
-            const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * (civData?.isDying ? 0.05 : 0.02);
-            meshRef.current.scale.set(scale, scale, scale);
+            meshRef.current.rotation.y += 0.002;
+            meshRef.current.rotation.x += 0.001;
         }
     });
 
     return (
         <Sphere ref={meshRef} args={[1, 64, 64]}>
             <MeshDistortMaterial 
-                color={planetState.color} 
-                speed={planetState.speed} 
-                distort={planetState.distort} 
+                color={planetColor} 
+                speed={2} 
+                distort={0.2} 
                 metalness={0.9} 
                 roughness={0.1}
-                emissive={planetState.color}
-                emissiveIntensity={civData?.isDying ? 0.1 : 0.4}
+                emissive={planetColor}
+                emissiveIntensity={0.2}
             />
         </Sphere>
     );
@@ -47,12 +41,12 @@ const DigitalPlanet3D = () => {
     return (
         <div className="w-full h-full bg-transparent">
             <Canvas camera={{ position: [0, 0, 3] }}>
-                <ambientLight intensity={0.2} />
-                <pointLight position={[10, 10, 10]} intensity={1.5} color="#3B82F6" />
-                <pointLight position={[-10, -10, -10]} intensity={1} color="#60A5FA" />
-                <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
-                <SquadBiosphere />
-                <OrbitControls enableZoom={false} />
+                <ambientLight intensity={0.4} />
+                <pointLight position={[5, 5, 5]} intensity={1.5} color="#b026ff" />
+                <pointLight position={[-5, -5, -5]} intensity={1} color="#00f0ff" />
+                <Stars radius={50} depth={50} count={2000} factor={4} saturation={0} fade />
+                <RotatingPlanet />
+                <OrbitControls enableZoom={false} autoRotate />
             </Canvas>
         </div>
     );

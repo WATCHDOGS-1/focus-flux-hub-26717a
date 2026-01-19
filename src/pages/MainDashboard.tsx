@@ -1,14 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Zap, Clock, TrendingUp, ArrowRight, Star, Globe, LayoutGrid } from "lucide-react";
+import { Zap, Clock, TrendingUp, ArrowRight, Star, Globe } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import DigitalPlanet3D from "@/components/DigitalPlanet3D";
 import FocusTimer from "@/components/FocusTimer";
 import HeatmapStats from "@/components/HeatmapStats";
 import AICoachPanel from "@/components/AICoachPanel";
-import ProjectGallery from "@/components/ProjectGallery";
-import SkillTree from "@/components/SkillTree";
 import AnimatedSection from "@/components/AnimatedSection";
 
 const MainDashboard = () => {
@@ -78,12 +76,6 @@ const MainDashboard = () => {
                             </div>
                         </div>
                     </AnimatedSection>
-
-                    {/* Skill Tree & Proof of Work */}
-                    <div className="grid grid-cols-1 gap-12">
-                        <SkillTree />
-                        <ProjectGallery />
-                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                         <AnimatedSection delay={0.2}>

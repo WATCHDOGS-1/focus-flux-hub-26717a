@@ -1,64 +1,112 @@
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NotebookText, FileText, Video, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useKnowledge } from "@/hooks/use-knowledge";
 import BlockEditor from "./editor/BlockEditor";
-import SynapseSidebar from "./notes/SynapseSidebar";
-import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
+import Whiteboard from "./editor/Whiteboard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { Loader2, BookOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Document } from "@/types/knowledge";
+import ErrorBoundary from "./ErrorBoundary"; // Import ErrorBoundary
 
 const NotesAndMediaPanel = () => {
   const { documents, updateDocumentContent } = useKnowledge();
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const [currentText, setCurrentText] = useState("");
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(documents[0]?.id || null);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(true);
 
-  // Initialize with first document
+  // Initialize with the first document if available
   useEffect(() => {
-    if (documents.length > 0 && !selectedDocId) {
+    if (!selectedDocId && documents.length > 0) {
         setSelectedDocId(documents[0].id);
     }
   }, [documents, selectedDocId]);
 
   const selectedDocument = documents.find(doc => doc.id === selectedDocId);
 
-  const handleContentChange = (content: any, text: string) => {
-      if (!selectedDocument) return;
-      setCurrentText(text);
-      updateDocumentContent(selectedDocument.id, { ...selectedDocument, content });
+  const handleSelectChange = (id: string) => {
+    setSelectedDocId(id);
+    setIsSelectorOpen(false);
   };
 
-  if (documents.length === 0) {
-      return (
-          <div className="h-full flex flex-col items-center justify-center opacity-20">
-              <BookOpen className="w-12 h-12 mb-4" />
-              <p className="text-[10px] font-black uppercase tracking-widest">No Archives Found</p>
-          </div>
-      );
-  }
+  const renderDocumentEditor = () => {
+    if (!selectedDocument) {
+        return (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+                Select a document to start taking notes.
+            </div>
+        );
+    }
+    
+    // NOTE: We need to handle the content update logic carefully here.
+    const handleContentUpdate = (content: any) => {
+        // Preserve metadata (title, icon, coverImageUrl) when updating content
+        const metadata = {
+            title: selectedDocument.title,
+            icon: (selectedDocument as any).icon,
+            coverImageUrl: (selectedDocument as any).coverImageUrl,
+            type: selectedDocument.type,
+            id: selectedDocument.id,
+        };
+        updateDocumentContent(selectedDocument.id, { ...metadata, content });
+    };
+    
+    if (selectedDocument.type === 'text') {
+        return (
+            <BlockEditor
+                documentId={selectedDocument.id}
+                initialContent={selectedDocument.content as any}
+                onContentChange={handleContentUpdate}
+                isEditable={true} // Read-write access in Focus Room
+            />
+        );
+    }
+    
+    if (selectedDocument.type === 'canvas') {
+        return (
+            <Whiteboard
+                documentId={selectedDocument.id}
+                initialContent={selectedDocument.content as string}
+                onContentChange={handleContentUpdate}
+                isEditable={true} // Read-write access in Focus Room
+            />
+        );
+    }
+    
+    return null;
+  };
 
   return (
-    <div className="h-full w-full glass-card rounded-[2.5rem] overflow-hidden border border-white/5">
-        <PanelGroup direction="horizontal">
-            <Panel defaultSize={75} minSize={50}>
-                <div className="h-full p-8 overflow-y-auto custom-scrollbar">
-                    {selectedDocument ? (
-                        <BlockEditor
-                            documentId={selectedDocument.id}
-                            initialContent={selectedDocument.content as any}
-                            onContentChange={handleContentChange}
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full">
-                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                        </div>
-                    )}
-                </div>
-            </Panel>
+    <div className="h-full w-full glass-card p-4 rounded-xl flex flex-col gap-3">
+        <div className="flex items-center justify-between border-b border-border pb-2">
+            <h4 className="text-lg font-semibold flex items-center gap-2 text-primary">
+                <NotebookText className="w-5 h-5" />
+                Focus Document
+            </h4>
+            
+            <Select onValueChange={handleSelectChange} value={selectedDocId || ""}>
+                <SelectTrigger className="w-[200px] dopamine-click">
+                    <SelectValue placeholder="Select Document" />
+                </SelectTrigger>
+                <SelectContent className="glass-card">
+                    {documents.map(doc => (
+                        <SelectItem key={doc.id} value={doc.id}>
+                            <div className="flex items-center gap-2">
+                                {doc.type === 'text' ? <FileText className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+                                {doc.title}
+                            </div>
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
 
-            <PanelResizeHandle className="w-px bg-white/5 hover:bg-primary/50 transition-colors" />
-
-            <Panel defaultSize={25} minSize={20}>
-                <SynapseSidebar editorContent={currentText} />
-            </Panel>
-        </PanelGroup>
+        <div className="flex-1 min-h-0">
+            <ErrorBoundary>
+                {renderDocumentEditor()}
+            </ErrorBoundary>
+        </div>
     </div>
   );
 };
