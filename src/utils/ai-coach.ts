@@ -30,3 +30,26 @@ export const runAIFocusCoach = async (stats: any, levels: any, duration: number,
     }
   }
 };
+
+export const runSquadIntervention = async (squadName: string, deadbeats: string[]) => {
+    const client = initializeGeminiClient();
+    if (!client) return;
+
+    const prompt = `
+    ${AI_COACH_SYSTEM_PROMPT}
+    CONTEXT: Squad '${squadName}' is failing their collective daily goal.
+    DEADBEATS: ${deadbeats.join(", ")} have not clocked in.
+    
+    ACTION: Give a Naval-Ravikant style intervention to the deadbeats about the 'Cost of Inaction' and then a Robbie Williams style rally for the rest of the squad. Be brief.
+    `;
+
+    try {
+        const response = await client.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: prompt }] }]
+        });
+        return response.text;
+    } catch (e) {
+        return "The cost of inaction is too high. Synchronize your focus now.";
+    }
+};
