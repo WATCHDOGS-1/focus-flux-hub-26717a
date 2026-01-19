@@ -31,6 +31,24 @@ export const runAIFocusCoach = async (stats: any, levels: any, duration: number,
   }
 };
 
+export const runAITaskCheckin = async (focusTag: string, tasks?: any[]) => {
+    const client = initializeGeminiClient();
+    if (!client) return;
+
+    const context = tasks ? `CURRENT TASKS: ${tasks.map(t => t.title).join(", ")}` : `FOCUS TAG: ${focusTag}`;
+    const prompt = `${AI_COACH_SYSTEM_PROMPT}\n\nACTION: Provide a tactical directive for the current focus session.\nCONTEXT: ${context}`;
+
+    try {
+        const response = await client.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: prompt }] }]
+        });
+        toast.info(`Oracle Directive: ${response.text}`, { duration: 10000 });
+    } catch (e) {
+        console.error("AI check-in failed", e);
+    }
+};
+
 export const runSquadIntervention = async (squadName: string, deadbeats: string[]) => {
     const client = initializeGeminiClient();
     if (!client) return;
