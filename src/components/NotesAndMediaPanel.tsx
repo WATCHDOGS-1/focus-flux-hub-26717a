@@ -1,111 +1,67 @@
-import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NotebookText, FileText, Video, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useKnowledge } from "@/hooks/use-knowledge";
 import BlockEditor from "./editor/BlockEditor";
-import Whiteboard from "./editor/Whiteboard";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
-import { Document } from "@/types/knowledge";
-import ErrorBoundary from "./ErrorBoundary"; // Import ErrorBoundary
+import { Button } from "@/components/ui/button";
+import { Brain, Sparkles, NotebookText } from "lucide-react";
+import { useState } from "react";
+import { sendGeminiChat } from "@/utils/gemini";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const NotesAndMediaPanel = () => {
   const { documents, updateDocumentContent } = useKnowledge();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(documents[0]?.id || null);
-  const [isSelectorOpen, setIsSelectorOpen] = useState(true);
-
-  // Initialize with the first document if available
-  useEffect(() => {
-    if (!selectedDocId && documents.length > 0) {
-        setSelectedDocId(documents[0].id);
-    }
-  }, [documents, selectedDocId]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const selectedDocument = documents.find(doc => doc.id === selectedDocId);
 
-  const handleSelectChange = (id: string) => {
-    setSelectedDocId(id);
-    setIsSelectorOpen(false);
-  };
+  const handleGenerateFlashcards = async () => {
+    if (!selectedDocument || selectedDocument.type !== 'text') return;
+    setIsGenerating(true);
+    
+    const content = JSON.stringify(selectedDocument.content);
+    const prompt = `Based on these study notes, generate 5 high-yield flashcards for exam prep. Return as JSON array of objects with {question, answer}. Notes: ${content}`;
 
-  const renderDocumentEditor = () => {
-    if (!selectedDocument) {
-        return (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-                Select a document to start taking notes.
-            </div>
-        );
+    try {
+        const response = await sendGeminiChat([{ role: 'user', parts: [{ text: prompt }] }]);
+        const cards = JSON.parse(response);
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await supabase.from('user_review_cards').insert(cards.map((c: any) => ({ ...c, user_id: user.id })));
+            toast.success("Knowledge Compounded: 5 Flashcards generated!");
+        }
+    } catch (e) {
+        toast.error("Failed to generate flashcards.");
+    } finally {
+        setIsGenerating(false);
     }
-    
-    // NOTE: We need to handle the content update logic carefully here.
-    const handleContentUpdate = (content: any) => {
-        // Preserve metadata (title, icon, coverImageUrl) when updating content
-        const metadata = {
-            title: selectedDocument.title,
-            icon: (selectedDocument as any).icon,
-            coverImageUrl: (selectedDocument as any).coverImageUrl,
-            type: selectedDocument.type,
-            id: selectedDocument.id,
-        };
-        updateDocumentContent(selectedDocument.id, { ...metadata, content });
-    };
-    
-    if (selectedDocument.type === 'text') {
-        return (
-            <BlockEditor
-                documentId={selectedDocument.id}
-                initialContent={selectedDocument.content as any}
-                onContentChange={handleContentUpdate}
-                isEditable={true} // Read-write access in Focus Room
-            />
-        );
-    }
-    
-    if (selectedDocument.type === 'canvas') {
-        return (
-            <Whiteboard
-                documentId={selectedDocument.id}
-                initialContent={selectedDocument.content as string}
-                onContentChange={handleContentUpdate}
-                isEditable={true} // Read-write access in Focus Room
-            />
-        );
-    }
-    
-    return null;
   };
 
   return (
-    <div className="h-full w-full glass-card p-4 rounded-xl flex flex-col gap-3">
-        <div className="flex items-center justify-between border-b border-border pb-2">
-            <h4 className="text-lg font-semibold flex items-center gap-2 text-primary">
-                <NotebookText className="w-5 h-5" />
-                Focus Document
+    <div className="h-full w-full glass-card p-6 rounded-[2.5rem] flex flex-col gap-6">
+        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <h4 className="text-xl font-black italic tracking-tighter uppercase flex items-center gap-3">
+                <NotebookText className="text-primary" /> War Room Notes
             </h4>
-            
-            <Select onValueChange={handleSelectChange} value={selectedDocId || ""}>
-                <SelectTrigger className="w-[200px] dopamine-click">
-                    <SelectValue placeholder="Select Document" />
-                </SelectTrigger>
-                <SelectContent className="glass-card">
-                    {documents.map(doc => (
-                        <SelectItem key={doc.id} value={doc.id}>
-                            <div className="flex items-center gap-2">
-                                {doc.type === 'text' ? <FileText className="w-4 h-4" /> : <Video className="w-4 h-4" />}
-                                {doc.title}
-                            </div>
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleGenerateFlashcards} 
+                disabled={isGenerating}
+                className="rounded-full dopamine-click border-accent/20 text-accent hover:bg-accent/5"
+            >
+                <Brain className="w-4 h-4 mr-2" /> {isGenerating ? "Compounding..." : "Generate Review"}
+            </Button>
         </div>
 
         <div className="flex-1 min-h-0">
-            <ErrorBoundary>
-                {renderDocumentEditor()}
-            </ErrorBoundary>
+            {selectedDocument && selectedDocument.type === 'text' && (
+                <BlockEditor
+                    documentId={selectedDocument.id}
+                    initialContent={selectedDocument.content as any}
+                    onContentChange={(c) => updateDocumentContent(selectedDocument.id, { ...selectedDocument, content: c })}
+                />
+            )}
         </div>
     </div>
   );

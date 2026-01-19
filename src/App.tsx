@@ -6,12 +6,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/use-auth";
 import { KnowledgeProvider } from "@/hooks/use-knowledge";
 import MarketingLanding from "./pages/MarketingLanding";
-import MainDashboard from "./pages/MainDashboard";
+import SocialDashboard from "./pages/SocialDashboard"; // NEW PRIMARY ROOT
 import ProductivityDashboard from "./pages/ProductivityDashboard";
 import Auth from "./pages/Auth";
 import ExploreRooms from "./pages/ExploreRooms";
 import FocusRoom from "./pages/FocusRoom";
-import SocialDashboard from "./pages/SocialDashboard";
 import CircleDetail from "./pages/CircleDetail";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -33,13 +32,12 @@ const App = () => (
           <KnowledgeProvider>
             <OnboardingTour />
             <Routes>
-              <Route path="/" element={<MainDashboard />} />
+              <Route path="/" element={<SocialDashboard />} />
               <Route path="/landing" element={<MarketingLanding />} />
               <Route path="/productivity" element={<ProductivityDashboard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/explore" element={<ExploreRooms />} />
-              <Route path="/social" element={<SocialDashboard />} />
               <Route path="/circle/:circleId" element={<CircleDetail />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />

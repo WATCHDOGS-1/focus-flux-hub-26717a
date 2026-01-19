@@ -2,133 +2,64 @@ import { useState, useEffect } from "react";
 import { useAuth } from "./use-auth";
 import { useUserStats } from "./use-user-stats";
 import { getLevelThresholds, getRecentFocusSessions } from "@/utils/session-management";
+import { supabase } from "@/integrations/supabase/client";
 
 export type PlanetTheme = 'cyberpunk' | 'library' | 'arena' | 'default';
 
 interface CivilizationData {
     name: string;
     level: number;
-    growthPoints: number; // Total XP
-    stardust: number; // New currency
+    growthPoints: number;
+    stardust: number;
     planetTheme: PlanetTheme;
-    satelliteCount: number; // New: based on streaks
+    satelliteCount: number;
     xpToNextLevel: number;
     progressPercent: number;
+    isDying?: boolean; // New: Squad status
 }
 
-const BIOME_MAPPING: { [tag: string]: PlanetTheme } = {
-    'coding': 'cyberpunk',
-    'programming': 'cyberpunk',
-    'design': 'cyberpunk',
-    'writing': 'library',
-    'reading': 'library',
-    'math': 'library',
-    'fitness': 'arena',
-    'sports': 'arena',
-    'general': 'default',
-};
-
-/**
- * Manages the state and logic for the Digital Planets gamification system.
- */
 export function useCivilization(): { data: CivilizationData | null, isLoading: boolean } {
     const { userId } = useAuth();
     const { stats, levels, isLoading: isLoadingStats } = useUserStats();
     const [civilizationData, setCivilizationData] = useState<CivilizationData | null>(null);
-    const [isLoadingBiome, setIsLoadingBiome] = useState(true);
-
-    const calculateBiome = async (uid: string): Promise<PlanetTheme> => {
-        const recentSessions = await getRecentFocusSessions(uid, 'week');
-        if (recentSessions.length === 0) return 'default';
-
-        const tagMinutes: { [tag: string]: number } = {};
-        recentSessions.forEach(s => {
-            const normalizedTag = s.tag.toLowerCase().split(' ')[0];
-            tagMinutes[normalizedTag] = (tagMinutes[normalizedTag] || 0) + s.totalMinutes;
-        });
-
-        let dominantTag = 'general';
-        let maxMinutes = 0;
-        
-        Object.entries(tagMinutes).forEach(([tag, minutes]) => {
-            if (minutes > maxMinutes) {
-                dominantTag = tag;
-                maxMinutes = minutes;
-            }
-        });
-        
-        return BIOME_MAPPING[dominantTag] || 'default';
-    };
 
     useEffect(() => {
-        if (!userId || isLoadingStats) {
-            setCivilizationData(null);
-            setIsLoadingBiome(false);
-            return;
-        }
+        if (!userId || isLoadingStats) return;
         
-        const loadCivData = async () => {
-            setIsLoadingBiome(true);
-            
+        const load = async () => {
             const thresholds = getLevelThresholds();
-            const defaultLevelData = thresholds[0];
+            const currentXP = levels?.total_xp || 0;
+            const currentLevel = levels?.level || 1;
 
-            const currentLevels = levels || { 
-                total_xp: defaultLevelData.xp, 
-                level: defaultLevelData.level, 
-                title: defaultLevelData.title,
-                stardust: 0, // Default if levels is null
-            };
-            
-            // --- Stardust (Fetched from levels data) ---
-            const stardust = (currentLevels as any).stardust || 0; // Assuming stardust is now part of levels
+            // --- Deadbeat Prevention: Check Circle participation ---
+            const { data: membership } = await supabase.from('circle_members').select('circle_id').eq('user_id', userId).maybeSingle();
+            let isDying = false;
 
-            // --- Biome Calculation ---
-            const planetTheme = await calculateBiome(userId);
-
-            // --- Satellites (Based on Longest Streak) ---
-            const satelliteCount = Math.floor((stats?.longest_streak || 0) / 7);
-
-            const currentXP = currentLevels.total_xp;
-            const currentLevel = currentLevels.level;
-            
-            // XP Progression Calculation
-            const nextLevelData = thresholds.find(t => t.level === currentLevel + 1);
-            let progressPercent = 0;
-            let xpToNextLevel = 0;
-            let currentLevelXPBase = 0;
-
-            if (nextLevelData) {
-                currentLevelXPBase = thresholds.find(t => t.level === currentLevel)?.xp || 0;
-                const nextLevelXP = nextLevelData.xp;
-                
-                const xpInCurrentLevel = currentXP - currentLevelXPBase;
-                const xpNeededForNextLevel = nextLevelXP - currentLevelXPBase;
-                
-                xpToNextLevel = xpNeededForNextLevel - xpInCurrentLevel;
-                progressPercent = (xpInCurrentLevel / xpNeededForNextLevel) * 100;
-            } else {
-                progressPercent = 100;
+            if (membership) {
+                const { data: peers } = await supabase.from('circle_members').select('user_id').eq('circle_id', membership.circle_id);
+                // In a real app, you'd check last_active of all user_ids here
+                // Simulate: if peers > 1, check participation
+                isDying = false; // Mock for now
             }
 
+            const nextLevel = thresholds.find(t => t.level === currentLevel + 1);
+            const xpToNext = nextLevel ? nextLevel.xp - currentXP : 0;
+            const progress = nextLevel ? (currentXP / nextLevel.xp) * 100 : 100;
+
             setCivilizationData({
-                name: currentLevels.title || "Novice Civilization",
+                name: levels?.title || "Aspirant",
                 level: currentLevel,
                 growthPoints: currentXP,
-                stardust,
-                planetTheme,
-                satelliteCount,
-                xpToNextLevel,
-                progressPercent: Math.min(100, progressPercent),
+                stardust: (levels as any)?.stardust || 0,
+                planetTheme: 'default',
+                satelliteCount: Math.floor((stats?.longest_streak || 0) / 7),
+                xpToNextLevel: xpToNext,
+                progressPercent: progress,
+                isDying
             });
-            setIsLoadingBiome(false);
         };
-
-        loadCivData();
+        load();
     }, [levels, stats, userId, isLoadingStats]);
 
-    return {
-        data: civilizationData,
-        isLoading: isLoadingStats || isLoadingBiome,
-    };
+    return { data: civilizationData, isLoading: isLoadingStats };
 }

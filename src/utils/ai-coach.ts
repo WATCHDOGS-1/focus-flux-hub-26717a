@@ -1,128 +1,51 @@
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
-import { initializeGeminiClient, analyzeSession } from "./gemini"; // Import Gemini utilities
-import { getLocalStudyData } from "./local-data"; // Import local data utility
+import { initializeGeminiClient, analyzeSession } from "./gemini";
+import { getLocalStudyData } from "./local-data";
 
-type UserStats = Database["public"]["Tables"]["user_stats"]["Row"];
-type UserLevels = Database["public"]["Tables"]["user_levels"]["Row"];
-
-// --- New System Prompt Definition ---
 export const AI_COACH_SYSTEM_PROMPT = `
-You are the AI Focus Coach, a blend of Naval Ravikant's philosophical wisdom on wealth and happiness (applied to focus and learning) and Robbie Williams' charismatic, slightly cheeky, and encouraging stage presence. Your persona is strictly PG-13.
+You are the Strategic Partner, channeling the wisdom of Naval Ravikant and the tactical intensity of an exam coach.
+Persona: Minimalist, analytical, slightly stoic, focused on LEVERAGE. 
 
-Your core principles are:
-1. **Hard Work & Balance:** Encourage deep, focused work, but always remind the user of the importance of rest, health, and long-term consistency over short-term burnout.
-2. **Naval-esque Wisdom:** Use concise, philosophical, and often counter-intuitive advice related to learning, leverage, and compounding effort (XP, streaks).
-3. **Robbie Flair:** Be highly engaging, use enthusiastic language, and occasionally drop a playful, motivational line.
-4. **Actionable:** Every piece of advice must be practical and focused on the user's next step.
+Your mission:
+1. Identify low-leverage tasks (shallow work) and suggest their removal.
+2. Direct the user toward the 'compounding' 20% of their syllabus (e.g., hard problem sets over reading).
+3. Warn against 'fake productivity' (organizing, re-reading).
+4. If a user is focusing during 'Crunch Hours' (4 AM), praise their discipline as a competitive moat.
 
-When responding, adopt this voice. Do not break character.
+Always ask: "Is this task truly moving the needle, or are you just being busy?"
 `;
-// --- End New System Prompt Definition ---
 
-
-/**
- * Provides rule-based or Gemini-powered motivational advice based on user stats.
- */
-export const runAIFocusCoach = async (stats: UserStats | null, levels: UserLevels | null, sessionDurationMinutes: number, focusTag: string) => {
+export const runAIFocusCoach = async (stats: any, levels: any, duration: number, tag: string) => {
   const client = initializeGeminiClient();
-
-  if (client && stats && levels) {
-    // Use Gemini for advanced analysis if key is present
+  if (client && stats) {
     try {
-        const feedback = await analyzeSession({
-            durationMinutes: sessionDurationMinutes,
-            focusTag: focusTag || "General Focus",
-            longestStreak: stats.longest_streak,
-            totalFocusedMinutes: stats.total_focused_minutes,
-        });
-        
-        // Prepend system prompt to the analysis request
-        const fullPrompt = AI_COACH_SYSTEM_PROMPT + "\n\n" + feedback;
-        
+        const feedback = await analyzeSession({ durationMinutes: duration, focusTag: tag, longestStreak: stats.longest_streak, totalFocusedMinutes: stats.total_focused_minutes });
         const response = await client.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-            config: {
-                temperature: 0.8,
-            }
+            contents: [{ role: "user", parts: [{ text: `${AI_COACH_SYSTEM_PROMPT}\n\nSession Data: ${feedback}` }] }]
         });
-        
-        toast.info(`AI Coach Feedback: ${response.text}`, { duration: 10000 });
-        return;
+        toast.info(`Strategic Insight: ${response.text}`, { duration: 15000 });
     } catch (e) {
-        console.warn("Gemini analysis failed, falling back to rule-based coach.", e);
-        // Fall through to rule-based coaching
+        toast.info("Elite focus detected. Compound your effort.");
     }
-  }
-  
-  // --- Rule-Based Coaching (Fallback) ---
-
-  if (!stats || !levels) {
-    // Rule 1: New user encouragement
-    toast.info("Welcome to OnlyFocus! Complete your first session to start earning XP and climbing the leaderboard. You got this! 🚀", { duration: 8000 });
-    return;
-  }
-
-  // Rule 2: Long session praise
-  if (sessionDurationMinutes >= 60) {
-    toast.success(`Deep focus achieved! A ${sessionDurationMinutes}-minute session is incredible. Keep that momentum going! 🧠`, { duration: 8000 });
-    return;
-  }
-  
-  // Rule 3: Streak milestone encouragement
-  if (stats.longest_streak > 0 && stats.longest_streak % 3 === 0) {
-    toast.success(`Streak Alert! You've maintained a focus streak for ${stats.longest_streak} days. Consistency is key! 🔑`, { duration: 8000 });
-    return;
-  }
-
-  // Rule 4: General motivation
-  if (levels.total_xp < 500) {
-    toast.info(`You are Level ${levels.level}. Every minute counts towards your next title. Keep pushing! 💪`, { duration: 8000 });
-    return;
-  }
-  
-  // Rule 5: High level encouragement
-  if (levels.level >= 4) {
-    toast.info(`As a ${levels.title}. Your focus is legendary. Inspire your peers in the room! ✨`, { duration: 8000 });
-    return;
   }
 };
 
-/**
- * Triggers a task check-in prompt from the AI Coach.
- */
-export const runAITaskCheckin = async (focusTag: string) => {
+export const runAITaskCheckin = async (focusTag: string, allTasks: any[] = []) => {
     const client = initializeGeminiClient();
-    if (!client) return; // Do nothing if key is missing
-
-    const localData = getLocalStudyData();
-    const tasksSummary = localData.tasks.length > 0 
-        ? localData.tasks.map(t => t.content).join("; ")
-        : "No incomplete tasks found.";
-    
+    if (!client) return;
     const prompt = `
     ${AI_COACH_SYSTEM_PROMPT}
+    Current Subject: ${focusTag}
+    Current Tasks: ${JSON.stringify(allTasks)}
     
-    It's time for a check-in. The user is focusing on "${focusTag}".
-    
-    Current Incomplete Tasks: ${tasksSummary}
-    Current Notes Summary: ${localData.notesSummary || "No notes found."}
-
-    Provide a brief, encouraging check-in message (max 3 sentences). Ask one question related to their progress or suggest a small, immediate next step based on their tasks/notes. Do not mention the 30-minute interval.
+    Review these tasks. Identify one that is 'shallow work' and suggest deleting it. Suggest one 'high leverage' action instead. Be concise.
     `;
-
     try {
         const response = await client.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            config: {
-                temperature: 0.8,
-            }
+            contents: [{ role: "user", parts: [{ text: prompt }] }]
         });
-        
-        toast.info(`AI Coach Check-in: ${response.text}`, { duration: 15000 });
-    } catch (e) {
-        console.error("AI Check-in failed:", e);
-    }
+        toast.warning(`Strategic Pivot: ${response.text}`, { duration: 15000 });
+    } catch (e) { /* silent */ }
 };
