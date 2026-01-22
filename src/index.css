@@ -2,65 +2,159 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Professional & Sophisticated Design System */
+
 @layer base {
   :root {
-    --background: 240 10% 2%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 100%;
-    --primary: 280 90% 65%;
-    --accent: 185 100% 50%;
-    --border: 240 5% 15%;
-    --radius: 2rem;
+    /* Zen Cyberpunk (Dark Mode Only) */
+    --background: 230 20% 5%; 
+    --foreground: 210 40% 98%; 
+
+    --card: 230 10% 10%; 
+    --card-foreground: 210 40% 98%;
+
+    --popover: 230 10% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 280 90% 60%; /* Neon Purple */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 230 10% 15%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 230 10% 10%;
+    --muted-foreground: 215 14% 65%; /* Muted Blue-Grey */
+
+    --accent: 185 90% 60%; /* Electric Cyan */
+    --accent-foreground: 224 71% 4%;
+
+    --success: 142 76% 36%;
+    --warning: 45 93% 47%;
+    --destructive: 0 84.2% 60.2%;
+
+    --border: 230 10% 20%;
+    --input: 230 10% 15%;
+    --ring: 280 90% 60%;
+
+    --radius: 0.75rem;
+  }
+
+  /* Force dark mode for Zen Cyberpunk aesthetic */
+  /* Removed the problematic @apply dark here */
+  
+  body {
+    /* Deep Radial Gradient Background */
+    background: radial-gradient(circle at center, #1a1b26 0%, #000000 100%);
+    @apply text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* --- Keyframes for Micro-Interactions --- */
+
+@keyframes slow-rotate {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes breathing-pulse {
+  0% { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1); }
+  50% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3); }
+  100% { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1); }
+}
+
+@keyframes heartbeat-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.01); opacity: 0.95; }
+}
+
+@keyframes neon-glow {
+  0%, 100% { text-shadow: 0 0 5px hsl(var(--primary) / 0.5), 0 0 10px hsl(var(--primary) / 0.2); }
+  50% { text-shadow: 0 0 8px hsl(var(--primary) / 0.7), 0 0 15px hsl(var(--primary) / 0.4); }
+}
+
+@keyframes sunlight-drift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* --- Base & Utilities --- */
 
 @layer base {
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30;
-    background: radial-gradient(circle at top left, hsla(280, 80%, 20%, 0.15), transparent 40%),
-                radial-gradient(circle at bottom right, hsla(185, 80%, 20%, 0.1), transparent 40%),
-                hsl(240, 10%, 2%);
-    background-attachment: fixed;
-    font-family: 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.01em;
+
+  /* Apply No Mercy Mode overrides */
+  .no-mercy * {
+    border-radius: 0 !important;
+    transition-timing-function: linear !important;
+    transition-duration: 70ms !important;
   }
 }
 
 @layer utilities {
-  .glass {
-    @apply bg-white/[0.03] backdrop-blur-3xl border border-white/[0.08] shadow-2xl;
+  /* Framer Motion Micro-Interactions */
+  .transition-spring {
+    transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   
-  .glass-interactive {
-    @apply glass transition-all duration-700;
+  .dopamine-click {
+    /* Hover: Scale 1.02, Tap: Scale 0.98, Brighten border */
+    @apply transition-spring active:scale-[0.98] hover:scale-[1.02] hover:border-primary/50 relative overflow-hidden;
   }
   
-  .glass-interactive:hover {
-    @apply bg-white/[0.06] border-white/[0.15];
+  .hover-lift {
+    /* Hover animation: 120ms spring easing, translate -1 */
+    @apply transition-spring hover:-translate-y-1 hover:shadow-lg;
   }
 
-  .text-luxury {
-    @apply font-black italic tracking-tighter uppercase;
-    background: linear-gradient(to bottom right, #fff, #888);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  /* Zen Cyberpunk Glass Aesthetic */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl transition-spring;
+  }
+  
+  .shadow-glow {
+    /* Theme-dependent glow */
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.4),
+                0 0 20px hsl(var(--primary) / 0.2);
+  }
+  
+  .shadow-glow-accent {
+    box-shadow: 0 0 10px hsl(var(--accent) / 0.4),
+                0 0 20px hsl(var(--accent) / 0.2);
   }
 
-  .premium-gradient {
-    @apply bg-gradient-to-br from-primary via-primary/80 to-accent;
+  /* Existing animations */
+  .animate-slow-rotate {
+    background-size: 400% 400%;
+    animation: slow-rotate 180s ease infinite alternate;
+  }
+  
+  .animate-breathing-pulse {
+    animation: breathing-pulse 4s ease-in-out infinite;
+  }
+  
+  .animate-heartbeat-pulse {
+    animation: heartbeat-pulse 0.7s ease-in-out infinite;
+  }
+  
+  .animate-sunlight-drift {
+    animation: sunlight-drift 15s linear infinite alternate;
+  }
+  
+  .animate-timer-breathing {
+    animation: timer-breathing 4s ease-in-out infinite;
+  }
+  
+  .animate-background-pulse {
+    animation: background-pulse 4s ease-in-out infinite;
+  }
+  
+  /* Icon Glow on Hover (Theme Dependent) */
+  .group:hover .icon-glow {
+    filter: drop-shadow(0 0 5px hsl(var(--primary) / 0.8));
+    transition: filter 120ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
-
-/* Custom easing for high-art feel */
-.ease-renaissance {
-  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-/* Scrollbar Artistry */
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { @apply bg-transparent; }
-::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full hover:bg-primary/50 transition-colors; }

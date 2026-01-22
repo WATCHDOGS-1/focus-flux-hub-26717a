@@ -8,7 +8,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { useUserStats } from "@/hooks/use-user-stats"; // Import useUserStats to get refetch
 
 interface Construction {
     id: string;
@@ -29,7 +28,6 @@ const PURCHASED_CONSTRUCTIONS_KEY = "civilization_constructions";
 const PlanetShop = () => {
     const { userId } = useAuth();
     const { data: civData, isLoading: isLoadingCiv } = useCivilization();
-    const { refetch: refetchStats } = useUserStats(); // Get refetch function
     const [purchasedConstructions, setPurchasedConstructions] = useState<string[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -62,11 +60,12 @@ const PlanetShop = () => {
                 localStorage.setItem(PURCHASED_CONSTRUCTIONS_KEY, JSON.stringify(newPurchased));
                 setPurchasedConstructions(newPurchased);
                 
-                refetchStats(); // Refetch stats to update Stardust display
+                // Trigger a civData refresh by updating a dummy state or relying on the next interval
+                // For now, we rely on the next civData update or manual refresh.
                 
                 toast.success(`${construction.name} constructed! Stardust deducted.`, { id: 'construction-purchase' });
             } else {
-                toast.error("Purchase failed. Check Stardust balance.", { id: 'construction-purchase' });
+                toast.error("Construction failed. Check Stardust balance.", { id: 'construction-purchase' });
             }
         } catch (e) {
             toast.error("An unexpected error occurred.", { id: 'construction-purchase' });

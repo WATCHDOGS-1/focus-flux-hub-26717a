@@ -9,11 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Document } from "@/types/knowledge";
-import ErrorBoundary from "./ErrorBoundary"; // Import ErrorBoundary
 
 const NotesAndMediaPanel = () => {
   const { documents, updateDocumentContent } = useKnowledge();
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(documents[0]?.id || null);
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [isSelectorOpen, setIsSelectorOpen] = useState(true);
 
   // Initialize with the first document if available
@@ -39,25 +38,12 @@ const NotesAndMediaPanel = () => {
         );
     }
     
-    // NOTE: We need to handle the content update logic carefully here.
-    const handleContentUpdate = (content: any) => {
-        // Preserve metadata (title, icon, coverImageUrl) when updating content
-        const metadata = {
-            title: selectedDocument.title,
-            icon: (selectedDocument as any).icon,
-            coverImageUrl: (selectedDocument as any).coverImageUrl,
-            type: selectedDocument.type,
-            id: selectedDocument.id,
-        };
-        updateDocumentContent(selectedDocument.id, { ...metadata, content });
-    };
-    
     if (selectedDocument.type === 'text') {
         return (
             <BlockEditor
                 documentId={selectedDocument.id}
                 initialContent={selectedDocument.content as any}
-                onContentChange={handleContentUpdate}
+                onContentChange={(content) => updateDocumentContent(selectedDocument.id, content)}
                 isEditable={true} // Read-write access in Focus Room
             />
         );
@@ -68,7 +54,7 @@ const NotesAndMediaPanel = () => {
             <Whiteboard
                 documentId={selectedDocument.id}
                 initialContent={selectedDocument.content as string}
-                onContentChange={handleContentUpdate}
+                onContentChange={(content) => updateDocumentContent(selectedDocument.id, content)}
                 isEditable={true} // Read-write access in Focus Room
             />
         );
@@ -103,9 +89,7 @@ const NotesAndMediaPanel = () => {
         </div>
 
         <div className="flex-1 min-h-0">
-            <ErrorBoundary>
-                {renderDocumentEditor()}
-            </ErrorBoundary>
+            {renderDocumentEditor()}
         </div>
     </div>
   );
