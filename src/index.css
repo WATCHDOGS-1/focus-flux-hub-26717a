@@ -2,27 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Professional & Sophisticated Design System */
+
 @layer base {
   :root {
-    /* --- DEFAULT THEME: Zen Cyberpunk (Dark) --- */
+    /* Zen Cyberpunk (Dark Mode Only) */
     --background: 230 20% 5%; 
     --foreground: 210 40% 98%; 
 
     --card: 230 10% 10%; 
     --card-foreground: 210 40% 98%;
+
     --popover: 230 10% 10%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 280 90% 60%; /* Neon Purple */
     --primary-foreground: 210 40% 98%;
+
     --secondary: 230 10% 15%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 230 10% 10%;
-    --muted-foreground: 215 14% 65%;
+    --muted-foreground: 215 14% 65%; /* Muted Blue-Grey */
 
     --accent: 185 90% 60%; /* Electric Cyan */
     --accent-foreground: 224 71% 4%;
+
+    --success: 142 76% 36%;
+    --warning: 45 93% 47%;
+    --destructive: 0 84.2% 60.2%;
 
     --border: 230 10% 20%;
     --input: 230 10% 15%;
@@ -31,107 +39,122 @@
     --radius: 0.75rem;
   }
 
-  /* --- LIGHT MODE OVERRIDES --- */
-  .light {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 199 89% 48%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262.1 83.3% 57.8%;
-  }
-
-  /* --- ROOM SPECIFIC THEMES --- */
-
-  /* Deep Cave: Pitch black with subtle purple accents */
-  body.deep-cave {
-    --background: 230 30% 2%;
-    --card: 230 30% 4%;
-    --primary: 280 50% 40%;
-    --accent: 230 20% 30%;
-    --border: 230 20% 10%;
-  }
-
-  /* Library: Warm, low-contrast, mahogany and gold */
-  body.library {
-    --background: 25 30% 7%;
-    --card: 25 30% 10%;
-    --foreground: 30 40% 90%;
-    --primary: 35 60% 50%; /* Warm Amber */
-    --accent: 20 50% 40%; /* Deep Wood */
-    --border: 25 20% 15%;
-    --secondary: 25 20% 12%;
-  }
-
-  /* Cyberpunk: High-octane neon Pink and Cyan */
-  body.cyberpunk {
-    --primary: 320 100% 60%; /* Neon Pink */
-    --accent: 180 100% 50%; /* Pure Cyan */
-    --background: 250 40% 4%;
-    --card: 250 40% 6%;
-    --border: 320 50% 20%;
-  }
-
-  /* Morning Sunlight: Bright, warm, productive morning vibes */
-  body.morning-sunlight {
-    --background: 45 100% 98%;
-    --foreground: 20 20% 10%;
-    --card: 0 0% 100%;
-    --primary: 40 90% 50%; /* Golden Sun */
-    --accent: 15 80% 60%; /* Morning Sky */
-    --secondary: 45 50% 94%;
-    --border: 45 20% 85%;
-    --muted-foreground: 40 10% 40%;
-  }
+  /* Force dark mode for Zen Cyberpunk aesthetic */
+  /* Removed the problematic @apply dark here */
   
   body {
-    background: radial-gradient(circle at center, hsl(var(--background)) 0%, #000000 100%);
-    @apply text-foreground transition-colors duration-500;
+    /* Deep Radial Gradient Background */
+    background: radial-gradient(circle at center, #1a1b26 0%, #000000 100%);
+    @apply text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+}
 
-  /* In light-based themes, we don't want the pure black radial gradient */
-  body.morning-sunlight, .light body {
-    background: hsl(var(--background));
+/* --- Keyframes for Micro-Interactions --- */
+
+@keyframes slow-rotate {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes breathing-pulse {
+  0% { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1); }
+  50% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3); }
+  100% { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1); }
+}
+
+@keyframes heartbeat-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.01); opacity: 0.95; }
+}
+
+@keyframes neon-glow {
+  0%, 100% { text-shadow: 0 0 5px hsl(var(--primary) / 0.5), 0 0 10px hsl(var(--primary) / 0.2); }
+  50% { text-shadow: 0 0 8px hsl(var(--primary) / 0.7), 0 0 15px hsl(var(--primary) / 0.4); }
+}
+
+@keyframes sunlight-drift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* --- Base & Utilities --- */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  /* Apply No Mercy Mode overrides */
+  .no-mercy * {
+    border-radius: 0 !important;
+    transition-timing-function: linear !important;
+    transition-duration: 70ms !important;
   }
 }
 
 @layer utilities {
-  .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl transition-all duration-300;
+  /* Framer Motion Micro-Interactions */
+  .transition-spring {
+    transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   
-  /* Theme-specific card adjustments */
-  body.morning-sunlight .glass-card, .light .glass-card {
-    @apply bg-white/60 border-black/5 shadow-sm;
+  .dopamine-click {
+    /* Hover: Scale 1.02, Tap: Scale 0.98, Brighten border */
+    @apply transition-spring active:scale-[0.98] hover:scale-[1.02] hover:border-primary/50 relative overflow-hidden;
+  }
+  
+  .hover-lift {
+    /* Hover animation: 120ms spring easing, translate -1 */
+    @apply transition-spring hover:-translate-y-1 hover:shadow-lg;
   }
 
-  .dopamine-click {
-    @apply transition-all active:scale-[0.98] hover:scale-[1.02] hover:border-primary/50 relative overflow-hidden;
+  /* Zen Cyberpunk Glass Aesthetic */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl transition-spring;
   }
   
   .shadow-glow {
-    box-shadow: 0 0 15px hsl(var(--primary) / 0.3);
+    /* Theme-dependent glow */
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.4),
+                0 0 20px hsl(var(--primary) / 0.2);
+  }
+  
+  .shadow-glow-accent {
+    box-shadow: 0 0 10px hsl(var(--accent) / 0.4),
+                0 0 20px hsl(var(--accent) / 0.2);
   }
 
+  /* Existing animations */
+  .animate-slow-rotate {
+    background-size: 400% 400%;
+    animation: slow-rotate 180s ease infinite alternate;
+  }
+  
+  .animate-breathing-pulse {
+    animation: breathing-pulse 4s ease-in-out infinite;
+  }
+  
+  .animate-heartbeat-pulse {
+    animation: heartbeat-pulse 0.7s ease-in-out infinite;
+  }
+  
+  .animate-sunlight-drift {
+    animation: sunlight-drift 15s linear infinite alternate;
+  }
+  
   .animate-timer-breathing {
     animation: timer-breathing 4s ease-in-out infinite;
   }
-}
-
-@keyframes timer-breathing {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.02); opacity: 0.8; }
+  
+  .animate-background-pulse {
+    animation: background-pulse 4s ease-in-out infinite;
+  }
+  
+  /* Icon Glow on Hover (Theme Dependent) */
+  .group:hover .icon-glow {
+    filter: drop-shadow(0 0 5px hsl(var(--primary) / 0.8));
+    transition: filter 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
 }
