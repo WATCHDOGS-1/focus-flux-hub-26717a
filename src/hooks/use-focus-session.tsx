@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { endFocusSession } from "@/utils/session-management";
 import { useAuth } from "./use-auth";
 import { useUserStats } from "./use-user-stats";
-import { runAIFocusCoach, runAITaskCheckin } from "@/utils/ai-coach"; // Import runAITaskCheckin
+import { runAIFocusCoach } from "@/utils/ai-coach";
 import { supabase } from "@/integrations/supabase/client";
 
 // Session definitions in seconds
@@ -27,16 +27,13 @@ interface UseFocusSessionResult {
   resetTimer: () => void;
   handleSaveCustomSettings: (workMinutes: number, breakMinutes: number) => void;
   startNewSession: () => void;
-  prepareSessionEnd: () => { durationMinutes: number, defaultTag: string } | null; // New function to trigger modal
-  endCurrentSessionAndSave: (finalFocusTag: string) => Promise<void>; // New function to finalize save
+  endCurrentSession: () => Promise<void>;
   currentDuration: number;
   progress: number;
 }
 
-const CHECKIN_INTERVAL_SECONDS = 30 * 60; // 30 minutes
-
 export function useFocusSession(): UseFocusSessionResult {
-  const { userId, profile } = useAuth();
+  const { userId } = useAuth();
   const { stats, levels, refetch: refetchStats } = useUserStats();
 
   const [currentMode, setCurrentMode] = useState(SESSION_MODES[0]);
@@ -45,10 +42,9 @@ export function useFocusSession(): UseFocusSessionResult {
   const [isBreak, setIsBreak] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [focusTag, setFocusTagState] = useState(""); // Local state for input field
+  const [focusTag, setFocusTag] = useState("");
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastCheckinTimeRef = useRef<number>(0); // Tracks time elapsed since last check-in
 
   // Load mode from local storage on mount
   useEffect(() => {
@@ -58,16 +54,8 @@ export function useFocusSession(): UseFocusSessionResult {
       setCurrentMode(storedMode);
       setTimeLeft(storedMode.work);
     }
-    
-    // Focus tag starts empty or is set by the user in the room
-    setFocusTagState("");
   }, []);
 
-  // Setter for focus tag (no longer updates local storage)
-  const setFocusTag = (tag: string) => {
-    setFocusTagState(tag);
-  };
-  
   // Reset timer when mode changes
   useEffect(() => {
     setTimeLeft(currentMode.work);
@@ -77,9 +65,8 @@ export function useFocusSession(): UseFocusSessionResult {
     localStorage.setItem("focus_session_mode", currentMode.name);
   }, [currentMode]);
 
-  // Function to stop the timer and prepare data for the modal
-  const prepareSessionEnd = useCallback(() => {
-    if (!userId || !sessionId || sessionStartTime === 0) return null;
+  const endCurrentSession = useCallback(async () => {
+    if (!userId || !sessionId || sessionStartTime === 0) return;
 
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -87,89 +74,47 @@ export function useFocusSession(): UseFocusSessionResult {
     }
 
     setIsActive(false);
-    
-    const sessionDurationSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
-    const durationMinutes = Math.floor(sessionDurationSeconds / 60);
-    
-    if (durationMinutes < 1) {
-        // If session is too short, just reset without saving
-        setSessionStartTime(0);
-        setSessionId(null);
-        setTimeLeft(currentMode.work);
-        setIsBreak(false);
-        toast.info("Session ended. Duration too short to save.");
-        return null;
-    }
+    setSessionId(null);
 
-    return {
-        durationMinutes,
-        defaultTag: focusTag.trim() || "General Focus",
-    };
-  }, [userId, sessionId, sessionStartTime, focusTag, currentMode]);
-
-
-  // Function to finalize session saving after receiving the tag from the modal
-  const endCurrentSessionAndSave = useCallback(async (finalFocusTag: string) => {
-    if (!userId || !sessionId || sessionStartTime === 0) {
-        toast.error("Cannot save session: session data missing.");
-        return;
-    }
-    
-    const sessionDurationSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
-    const durationMinutes = Math.floor(sessionDurationSeconds / 60);
-
-    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, finalFocusTag);
+    const leavePromise = endFocusSession(userId, sessionId, sessionStartTime, focusTag);
 
     toast.promise(leavePromise, {
       loading: "Saving your session...",
       success: (result) => {
-        runAIFocusCoach(stats, levels, result.durationMinutes, result.focusTag); // Pass focusTag for AI analysis
+        runAIFocusCoach(stats, levels, result.durationMinutes);
         refetchStats();
         return result.message;
       },
       error: (message) => {
         console.error("Session save failed:", message);
-        return `Failed to save session: ${message}`;
+        return "Failed to save session. Check console for details.";
       },
     });
 
-    // Reset state regardless of save success (optimistic reset)
     setSessionStartTime(0);
-    setSessionId(null);
-    setTimeLeft(currentMode.work);
-    setIsBreak(false);
-    lastCheckinTimeRef.current = 0; // Reset check-in tracker
-  }, [userId, sessionId, sessionStartTime, stats, levels, refetchStats, currentMode]);
+  }, [userId, sessionId, sessionStartTime, focusTag, stats, levels, refetchStats]);
 
-  const startNewSession = async () => {
-    if (!userId || !profile) {
-        toast.error("Authentication incomplete. Please wait for profile to load or re-login.");
-        return;
-    }
-    
-    // 1. Create new session record
+  const startNewSession = useCallback(async () => {
+    if (!userId) return;
+
+    // Start Supabase session logging
     const { data, error } = await supabase
       .from("focus_sessions")
-      .insert({ user_id: userId, start_time: new Date().toISOString(), tag: focusTag.trim() || null }) // Save initial tag
+      .insert({ user_id: userId, start_time: new Date().toISOString(), tag: focusTag || null })
       .select("id")
       .single();
 
-    if (error || !data) {
-      toast.error(`Failed to start session: ${error?.message || 'Unknown database error'}`);
-      console.error("Session start error:", error);
-      return;
+    if (!error && data) {
+      setSessionId(data.id);
+      setSessionStartTime(Date.now());
+      setIsActive(true);
+      toast.success(`Focus session started: ${currentMode.name}`);
+    } else {
+      console.error("Error starting session:", error);
+      toast.error("Failed to start focus session.");
+      setIsActive(false);
     }
-
-    // 2. Update state
-    setSessionId(data.id);
-    setSessionStartTime(Date.now());
-    setIsActive(true);
-    setIsBreak(false);
-    setTimeLeft(currentMode.work);
-    lastCheckinTimeRef.current = 0; // Reset check-in tracker
-    toast.success(`Focus session started: ${currentMode.name}`);
-  };
-
+  }, [userId, currentMode, focusTag]);
 
   // Timer logic
   useEffect(() => {
@@ -177,23 +122,7 @@ export function useFocusSession(): UseFocusSessionResult {
 
     if (isActive && timeLeft > 0) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft((time) => {
-          const newTime = time - 1;
-          
-          // --- AI Check-in Logic ---
-          if (!isBreak && newTime % 60 === 0) { // Check every minute during work phase
-            const elapsedSeconds = currentMode.work - newTime;
-            
-            // Check if 30 minutes have passed since the start or last check-in
-            if (elapsedSeconds >= lastCheckinTimeRef.current + CHECKIN_INTERVAL_SECONDS) {
-                runAITaskCheckin(focusTag);
-                lastCheckinTimeRef.current = elapsedSeconds;
-            }
-          }
-          // --- End AI Check-in Logic ---
-
-          return newTime;
-        });
+        setTimeLeft((time) => time - 1);
       }, 1000);
     } else if (timeLeft === 0) {
       // Phase transition or session end
@@ -201,30 +130,21 @@ export function useFocusSession(): UseFocusSessionResult {
         toast.success("Break over! Time to focus!");
         setIsBreak(false);
         setTimeLeft(currentMode.work);
-        lastCheckinTimeRef.current = 0; // Reset check-in tracker for new work phase
+        // Do not call endCurrentSession here, as it's a cycle transition, not a full session end.
       } else {
-        // Work phase ended - automatically trigger session end preparation
-        const sessionData = prepareSessionEnd(); 
-        
-        if (sessionData) {
-            // If session was long enough to save, the modal will open in FocusRoom.tsx
-            
-            // If there is a break, we automatically start it after the work phase ends.
-            if (currentMode.break > 0) {
-                toast.success("Great work! Time for a break!");
-                setIsBreak(true);
-                setTimeLeft(currentMode.break);
-                setIsActive(true); // Automatically start break
-            } else {
-                // Session finished without a break (e.g., Silent Mode)
-                toast.success(`${currentMode.name} session complete!`);
-                setTimeLeft(currentMode.work);
-                setIsActive(false); // Stop timer
-            }
+        // Work phase ended
+        endCurrentSession(); // Log the completed work session
+
+        if (currentMode.break > 0) {
+          toast.success("Great work! Time for a break!");
+          setIsBreak(true);
+          setTimeLeft(currentMode.break);
+          setIsActive(true); // Automatically start break
         } else {
-            // If session was too short, just reset to work time
-            setTimeLeft(currentMode.work);
-            setIsActive(false);
+          // Session finished without a break (e.g., Silent Mode)
+          toast.success(`${currentMode.name} session complete!`);
+          setTimeLeft(currentMode.work);
+          setIsActive(false); // Stop timer
         }
       }
     }
@@ -232,38 +152,25 @@ export function useFocusSession(): UseFocusSessionResult {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive, timeLeft, isBreak, currentMode, prepareSessionEnd, focusTag, userId, profile]);
+  }, [isActive, timeLeft, isBreak, currentMode, endCurrentSession]);
 
   const toggleTimer = () => {
     const newState = !isActive;
-    
+    setIsActive(newState);
+
     if (newState && sessionStartTime === 0) {
-      // Start session
+      // If starting from a fresh state (sessionStartTime is 0), initiate logging
       startNewSession();
     } else if (!newState && sessionStartTime !== 0 && !isBreak) {
-      // If pausing a work session, we should trigger the save modal
-      const sessionData = prepareSessionEnd();
-      if (sessionData) {
-          // If session data exists, the modal will open in FocusRoom.tsx
-          // We rely on the user to save/cancel via the modal.
-      } else {
-          // If session was too short, just pause
-          setIsActive(false);
-      }
-      toast.info("Focus paused.");
-    } else if (!newState && isBreak) {
-      // If pausing a break
-      toast.info("Break paused.");
-      setIsActive(false);
-    } else {
-        setIsActive(newState);
+      // If pausing a work session, we should offer to end it or just pause.
+      toast.info(isBreak ? "Break paused." : "Focus paused.");
     }
   };
 
   const resetTimer = () => {
     if (sessionId && !isBreak) {
       // If resetting a work session, log the partial session
-      prepareSessionEnd(); // This will stop the timer and prepare the modal
+      endCurrentSession();
     }
 
     setIsActive(false);
@@ -271,7 +178,6 @@ export function useFocusSession(): UseFocusSessionResult {
     setTimeLeft(currentMode.work);
     setSessionStartTime(0);
     setSessionId(null);
-    lastCheckinTimeRef.current = 0; // Reset check-in tracker
     toast.info("Timer reset.");
   };
 
@@ -302,8 +208,7 @@ export function useFocusSession(): UseFocusSessionResult {
     resetTimer,
     handleSaveCustomSettings,
     startNewSession,
-    prepareSessionEnd,
-    endCurrentSessionAndSave,
+    endCurrentSession,
     currentDuration,
     progress,
   };

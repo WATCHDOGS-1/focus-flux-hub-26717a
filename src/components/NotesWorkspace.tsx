@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import ReactQuill from "react-quill";
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 import { NotebookText, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const LOCAL_STORAGE_KEY = "onlyfocus_notes_content";
 
@@ -48,7 +47,7 @@ const NotesWorkspace = () => {
       border-bottom-left-radius: var(--radius);
       border-bottom-right-radius: var(--radius);
       border-color: hsl(var(--border));
-      background-color: hsl(var(--card)); /* Changed from --background to --card */
+      background-color: hsl(var(--background));
       flex-grow: 1;
       overflow-y: auto;
     }
@@ -76,27 +75,25 @@ const NotesWorkspace = () => {
       {/* Style injection for Quill theming */}
       <style dangerouslySetInnerHTML={{ __html: quillStyles }} />
 
-      <div className="flex items-center justify-between border-b border-border pb-2">
-        <h4 className="text-lg font-semibold flex items-center gap-2 text-primary">
+      <h4 className="text-lg font-semibold flex items-center justify-between border-b border-border pb-2">
+        <span className="flex items-center gap-2 text-primary">
           <NotebookText className="w-5 h-5" />
           Local Study Notes
-        </h4>
-        <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="w-3 h-3" />
-                Use indentation (Tab) for nested blocks.
-            </span>
-        </div>
-      </div>
+        </span>
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <Info className="w-3 h-3" />
+          Use indentation (Tab) for nested blocks.
+        </span>
+      </h4>
       
       <div className="flex-1 min-h-0 flex flex-col">
         <ReactQuill 
-            theme="snow" 
-            value={content} 
-            onChange={handleChange} 
-            modules={modules}
-            placeholder="Start typing your notes here. Use lists and indentation (Tab key) to create nested blocks and toggle lists. This content is saved locally on your device."
-            className="flex-1 flex flex-col"
+          theme="snow" 
+          value={content} 
+          onChange={handleChange} 
+          modules={modules}
+          placeholder="Start typing your notes here. Use lists and indentation (Tab key) to create nested blocks and toggle lists. This content is saved locally on your device."
+          className="flex-1 flex flex-col"
         />
       </div>
     </div>

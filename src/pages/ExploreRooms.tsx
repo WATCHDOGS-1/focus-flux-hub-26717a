@@ -4,26 +4,18 @@ import { PREDEFINED_ROOMS } from "@/utils/constants";
 import { useRoomPresence } from "@/hooks/use-room-presence";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Video, Zap, Search, Shield, Home, Lock } from "lucide-react";
+import { Users, Video, Zap, Search, Shield } from "lucide-react";
 import AnimatedSection from "@/components/AnimatedSection";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-// Placeholder for premium status check (assuming false for now)
-const useIsPremium = () => false; 
-
 const ExploreRooms = () => {
   const navigate = useNavigate();
   const presence = useRoomPresence();
   const [searchTerm, setSearchTerm] = useState("");
-  const isPremium = useIsPremium(); // Placeholder check
 
-  const handleJoinRoom = (roomId: string, isPremiumRoom: boolean) => {
-    if (isPremiumRoom && !isPremium) {
-        navigate("/social?tab=upgrade"); // Redirect to upgrade tab
-        return;
-    }
+  const handleJoinRoom = (roomId: string) => {
     navigate(`/focus-room/${roomId}`);
   };
 
@@ -38,24 +30,14 @@ const ExploreRooms = () => {
           <h1 className="text-4xl font-bold">
             Explore Focus Rooms
           </h1>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => navigate("/")}
-              className="dopamine-click flex items-center gap-2"
-              variant="outline"
-            >
-              <Home className="w-4 h-4" />
-              Home
-            </Button>
-            <Button
-              onClick={() => navigate("/social")}
-              className="dopamine-click flex items-center gap-2"
-              variant="outline"
-            >
-              <Shield className="w-4 h-4" />
-              Social Dashboard
-            </Button>
-          </div>
+          <Button
+            onClick={() => navigate("/social")}
+            className="dopamine-click flex items-center gap-2"
+            variant="outline"
+          >
+            <Shield className="w-4 h-4" />
+            Social Dashboard
+          </Button>
         </div>
         <p className="text-xl text-muted-foreground text-center max-w-3xl mx-auto mb-8">
           Join a virtual study room to co-work with peers. Each room supports up to 10 users via P2P video.
@@ -82,15 +64,13 @@ const ExploreRooms = () => {
             const currentUsers = presence[room.id] || 0;
             const isFull = currentUsers >= room.maxCapacity;
             const progressValue = (currentUsers / room.maxCapacity) * 100;
-            const isPremiumRoom = room.isPremium || false;
-            const isLocked = isPremiumRoom && !isPremium;
 
             return (
               <AnimatedSection key={room.id} delay={index * 0.1} className="h-full">
-                <Card className={cn("glass-card hover-lift h-full flex flex-col", (isFull || isLocked) && "opacity-70")}>
+                <Card className={cn("glass-card hover-lift h-full flex flex-col", isFull && "opacity-70")}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-3">
-                      {isLocked ? <Lock className="w-6 h-6 text-yellow-500" /> : <Zap className="w-6 h-6 text-primary" />}
+                      <Zap className="w-6 h-6 text-primary" />
                       {room.name}
                     </CardTitle>
                   </CardHeader>
@@ -107,26 +87,16 @@ const ExploreRooms = () => {
                       </div>
                       <Progress value={progressValue} className="h-2" />
                       <p className="text-sm text-muted-foreground">
-                        {isPremiumRoom ? "Premium access for massive co-working sessions." : `${room.maxCapacity} user limit ensures low-latency P2P video.`}
+                        {room.maxCapacity} user limit ensures low-latency P2P video.
                       </p>
                     </div>
                     <Button
-                      onClick={() => handleJoinRoom(room.id, isPremiumRoom)}
-                      disabled={isFull || isLocked}
+                      onClick={() => handleJoinRoom(room.id)}
+                      disabled={isFull}
                       className="w-full dopamine-click"
                     >
-                      {isLocked ? (
-                        <>
-                            <Lock className="w-4 h-4 mr-2" /> Unlock with Premium
-                        </>
-                      ) : isFull ? (
-                        "Room Full"
-                      ) : (
-                        <>
-                            Join Room
-                            <Video className="w-4 h-4 ml-2" />
-                        </>
-                      )}
+                      {isFull ? "Room Full" : "Join Room"}
+                      <Video className="w-4 h-4 ml-2" />
                     </Button>
                   </CardContent>
                 </Card>

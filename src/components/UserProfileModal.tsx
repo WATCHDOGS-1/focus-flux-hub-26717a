@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, User, Flame, Clock, Zap, MessageSquare, UserPlus, Check, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Database, Json } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
 import { sendFriendRequest } from "@/utils/friends";
 import { getOrCreateConversation } from "@/utils/dm";
 import { Progress } from "@/components/ui/progress";
@@ -22,25 +22,12 @@ interface UserProfileModalProps {
   onClose: () => void;
 }
 
-// Helper function to safely extract interests data from the JSON column
-const getInterestsData = (interestsJson: Json | null) => {
-    const data = (interestsJson || {}) as Record<string, any>;
-    const focusClass = data.focus_class as FocusClass | undefined;
-    // Assume tags are stored under the 'tags' key, which should be an array
-    const tags = Array.isArray(data.tags) ? data.tags as string[] : [];
-    return { focusClass, tags, rawData: data };
-};
-
-
 const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalProps) => {
   const [profileData, setProfileData] = useState<Profile | null>(null);
   const [statsData, setStatsData] = useState<UserStats | null>(null);
   const [levelsData, setLevelsData] = useState<UserLevels | null>(null);
   const [friendshipStatus, setFriendshipStatus] = useState<'not_friend' | 'pending_sent' | 'pending_received' | 'friend'>('not_friend');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // State to hold the raw interests data for updates
-  const [currentInterestsData, setCurrentInterestsData] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (!userId) return;
@@ -48,7 +35,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
     const fetchData = async () => {
       setIsLoading(true);
 
-      // 1. Fetch Profile
+      // 1. Fetch Profile (Requires RLS on profiles to allow friends to read basic info)
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -63,10 +50,8 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
       }
 
       setProfileData(profile);
-      setCurrentInterestsData((profile.interests || {}) as Record<string, any>);
 
-
-      // 2. Fetch User Stats
+      // 2. Fetch User Stats (RLS allows friends to read)
       const { data: stats, error: statsError } = await supabase
         .from("user_stats")
         .select("*")
@@ -79,7 +64,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
       }
       setStatsData(stats || null);
 
-      // 3. Fetch User Levels
+      // 3. Fetch User Levels (RLS allows friends to read)
       const { data: levels, error: levelsError } = await supabase
         .from("user_levels")
         .select("*")
@@ -145,14 +130,12 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
   };
 
 
+
   const handleClassSelect = async (classId: FocusClass) => {
     if (userId !== currentUserId) return;
 
-    // 1. Create new interests object, preserving existing data (like tags)
-    const newInterests = { ...currentInterestsData, focus_class: classId };
-    
     // Optimistic update
-    setCurrentInterestsData(newInterests);
+    const newInterests = { ...((profileData?.interests as any) || {}), focus_class: classId };
     setProfileData({ ...profileData!, interests: newInterests });
 
     const { error } = await supabase
@@ -204,8 +187,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
     const prevLevelXP = thresholds.find(t => t.level === currentLevel)?.xp || 0;
     const nextLevelXP = nextLevel?.xp || (prevLevelXP + 1000); // Fallback
     const progressPercent = Math.min(100, Math.max(0, ((currentXP - prevLevelXP) / (nextLevelXP - prevLevelXP)) * 100));
-    
-    const { focusClass: userClassId } = getInterestsData(profileData?.interests || null);
+    const userClassId = (profileData?.interests as any)?.focus_class as FocusClass | undefined;
     const userClass = FOCUS_CLASSES.find(c => c.id === userClassId);
 
     return (
@@ -268,7 +250,7 @@ const UserProfileModal = ({ userId, currentUserId, onClose }: UserProfileModalPr
   };
 
   const renderInterests = () => {
-    const { tags: interests } = getInterestsData(profileData?.interests || null);
+    const interests = Array.isArray(profileData?.interests) ? profileData.interests as string[] : [];
     return (
       <div className="space-y-2">
         <h4 className="text-md font-semibold">Interests</h4>

@@ -26,8 +26,6 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!conversationId) return;
-    
     loadMessages();
 
     const channel = supabase
@@ -65,7 +63,6 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
 
     if (error) {
       console.error("Error loading DM messages:", error);
-      toast.error(`Failed to load messages: ${error.message}`);
     } else if (data) {
       setMessages(data as DMMessage[]);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -73,7 +70,7 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !conversationId || !currentUserId) return;
+    if (!newMessage.trim()) return;
 
     const messageContent = newMessage.trim();
     setNewMessage(""); // Clear input immediately
@@ -101,9 +98,9 @@ const DMConversation = ({ conversationId, targetUsername, targetUserId, currentU
 
     if (error) {
       const errorMsg = `Failed to send message: ${error.message}`;
-      toast.error(errorMsg, { duration: 8000 }); // Display detailed error
+      toast.error(errorMsg); // Display detailed error
       console.error(errorMsg, error);
-      // Rollback the optimistic message if sending failed
+      // Optionally, remove the optimistic message if sending failed
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     }
     // The real-time listener will now trigger loadMessages() to replace the optimistic message

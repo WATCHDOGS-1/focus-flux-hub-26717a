@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Users, Shield } from "lucide-react";
+import { Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -24,19 +24,6 @@ const StudyCircles = () => {
   const [newCircleName, setNewCircleName] = useState("");
   const [newCircleDesc, setNewCircleDesc] = useState("");
 
-  // Temporarily disable circles functionality and show coming soon message
-  return (
-    <div className="text-center py-20 space-y-4 glass-card p-8 rounded-xl">
-      <Shield className="w-12 h-12 text-primary mx-auto" />
-      <h3 className="text-2xl font-bold">Study Circles: Coming Soon</h3>
-      <p className="text-muted-foreground max-w-md mx-auto">
-        Study Circles are currently under construction. This feature will allow you to create private, persistent focus groups with friends for enhanced accountability and shared goals.
-      </p>
-    </div>
-  );
-
-  /*
-  // Original logic (commented out for now)
   useEffect(() => {
     if (userId) {
       loadCircles();
@@ -193,7 +180,6 @@ const StudyCircles = () => {
       </TabsContent>
     </Tabs>
   );
-  */
 };
 
 export default StudyCircles;

@@ -11,35 +11,16 @@ import { useUserStats } from "@/hooks/use-user-stats";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { getLevelThresholds } from "@/utils/session-management";
-import WeeklyFocusChart from "./WeeklyFocusChart";
-import DigitalPlanetView from "./DigitalPlanetView"; // Import the new component
+import WeeklyFocusChart from "./WeeklyFocusChart"; // Import the new chart
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type DailyGoal = Database["public"]["Tables"]["daily_goals"]["Row"];
 type WeeklyGoal = Database["public"]["Tables"]["weekly_goals"]["Row"];
 
 const RECOMMENDED_TAGS = [
-  "Programming", "Writing", "Music", "Reading", "Learning Languages", 
+  "Programming", "Writing", "Music", "Reading", "Movies", "Learning Languages", 
   "Food", "Anime", "Art", "TV series", "Sports", "Culture", "Dance", "Tech"
 ];
-
-// Helper to safely extract tags from the JSON column
-const getTagsFromInterests = (interests: Database["public"]["Tables"]["profiles"]["Row"]["interests"]): string[] => {
-  if (!interests || typeof interests !== 'object' || Array.isArray(interests)) {
-    return [];
-  }
-  const data = interests as Record<string, any>;
-  return Array.isArray(data.tags) ? data.tags as string[] : [];
-};
-
-// Helper to safely update the interests JSON column, preserving other keys (like focus_class)
-const updateInterestsJson = (currentInterests: Database["public"]["Tables"]["profiles"]["Row"]["interests"], newTags: string[]) => {
-  const existingData = (currentInterests || {}) as Record<string, any>;
-  return {
-    ...existingData,
-    tags: newTags,
-  };
-};
 
 const ProfileMenu = () => {
   const { userId, profile, refreshProfile } = useAuth();
@@ -54,8 +35,12 @@ const ProfileMenu = () => {
   useEffect(() => {
     if (profile) {
       setUsername(profile.username);
-      // Read tags from the 'tags' key inside the interests JSON object
-      setInterests(getTagsFromInterests(profile.interests));
+      // Ensure interests are treated as string[]
+      if (Array.isArray(profile.interests)) {
+        setInterests(profile.interests as string[]);
+      } else {
+        setInterests([]);
+      }
     }
     if (userId) {
       loadGoals(userId);
@@ -85,9 +70,9 @@ const ProfileMenu = () => {
   };
 
   const addInterest = (tag: string) => {
-    const normalizedTag = tag.trim();
-    if (normalizedTag && !interests.map(t => t.toLowerCase()).includes(normalizedTag.toLowerCase())) {
-      setInterests(prev => [...prev, normalizedTag]);
+    const normalizedTag = tag.trim().toLowerCase();
+    if (normalizedTag && !interests.map(t => t.toLowerCase()).includes(normalizedTag)) {
+      setInterests(prev => [...prev, tag.trim()]);
       setNewInterest("");
     }
   };
@@ -108,12 +93,11 @@ const ProfileMenu = () => {
     let allSuccess = true;
 
     // 1. Save username and interests
-    // Preserve existing interests (like focus_class) and update tags
-    const newInterestsPayload = updateInterestsJson(profile?.interests || null, interests);
-
+    // We explicitly cast interests to Json type to satisfy the Supabase client, 
+    // which should resolve the schema cache issue if it's related to type inference.
     const profileUpdatePayload = { 
       username: username, 
-      interests: newInterestsPayload as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
+      interests: interests as Database["public"]["Tables"]["profiles"]["Update"]["interests"] 
     };
     
     const { error: profileError } = await supabase
@@ -167,11 +151,38 @@ const ProfileMenu = () => {
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      toast.error(`Logout failed: ${error.message}`);
+      toast.error("Logout failed. Please try again.");
     } else {
       navigate("/auth");
     }
   };
+
+  // --- Level Progression Calculation ---
+  const LEVEL_THRESHOLDS = getLevelThresholds();
+  const currentXP = levels?.total_xp || 0;
+  const currentLevel = levels?.level || 1;
+  
+  const nextLevelData = LEVEL_THRESHOLDS.find(t => t.level === currentLevel + 1);
+  
+  let progressPercent = 0;
+  let xpToNextLevel = 0;
+  let currentLevelXPBase = 0;
+
+  if (nextLevelData) {
+    currentLevelXPBase = LEVEL_THRESHOLDS.find(t => t.level === currentLevel)?.xp || 0;
+    const nextLevelXP = nextLevelData.xp;
+    
+    const xpInCurrentLevel = currentXP - currentLevelXPBase;
+    const xpNeededForNextLevel = nextLevelXP - currentLevelXPBase;
+    
+    xpToNextLevel = xpNeededForNextLevel - xpInCurrentLevel;
+    progressPercent = (xpInCurrentLevel / xpNeededForNextLevel) * 100;
+  } else {
+    // Max level reached
+    progressPercent = 100;
+  }
+  // --- End Level Progression Calculation ---
+
 
   if (!userId || isLoadingStats) {
     return <div className="text-center py-8 text-muted-foreground">Loading profile...</div>;
@@ -202,8 +213,21 @@ const ProfileMenu = () => {
           </div>
         </div>
         
-        {/* XP Progression / Digital Planet View */}
-        <DigitalPlanetView />
+        {/* XP Progression */}
+        <div className="glass-card p-4 rounded-xl space-y-2">
+            <h4 className="text-md font-semibold flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-accent" />
+                XP Progression
+            </h4>
+            <div className="text-sm text-muted-foreground flex justify-between">
+                <span>Level {currentLevel}</span>
+                <span>{nextLevelData ? `Next: Lvl ${nextLevelData.level}` : 'Max Level!'}</span>
+            </div>
+            <Progress value={progressPercent} className="h-2" />
+            <p className="text-xs text-muted-foreground text-right">
+                {nextLevelData ? `${Math.max(0, xpToNextLevel)} XP until next level` : 'You are a Chrono Emperor!'}
+            </p>
+        </div>
 
         {/* Weekly Focus Chart */}
         <div className="glass-card p-4 rounded-xl">

@@ -1,15 +1,14 @@
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import HeroSection from "@/components/home/HeroSection";
 import FeatureGridSection from "@/components/home/FeatureGridSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FAQSection from "@/components/home/FAQSection";
-import ResearchLinksSection from "@/components/home/ResearchLinksSection";
 import AnimatedSection from "@/components/AnimatedSection";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 
-const Landing = () => {
+const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -100,11 +99,8 @@ const Landing = () => {
 
       {/* 4. FAQ Section */}
       <FAQSection />
-      
-      {/* 5. Research Links Section */}
-      <ResearchLinksSection />
 
-      {/* 6. Final CTA Section */}
+      {/* 5. Final CTA Section */}
       <div className="bg-primary/10 py-20">
         <div className="container mx-auto px-4 text-center">
           <AnimatedSection>
@@ -125,23 +121,8 @@ const Landing = () => {
           </AnimatedSection>
         </div>
       </div>
-      
-      {/* 7. Footer with Legal Links */}
-      <footer className="bg-card border-t border-border py-8">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} OnlyFocus. All rights reserved.</p>
-          <div className="flex gap-4 mt-4 sm:mt-0">
-            <Link to="/terms" className="hover:text-primary transition-colors">
-              Terms of Service
-            </Link>
-            <Link to="/privacy" className="hover:text-primary transition-colors">
-              Privacy Policy
-            </Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
 
-export default Landing;
+export default Home;

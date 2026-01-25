@@ -6,7 +6,6 @@ import { WebRTCManager } from "@/utils/webrtc";
 import RemoteVideo from "@/components/RemoteVideo";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getOptimizedPeerList } from "@/utils/bandwidth-optimization"; // Import optimization utility
 
 interface VideoGridProps {
   userId: string;
@@ -24,11 +23,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
   const [remoteStreams, setRemoteStreams] = new useState<Map<string, { stream: MediaStream; username: string }>>(new Map());
   const [videoDevices, setVideoDevices] = useState<VideoDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
-  
-  // --- State for Optimization ---
-  const [optimizedPeerIds, setOptimizedPeerIds] = useState<string[]>([]);
-  const [maxVideos, setMaxVideos] = useState(8); // Default max
-  // ---------------------------------
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const webrtcManager = useRef<WebRTCManager | null>(null);
@@ -68,39 +62,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
     };
   }, [enumerateDevices]);
 
-  // --- Optimization Logic ---
-  const runOptimization = useCallback(async (currentRemotePeers: Map<string, any>) => {
-    const allPeerIds = Array.from(currentRemotePeers.keys());
-    
-    // Include pinned videos in the priority list regardless of score
-    const pinnedPeerIds = Array.from(pinnedVideos).map(index => {
-        // Index 0 is local video, index 1+ are remote videos
-        if (index > 0) {
-            // Find the peerId corresponding to the pinned index
-            const peerId = Array.from(currentRemotePeers.keys())[index - 1];
-            return peerId;
-        }
-        return null;
-    }).filter((id): id is string => !!id);
-
-    const unpinnedPeerIds = allPeerIds.filter(id => !pinnedPeerIds.includes(id));
-    
-    // Run ranking on unpinned peers
-    const { maxVideosToLoad, rankedPeerIds: topRankedUnpinned } = await getOptimizedPeerList(unpinnedPeerIds);
-    
-    // Combine pinned peers (highest priority) with the top ranked unpinned peers
-    // Ensure we don't exceed maxVideosToLoad
-    const finalOptimizedList = Array.from(new Set([...pinnedPeerIds, ...topRankedUnpinned])).slice(0, maxVideosToLoad);
-    
-    setOptimizedPeerIds(finalOptimizedList);
-    setMaxVideos(maxVideosToLoad);
-    
-    if (finalOptimizedList.length < allPeerIds.length) {
-        toast.info(`Bandwidth limit detected. Displaying top ${finalOptimizedList.length} of ${allPeerIds.length} peers.`);
-    }
-  }, [pinnedVideos]);
-  // --------------------------
-
 
   // 2. WebRTC Setup/Cleanup
   useEffect(() => {
@@ -127,11 +88,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
 
             const username = data?.username || `Peer ${peerId.slice(0, 6)}`;
 
-            setRemoteStreams((prev) => {
-                const newMap = new Map(prev).set(peerId, { stream, username });
-                runOptimization(newMap); // <-- Run optimization on stream added
-                return newMap;
-            });
+            setRemoteStreams((prev) => new Map(prev).set(peerId, { stream, username }));
             toast.success(`${username} connected!`);
           },
           (peerId) => {
@@ -142,7 +99,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
                 toast.info(`${peerInfo.username} left.`);
               }
               newMap.delete(peerId);
-              runOptimization(newMap); // <-- Run optimization on stream removed
               return newMap;
             });
           },
@@ -166,7 +122,7 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
         webrtcManager.current.cleanup();
       }
     };
-  }, [userId, roomId, runOptimization]); // Added runOptimization dependency
+  }, [userId, roomId]);
 
   // 3. Video Toggle Logic
   const toggleVideo = async (deviceId?: string) => {
@@ -221,22 +177,9 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
       } else {
         newSet.add(index);
       }
-      
-      // Re-run optimization immediately when pin status changes
-      // Use a timeout to ensure state update is processed before running optimization
-      setTimeout(() => runOptimization(remoteStreams), 0); 
-      
       return newSet;
     });
   };
-
-  // Filter remote streams based on optimization list
-  const filteredRemoteStreams = Array.from(remoteStreams.entries()).filter(([peerId]) => 
-    optimizedPeerIds.includes(peerId)
-  );
-  
-  // Determine the number of videos currently displayed (local + filtered remote)
-  const displayedVideoCount = 1 + filteredRemoteStreams.length;
 
   return (
     <div className="h-full flex flex-col gap-4">
@@ -276,16 +219,6 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
             <span className="text-sm text-muted-foreground font-semibold">
               Connected: {remoteStreams.size + 1}
             </span>
-            {remoteStreams.size > 0 && (
-                <span className="text-sm text-warning font-semibold">
-                    Displaying: {displayedVideoCount} / {remoteStreams.size + 1}
-                </span>
-            )}
-            {maxVideos < 8 && (
-                <span className="text-sm text-warning font-semibold">
-                    (Max {maxVideos} videos due to bandwidth)
-                </span>
-            )}
           </div>
         </div>
       </div>
@@ -319,19 +252,15 @@ const VideoGrid = ({ userId, roomId }: VideoGridProps) => {
           </Button>
         </div>
 
-        {/* Remote Videos (Filtered) */}
-        {filteredRemoteStreams.map(([peerId, { stream, username }], index) => (
+        {/* Remote Videos */}
+        {Array.from(remoteStreams.entries()).map(([peerId, { stream, username }], index) => (
           <RemoteVideo
             key={peerId}
             peerId={peerId}
             stream={stream}
             username={username}
-            // Note: The index for pinning needs to be relative to the full list of peers, 
-            // but since we are filtering, we must check if the peerId is in the pinned list.
-            // We rely on the `togglePin` function to manage the set of pinned indices correctly.
-            // For now, we use the index in the filtered list + 1 as a placeholder for the pin check.
-            isPinned={pinnedVideos.has(Array.from(remoteStreams.keys()).indexOf(peerId) + 1)}
-            onTogglePin={() => togglePin(Array.from(remoteStreams.keys()).indexOf(peerId) + 1)}
+            isPinned={pinnedVideos.has(index + 1)}
+            onTogglePin={() => togglePin(index + 1)}
           />
         ))}
       </div>

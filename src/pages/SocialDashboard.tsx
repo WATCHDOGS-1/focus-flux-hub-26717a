@@ -1,27 +1,20 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield, Home, User, Brain, Crown, UserPlus, Globe } from "lucide-react";
+import { ArrowLeft, Users, MessageSquare, Trophy, Rss, Shield } from "lucide-react";
 import SocialSidebar from "@/components/SocialSidebar";
 import GlobalChatPanel from "@/components/GlobalChatPanel";
 import Leaderboard from "@/components/Leaderboard";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusFeed from "@/components/FocusFeed";
 import StudyCircles from "@/components/StudyCircles";
-import ProfileMenu from "@/components/ProfileMenu";
-import AICoachPanel from "@/components/AICoachPanel";
-import UpgradePanel from "@/components/UpgradePanel";
-import PartnerRequestPanel from "@/components/PartnerRequestPanel";
-import DigitalPlanetDashboard from "@/components/DigitalPlanetDashboard"; // Import new component
 
 const SocialDashboard = () => {
     const navigate = useNavigate();
     const { userId } = useAuth();
     const [targetUserId, setTargetUserId] = useState<string | null>(null);
-    const [searchParams] = useSearchParams();
-    const defaultTab = searchParams.get('tab') || 'feed';
 
     const handleProfileClick = (id: string) => {
         setTargetUserId(id);
@@ -53,39 +46,23 @@ const SocialDashboard = () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => navigate("/")}
-                            title="Go to Home"
-                        >
-                            <Home className="h-5 w-5" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
                             onClick={() => navigate("/explore")}
                             title="Back to Explore"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
-                        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+                        <h1 className="text-2xl font-bold text-foreground">Community Hub</h1>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
-                <Tabs defaultValue={defaultTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-10 mb-8"> {/* Updated grid size to 10 */}
+                <Tabs defaultValue="feed" className="w-full">
+                    <TabsList className="grid w-full grid-cols-5 mb-8">
                         <TabsTrigger value="feed" className="flex items-center gap-2">
                             <Rss className="h-4 w-4" />
                             Feed
-                        </TabsTrigger>
-                        <TabsTrigger value="planets" className="flex items-center gap-2"> {/* New Tab */}
-                            <Globe className="h-4 w-4" />
-                            Planets
-                        </TabsTrigger>
-                        <TabsTrigger value="partner" className="flex items-center gap-2">
-                            <UserPlus className="h-4 w-4" />
-                            Partner
                         </TabsTrigger>
                         <TabsTrigger value="circles" className="flex items-center gap-2">
                             <Shield className="h-4 w-4" />
@@ -103,32 +80,10 @@ const SocialDashboard = () => {
                             <Trophy className="h-4 w-4" />
                             Leaderboard
                         </TabsTrigger>
-                        <TabsTrigger value="ai-coach" className="flex items-center gap-2">
-                            <Brain className="h-4 w-4" />
-                            AI Coach
-                        </TabsTrigger>
-                        <TabsTrigger value="profile" className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            Profile
-                        </TabsTrigger>
-                        <TabsTrigger value="upgrade" className="flex items-center gap-2 text-yellow-500">
-                            <Crown className="h-4 w-4" />
-                            Upgrade
-                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="feed">
                         <FocusFeed />
-                    </TabsContent>
-                    
-                    <TabsContent value="planets"> {/* New Content */}
-                        <div className="h-[80vh]">
-                            <DigitalPlanetDashboard />
-                        </div>
-                    </TabsContent>
-
-                    <TabsContent value="partner">
-                        <PartnerRequestPanel onProfileClick={handleProfileClick} />
                     </TabsContent>
 
                     <TabsContent value="circles">
@@ -136,37 +91,19 @@ const SocialDashboard = () => {
                     </TabsContent>
 
                     <TabsContent value="friends">
-                        <div className="h-[70vh] glass-card p-4 rounded-xl">
+                        <div className="h-[70vh]">
                             <SocialSidebar userId={userId} onProfileClick={handleProfileClick} />
                         </div>
                     </TabsContent>
 
                     <TabsContent value="chat">
-                        <div className="h-[70vh] glass-card p-4 rounded-xl">
+                        <div className="h-[70vh]">
                             <GlobalChatPanel userId={userId} />
                         </div>
                     </TabsContent>
 
                     <TabsContent value="leaderboard">
-                        <div className="glass-card p-4 rounded-xl">
-                            <Leaderboard onProfileClick={handleProfileClick} />
-                        </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="ai-coach">
-                        <div className="glass-card p-4 rounded-xl">
-                            <AICoachPanel />
-                        </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="profile">
-                        <div className="max-w-md mx-auto glass-card p-4 rounded-xl">
-                            <ProfileMenu />
-                        </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="upgrade">
-                        <UpgradePanel />
+                        <Leaderboard onProfileClick={handleProfileClick} />
                     </TabsContent>
                 </Tabs>
             </main>

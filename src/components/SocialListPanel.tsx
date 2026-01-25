@@ -9,7 +9,6 @@ import type { Database } from "@/integrations/supabase/types";
 import { getOrCreateConversation } from "@/utils/dm";
 import { useFriends } from "@/hooks/use-friends";
 import { sendFriendRequest, acceptFriendRequest, rejectFriendRequest } from "@/utils/friends";
-import { isLikelyEmail } from "@/utils/moderation"; // Import the utility
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Conversation = Database["public"]["Tables"]["dm_conversations"]["Row"];
@@ -85,16 +84,13 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
     if (error) {
       console.error("Error loading users:", error);
     } else if (data) {
-      // Filter out any profiles whose username looks like an email address for privacy/security
-      const safeUsers = (data as Profile[]).filter(user => !isLikelyEmail(user.username));
-      setAllUsers(safeUsers);
+      setAllUsers(data as Profile[]);
     }
   };
 
   const handleUserClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
     if (view === 'dms') {
-      // This path is only hit when searching in the DM view.
-      const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
+      const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
       if (conversationId) {
         onSelectConversation(conversationId, targetUser.username, targetUser.id);
       }
@@ -105,8 +101,7 @@ const SocialListPanel = ({ currentUserId, onSelectConversation, onProfileClick }
   };
   
   const handleConversationClick = async (targetUser: Pick<Profile, 'id' | 'username' | 'profile_photo_url'>) => {
-    // This is used when clicking an existing conversation item in the DM list
-    const { conversationId } = await getOrCreateConversation(currentUserId, targetUser.id);
+    const conversationId = await getOrCreateConversation(currentUserId, targetUser.id);
     if (conversationId) {
       onSelectConversation(conversationId, targetUser.username, targetUser.id);
     }

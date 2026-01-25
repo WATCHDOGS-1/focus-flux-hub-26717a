@@ -10,14 +10,11 @@ import Leaderboard from "@/components/Leaderboard";
 import ProfileMenu from "@/components/ProfileMenu";
 import EncouragementToasts from "@/components/EncouragementToasts";
 import ThemeToggle from "@/components/ThemeToggle";
-import NotesAndMediaPanel from "@/components/NotesAndMediaPanel"; // NEW COMBINED PANEL
-import AICoachAndTasksPanel from "@/components/AICoachAndTasksPanel";
+import NotesAndTasksWorkspace from "@/components/NotesAndTasksWorkspace";
 import RoomThemeSelector from "@/components/RoomThemeSelector";
 import UserProfileModal from "@/components/UserProfileModal";
 import FocusHUD from "@/components/FocusHUD"; // Import FocusHUD
-import YouTubePanel from "@/components/YouTubePanel"; // Import the new YouTube Panel
-import SessionSaveModal from "@/components/SessionSaveModal"; // Import the new modal
-import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles, Brain, Save, Youtube, FileText, BookOpen } from "lucide-react";
+import { MessageSquare, Users, Trophy, Timer, User, LogOut, Tag, Minimize2, Maximize2, NotebookText, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +32,6 @@ import {
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PREDEFINED_ROOMS } from "@/utils/constants";
-import { cn } from "@/lib/utils"; // Ensure cn is imported
 
 const FocusRoom = () => {
   const navigate = useNavigate();
@@ -48,8 +44,7 @@ const FocusRoom = () => {
     sessionStartTime,
     focusTag,
     setFocusTag,
-    prepareSessionEnd, // New function
-    endCurrentSessionAndSave, // New function
+    endCurrentSession,
     currentMode,
     startNewSession,
   } = useFocusSession(); // Use the centralized hook
@@ -57,13 +52,9 @@ const FocusRoom = () => {
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isZenMode, setIsZenMode] = useState(false);
-  const [mainWorkspacePanel, setMainWorkspacePanel] = useState<'notes-media' | 'ai' | null>(null); // Updated type
+  const [isZenMode, setIsZenMode] = useState(false); // New Zen Mode state
+  const [showNotesWorkspace, setShowNotesWorkspace] = useState(false);
   const [roomTheme, setRoomTheme] = useState("default");
-  
-  // --- Session Save Modal State ---
-  const [isSaveModalOpen, setIsSaveModalState] = useState(false);
-  const [sessionToSave, setSessionToSave] = useState<{ durationMinutes: number, defaultTag: string } | null>(null);
 
   // --- Profile Modal State and Handler ---
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
@@ -90,22 +81,9 @@ const FocusRoom = () => {
   // Auto-start timer when joining room
   useEffect(() => {
     if (userId && !isActive && sessionStartTime === 0) {
-      // Automatically start the session when entering the room
       startNewSession();
     }
   }, [userId, isActive, sessionStartTime, startNewSession]);
-
-  // Effect to check if a session needs saving (e.g., timer paused or ended)
-  useEffect(() => {
-    if (!isActive && sessionStartTime !== 0) {
-        const sessionData = prepareSessionEnd();
-        if (sessionData) {
-            setSessionToSave(sessionData);
-            setIsSaveModalState(true);
-        }
-    }
-  }, [isActive, sessionStartTime, prepareSessionEnd]);
-
 
   useEffect(() => {
     document.body.className = roomTheme;
@@ -114,41 +92,17 @@ const FocusRoom = () => {
     };
   }, [roomTheme]);
 
-  const handleSaveAndLeave = async (tag: string) => {
-    await endCurrentSessionAndSave(tag);
-    navigate("/explore");
-  };
-  
   const leaveRoom = async () => {
-    if (isActive || sessionStartTime !== 0) {
-        // Trigger the save flow via the modal
-        const sessionData = prepareSessionEnd();
-        if (sessionData) {
-            setSessionToSave(sessionData);
-            setIsSaveModalState(true);
-            // The navigation happens inside handleSaveAndLeave
-            return;
-        }
+    if (isActive) {
+      await endCurrentSession(); // End and log the session before leaving
     }
-    // If no active session, just navigate
     navigate("/explore");
   };
 
   const togglePanel = (panel: string) => {
     setActivePanel(activePanel === panel ? null : panel);
     if (isFocusMode) setIsFocusMode(false);
-    if (activePanel !== panel) {
-        setMainWorkspacePanel(null); // Close main workspace panels when opening a sidebar panel
-    }
-    setIsMobileMenuOpen(false);
-  };
-  
-  const toggleMainWorkspace = (panel: 'notes-media' | 'ai') => { // Updated type
-    setMainWorkspacePanel(mainWorkspacePanel === panel ? null : panel);
-    if (mainWorkspacePanel !== panel) {
-        setActivePanel(null); // Close sidebar panels when opening a main workspace panel
-    }
-    if (isFocusMode) setIsFocusMode(false);
+    if (activePanel !== panel) setShowNotesWorkspace(false);
     setIsMobileMenuOpen(false);
   };
 
@@ -156,8 +110,15 @@ const FocusRoom = () => {
     setIsFocusMode(!isFocusMode);
     if (!isFocusMode) {
       setActivePanel(null);
-      setMainWorkspacePanel(null); // Close main workspace panels on focus mode entry
+      setShowNotesWorkspace(false);
     }
+  };
+
+  const toggleNotesWorkspace = () => {
+    setShowNotesWorkspace(!showNotesWorkspace);
+    if (!showNotesWorkspace) setActivePanel(null);
+    if (isFocusMode) setIsFocusMode(false);
+    setIsMobileMenuOpen(false);
   };
 
   const renderPanelContent = (panel: string) => {
@@ -167,7 +128,6 @@ const FocusRoom = () => {
       case "leaderboard": return <Leaderboard onProfileClick={handleProfileClick} />;
       case "pomodoro": return <FocusTimer />;
       case "profile": return <ProfileMenu />;
-      case "youtube": return <YouTubePanel />; // New YouTube Panel
       default: return null;
     }
   };
@@ -179,7 +139,6 @@ const FocusRoom = () => {
       "leaderboard": "Leaderboard",
       "pomodoro": "Structured Timer",
       "profile": "Profile Settings",
-      "youtube": "YouTube Player", // New Title
     };
     return titles[panel] || "";
   };
@@ -206,19 +165,14 @@ const FocusRoom = () => {
         <ScrollArea className="p-4">
           <div className="space-y-4">
             <RoomThemeSelector onThemeChange={setRoomTheme} />
-            <Button onClick={() => navigate("/notes")} className="w-full justify-start gap-2"><BookOpen /> Notes Base</Button> {/* P4: Notes Navigation */}
-            <Button onClick={() => toggleMainWorkspace('notes-media')} className="w-full justify-start gap-2"><NotebookText /> Notes Workspace</Button>
-            <Button onClick={() => toggleMainWorkspace('ai')} className="w-full justify-start gap-2"><Brain /> AI Coach & Tasks</Button>
-            <Button onClick={() => togglePanel("youtube")} className="w-full justify-start gap-2"><Youtube /> YouTube Player</Button>
             <Button onClick={() => togglePanel("global-chat")} className="w-full justify-start gap-2"><MessageSquare /> Global Chat</Button>
             <Button onClick={() => togglePanel("social")} className="w-full justify-start gap-2"><Users /> Social</Button>
             <Button onClick={() => togglePanel("leaderboard")} className="w-full justify-start gap-2"><Trophy /> Leaderboard</Button>
             <Button onClick={() => togglePanel("pomodoro")} className="w-full justify-start gap-2"><Timer /> Timer</Button>
             <Button onClick={() => togglePanel("profile")} className="w-full justify-start gap-2"><User /> Profile</Button>
+            <Button onClick={toggleNotesWorkspace} className="w-full justify-start gap-2"><NotebookText /> Notes & Tasks</Button>
             <ThemeToggle />
-            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2">
-                <LogOut className="h-5 w-5" /> Save Session
-            </Button>
+            <Button variant="destructive" onClick={leaveRoom} className="w-full justify-start gap-2"><LogOut className="h-5 w-5" /></Button>
           </div>
         </ScrollArea>
       </DrawerContent>
@@ -228,17 +182,6 @@ const FocusRoom = () => {
   return (
     <div className={`min-h-screen flex flex-col bg-background relative overflow-x-hidden transition-colors duration-500`}>
       <EncouragementToasts />
-
-      {/* Session Save Modal */}
-      {sessionToSave && (
-        <SessionSaveModal
-            isOpen={isSaveModalState}
-            onClose={() => setIsSaveModalState(false)}
-            onSave={handleSaveAndLeave}
-            defaultTag={sessionToSave.defaultTag}
-            durationMinutes={sessionToSave.durationMinutes}
-        />
-      )}
 
       {/* Zen Mode HUD */}
       <AnimatePresence>
@@ -286,54 +229,17 @@ const FocusRoom = () => {
                 </Button>
                 {!isFocusMode && (
                   <>
-                    {/* P4: Notes Navigation Button */}
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => navigate("/notes")} 
-                        title="Notes Base"
-                    >
-                        <BookOpen className="h-5 w-5" />
-                    </Button>
-                    
-                    {/* Notes/Media Button (Combined) */}
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => toggleMainWorkspace('notes-media')} 
-                        title="Notes Workspace"
-                        className={mainWorkspacePanel === 'notes-media' ? "bg-secondary" : ""}
-                    >
-                        <NotebookText className="h-5 w-5" />
-                    </Button>
-                    
-                    {/* AI Coach Button */}
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => toggleMainWorkspace('ai')} 
-                        title="AI Coach & Tasks Panel"
-                        className={mainWorkspacePanel === 'ai' ? "bg-secondary" : ""}
-                    >
-                        <Brain className="h-5 w-5" />
-                    </Button>
-                    
-                    {/* Sidebar Panel Buttons */}
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("youtube")} title="YouTube Player" className={activePanel === 'youtube' ? "bg-secondary" : ""}>
-                        <Youtube className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat" className={activePanel === 'global-chat' ? "bg-secondary" : ""}><MessageSquare className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages" className={activePanel === 'social' ? "bg-secondary" : ""}><Users className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard" className={activePanel === 'leaderboard' ? "bg-secondary" : ""}><Trophy className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer" className={activePanel === 'pomodoro' ? "bg-secondary" : ""}><Timer className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings" className={activePanel === 'profile' ? "bg-secondary" : ""}><User className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={toggleNotesWorkspace} title="Local Notes & Tasks"><NotebookText className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("global-chat")} title="Global Chat"><MessageSquare className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("social")} title="Direct Messages"><Users className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("leaderboard")} title="Leaderboard"><Trophy className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("pomodoro")} title="Structured Timer"><Timer className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => togglePanel("profile")} title="Profile Settings"><User className="h-5 w-5" /></Button>
                   </>
                 )}
                 <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode"><Sparkles className="h-5 w-5" /></Button>
                 <ThemeToggle />
-                <Button variant="destructive" onClick={leaveRoom} title="Save Session and Leave" className="dopamine-click">
-                    <LogOut className="h-5 w-5 mr-2" /> Save Session
-                </Button>
+                <Button variant="destructive" size="icon" onClick={leaveRoom} title="Leave Room"><LogOut className="h-5 w-5" /></Button>
               </>
             )}
           </div>
@@ -341,53 +247,25 @@ const FocusRoom = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="flex h-full"> {/* Added h-full here */}
+        <div className="flex"> {/* Removed h-full here */}
           <div className="flex-1 p-2 sm:p-4 flex flex-col gap-4">
-            {/* Focus Tag Input (Always visible in room, unless in Focus Mode) */}
-            {!isFocusMode && (
-              <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-secondary/50 border-border">
+            {/* Optional Focus Tag (when active) */}
+            {isActive && focusTag && (
+              <div className="glass-card p-3 rounded-xl flex items-center gap-3 bg-primary/10 border-primary/50">
                 <Tag className="w-5 h-5 text-primary flex-shrink-0" />
-                <Input
-                  placeholder="What are you focusing on? (e.g., 'Math Homework', 'Project Alpha')"
-                  value={focusTag}
-                  onChange={(e) => setFocusTag(e.target.value)}
-                  className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-                <span className="text-xs text-muted-foreground flex-shrink-0">
-                  (Saved to session on start)
+                <span className="text-sm font-medium truncate">
+                  Focus: {focusTag}
                 </span>
               </div>
             )}
 
-            {/* Main Content Area: Video Grid and Workspace */}
-            <div className={cn(
-                "flex-1 min-h-[400px]", // Ensure minimum height for the whole area
-                mainWorkspacePanel && "flex flex-col gap-4" // If any workspace is shown, make it a vertical flex container
-            )}>
-                {/* Video Grid */}
-                <div className={cn(
-                    "min-h-[400px]", // Minimum height for video grid
-                    mainWorkspacePanel && "flex-1" // Take half the space if workspace is open
-                )}>
-                    <VideoGrid userId={userId} roomId={roomId} />
-                </div>
-                
-                {/* Conditional Workspace Panels */}
-                {mainWorkspacePanel === 'notes-media' && (
-                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
-                        <NotesAndMediaPanel />
-                    </div>
-                )}
-                
-                {mainWorkspacePanel === 'ai' && (
-                    <div className="flex-1 min-h-[400px]"> {/* Take the other half, ensure minimum height */}
-                        <AICoachAndTasksPanel />
-                    </div>
-                )}
+            <div className={showNotesWorkspace ? "min-h-[400px]" : "flex-1 min-h-[400px]"}> {/* Adjusted flex-1 based on notes visibility */}
+              <VideoGrid userId={userId} roomId={roomId} />
             </div>
+            {showNotesWorkspace && <div className="mt-4"><NotesAndTasksWorkspace /></div>}
           </div>
           {activePanel && !isFocusMode && !isMobile && (
-            <aside className="w-96 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
+            <aside className="w-80 glass-card border-l border-border p-4 overflow-y-auto flex-shrink-0">
               {renderPanelContent(activePanel)}
             </aside>
           )}

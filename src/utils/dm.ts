@@ -23,7 +23,7 @@ export const getOrCreateConversation = async (currentUserId: string, targetUserI
   if (fetchError) {
     const errorMsg = `Failed to load conversation: ${fetchError.message}`;
     console.error(errorMsg, fetchError);
-    toast.error(errorMsg);
+    toast.error("Failed to load conversation.");
     return { conversationId: null, error: errorMsg };
   }
 
@@ -41,7 +41,7 @@ export const getOrCreateConversation = async (currentUserId: string, targetUserI
   if (insertError) {
     const errorMsg = `Failed to start new conversation: ${insertError.message}`;
     console.error(errorMsg, insertError);
-    toast.error(errorMsg);
+    toast.error("Failed to start new conversation.");
     return { conversationId: null, error: errorMsg };
   }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,7 +41,7 @@ const Auth = () => {
       
       // If the sign-in happens without a redirect (e.g., already logged in), the AuthProvider handles it.
     } catch (error: any) {
-      toast.error(`Sign in failed: ${error.message}`);
+      toast.error(error.message || `${provider} sign in failed`);
       setAuthLoading(false);
     }
   };
@@ -95,18 +95,6 @@ const Auth = () => {
             <DiscordIcon className="w-5 h-5" />
             {authLoading && userId ? "Redirecting..." : "Continue with Discord"}
           </Button>
-          
-          <p className="text-xs text-center text-muted-foreground pt-2">
-            By continuing, you agree to the{" "}
-            <Link to="/terms" className="text-primary hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link to="/privacy" className="text-primary hover:underline">
-              Privacy Policy
-            </Link>
-            .
-          </p>
         </CardContent>
       </Card>
     </div>

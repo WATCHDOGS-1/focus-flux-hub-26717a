@@ -24,7 +24,7 @@ export const sendFriendRequest = async (senderId: string, receiverId: string): P
   if (fetchError) {
     const errorMsg = `Failed to check friend status: ${fetchError.message}`;
     console.error(errorMsg, fetchError);
-    toast.error(errorMsg);
+    toast.error("Failed to check friend status.");
     return { success: false, error: errorMsg };
   }
 

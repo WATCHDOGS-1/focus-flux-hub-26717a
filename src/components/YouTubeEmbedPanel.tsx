@@ -8,7 +8,7 @@ import { getYouTubeEmbedUrl } from "@/utils/youtube";
 const LOCAL_STORAGE_KEY = "onlyfocus_youtube_embed";
 const DEFAULT_PLAYLIST_URL = "https://www.youtube.com/watch?v=BH-SnQ8J1VU&list=PLfP6i5T0-DkIMLNRwmJpRBs4PJvxfgwBg";
 
-const YouTubePanel = () => {
+const YouTubeEmbedPanel = () => {
   const [embedUrl, setEmbedUrl] = useState("");
   const [inputUrl, setInputUrl] = useState("");
 
@@ -64,15 +64,15 @@ const YouTubePanel = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 border-b border-border pb-2 text-primary">
+    <div className="glass-card p-4 rounded-xl flex flex-col gap-3 h-full">
+      <h4 className="text-lg font-semibold flex items-center gap-2 border-b border-border pb-2 text-primary">
         <Youtube className="w-5 h-5" />
         YouTube Focus Player
-      </h3>
+      </h4>
 
       <div className="flex-1 min-h-0 relative">
         {embedUrl ? (
-            <div className="w-full h-full">
+            <div className="w-full h-full"> {/* Added wrapper div to ensure full height */}
                 {renderIframe(embedUrl)}
                 <Button 
                     variant="destructive" 
@@ -125,4 +125,4 @@ const YouTubePanel = () => {
   );
 };
 
-export default YouTubePanel;
+export default YouTubeEmbedPanel;

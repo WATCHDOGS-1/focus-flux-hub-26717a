@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { useFocusSession, SESSION_MODES } from "@/hooks/use-focus-session";
+import { useFocusSession } from "@/hooks/use-focus-session";
 import { Button } from "@/components/ui/button";
-import { Maximize2, Minimize2, Play, Pause, StopCircle, Settings } from "lucide-react";
+import { Maximize2, Minimize2, Play, Pause, StopCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AmbientBackground from "./AmbientBackground";
 import { motion, AnimatePresence } from "framer-motion";
-import TimerSettingsDialog from "./TimerSettingsDialog"; // Import the dialog
-import { toast } from "sonner";
 
 interface FocusHUDProps {
     onExitZenMode: () => void;
@@ -18,32 +16,14 @@ const FocusHUD = ({ onExitZenMode }: FocusHUDProps) => {
         isActive,
         isBreak,
         currentMode,
-        setCurrentMode,
         focusTag,
         toggleTimer,
         endCurrentSession,
-        handleSaveCustomSettings,
         progress,
     } = useFocusSession();
 
     const [mouseIdle, setMouseIdle] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isBreathingAnimationEnabled, setIsBreathingAnimationEnabled] = useState(true);
     let idleTimer: NodeJS.Timeout;
-
-    // Load animation setting from local storage on mount
-    useEffect(() => {
-        const storedSetting = localStorage.getItem("timer_breathing_animation");
-        if (storedSetting !== null) {
-            setIsBreathingAnimationEnabled(storedSetting === 'true');
-        }
-    }, []);
-
-    const handleToggleAnimation = (checked: boolean) => {
-        setIsBreathingAnimationEnabled(checked);
-        localStorage.setItem("timer_breathing_animation", checked.toString());
-        toast.info(`Breathing animation ${checked ? 'enabled' : 'disabled'}.`);
-    };
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -74,20 +54,7 @@ const FocusHUD = ({ onExitZenMode }: FocusHUDProps) => {
             <div className="relative z-10 flex flex-col items-center w-full max-w-4xl p-8">
 
                 {/* Top Bar (Fades out on idle) */}
-                <div className={cn("absolute top-8 right-8 left-8 flex justify-between transition-opacity duration-500", mouseIdle && isActive && !isSettingsOpen ? "opacity-0" : "opacity-100")}>
-                    {/* Left side: Settings */}
-                    <TimerSettingsDialog 
-                        onSave={handleSaveCustomSettings}
-                        isOpen={isSettingsOpen}
-                        setIsOpen={setIsSettingsOpen}
-                        isBreathingAnimationEnabled={isBreathingAnimationEnabled}
-                        onToggleAnimation={handleToggleAnimation}
-                        currentMode={currentMode}
-                        setCurrentMode={setCurrentMode}
-                        triggerClassName="text-white/70 hover:text-white hover:bg-white/10"
-                    />
-
-                    {/* Right side: Exit Button */}
+                <div className={cn("absolute top-8 right-8 transition-opacity duration-500", mouseIdle && isActive ? "opacity-0" : "opacity-100")}>
                     <Button
                         variant="ghost"
                         className="text-white/70 hover:text-white hover:bg-white/10"
@@ -134,7 +101,7 @@ const FocusHUD = ({ onExitZenMode }: FocusHUDProps) => {
                     </div>
 
                     {/* Controls (Fade out on idle) */}
-                    <div className={cn("flex items-center gap-6 transition-all duration-500", mouseIdle && isActive && !isSettingsOpen ? "opacity-0 translate-y-10" : "opacity-100 translate-y-0")}>
+                    <div className={cn("flex items-center gap-6 transition-all duration-500", mouseIdle && isActive ? "opacity-0 translate-y-10" : "opacity-100 translate-y-0")}>
                         <Button
                             size="lg"
                             variant="outline"
@@ -159,7 +126,7 @@ const FocusHUD = ({ onExitZenMode }: FocusHUDProps) => {
             </div>
 
             {/* Footer Status */}
-            <div className={cn("absolute bottom-8 text-white/30 text-sm font-mono transition-opacity duration-500", mouseIdle && isActive && !isSettingsOpen ? "opacity-0" : "opacity-100")}>
+            <div className={cn("absolute bottom-8 text-white/30 text-sm font-mono transition-opacity duration-500", mouseIdle && isActive ? "opacity-0" : "opacity-100")}>
                 {currentMode.name} • {isActive ? "Focusing..." : "Paused"}
             </div>
         </div>

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Users, Clock, Zap } from "lucide-react";
 import FloatingBlobs from "@/components/FloatingBlobs";
 import AnimatedSection from "@/components/AnimatedSection";
-import { useAuth } from "@/hooks/use-auth"; // Import useAuth
 
 // Placeholder for live stats (in a real app, this would be fetched)
 const LIVE_STATS = {
@@ -16,7 +15,6 @@ const LIVE_STATS = {
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth(); // Use useAuth hook
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -70,7 +68,6 @@ const HeroSection = () => {
             variants={itemVariants}
             className="flex flex-col sm:flex-row justify-center gap-4 mb-16"
           >
-            {/* Internal Link 1: Explore Rooms */}
             <Button
               onClick={() => navigate("/explore")}
               size="lg"
@@ -78,17 +75,14 @@ const HeroSection = () => {
             >
               Explore Rooms
             </Button>
-            {/* Internal Link 2: Social Dashboard (Conditional) */}
-            {isAuthenticated && (
-              <Button
-                onClick={() => navigate("/social")}
-                size="lg"
-                variant="outline"
-                className="text-lg px-8 py-6 rounded-xl dopamine-click font-semibold"
-              >
-                View Social Dashboard
-              </Button>
-            )}
+            <Button
+              onClick={() => navigate("/social")}
+              size="lg"
+              variant="outline"
+              className="text-lg px-8 py-6 rounded-xl dopamine-click font-semibold"
+            >
+              View Social Dashboard
+            </Button>
           </motion.div>
         </motion.div>
 
