@@ -5,6 +5,7 @@ import FeatureGridSection from "@/components/home/FeatureGridSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FAQSection from "@/components/home/FAQSection";
 import AnimatedSection from "@/components/AnimatedSection";
+import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 
@@ -21,7 +22,7 @@ const Home = () => {
       "operatingSystem": "Web",
       "applicationCategory": "http://schema.org/ProductivityApplication",
       "description": "OnlyFocus is the ultimate virtual study room and AI productivity tool, engineered for students and professionals seeking unmatched concentration and community accountability. Use the Pomodoro timer, track goals, and boost productivity.",
-      "url": "https://yourdomain.com/", // Placeholder
+      "url": "https://onlyfocus.site/",
       "image": "https://jgidrekaaqztxdiidbnn.supabase.co/storage/v1/object/public/public-assets/Image.jpg",
       "offers": {
         "@type": "Offer",
@@ -121,6 +122,9 @@ const Home = () => {
           </AnimatedSection>
         </div>
       </div>
+
+      {/* 6. Footer (Bottom of page) */}
+      <Footer />
     </div>
   );
 };

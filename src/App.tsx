@@ -9,7 +9,9 @@ import Auth from "./pages/Auth";
 import ExploreRooms from "./pages/ExploreRooms";
 import FocusRoom from "./pages/FocusRoom";
 import SocialDashboard from "./pages/SocialDashboard";
-import CircleDetail from "./pages/CircleDetail"; // Import new page
+import CircleDetail from "./pages/CircleDetail";
+import AboutUs from "./pages/AboutUs";
+import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 
@@ -28,9 +30,10 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/explore" element={<ExploreRooms />} />
             <Route path="/social" element={<SocialDashboard />} />
-            <Route path="/circle/:circleId" element={<CircleDetail />} /> {/* New Circle Detail Route */}
+            <Route path="/circle/:circleId" element={<CircleDetail />} />
             <Route path="/focus-room/:roomId" element={<FocusRoom />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/legal" element={<Legal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
